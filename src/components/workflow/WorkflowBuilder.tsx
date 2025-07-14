@@ -12,7 +12,7 @@ import {
 } from '@reactflow/core';
 import { Controls } from '@reactflow/controls';
 import { Background } from '@reactflow/background';
-import { Box, Paper, AppBar, Toolbar, Typography, Button, Fab } from '@mui/material';
+import { Box, AppBar, Toolbar, Typography, Button, Fab } from '@mui/material';
 import { Save as SaveIcon, PlayArrow as PlayIcon, Close as CloseIcon } from '@mui/icons-material';
 import NodePalette from './NodePalette';
 import TriggerNode from './nodes/TriggerNode';
@@ -46,7 +46,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [draggedType, setDraggedType] = useState<WorkflowNodeType | null>(null);
+
   let id = 0;
   const getId = () => `node_${id++}`;
 
@@ -100,13 +100,11 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
       };
 
       setNodes((nds: any) => nds.concat(newNode));
-      setDraggedType(null);
     },
     [reactFlowInstance, setNodes]
   );
 
   const onNodeDragStart = useCallback((event: any, nodeType: WorkflowNodeType) => {
-    setDraggedType(nodeType);
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   }, []);
@@ -230,19 +228,11 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
           >
             <Controls 
               position="bottom-left"
-              style={{
-                button: {
-                  backgroundColor: 'white',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: '4px',
-                },
-              }}
             />
             <Background 
               color="#e0e0e0" 
               gap={20} 
               size={1}
-              variant="dots"
             />
           </ReactFlow>
 
