@@ -22,7 +22,7 @@ import {
   Dashboard as DashboardIcon,
   People as PeopleIcon,
   AccountTree as WorkflowIcon,
-  Integration as IntegrationIcon,
+  Extension as IntegrationIcon,
   Analytics as AnalyticsIcon,
   Logout as LogoutIcon,
   AccountCircle as AccountIcon,
