@@ -97,6 +97,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
         draggable: true,
         selectable: true,
         deletable: true,
+        connectable: true,
       };
 
       setNodes((nds: any) => nds.concat(newNode));
@@ -221,9 +222,11 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               stroke: '#5f5fff',
               strokeWidth: 2,
             }}
-            nodesDraggable={true}
-            nodesConnectable={true}
-            elementsSelectable={true}
+            nodesDraggable
+            nodesConnectable
+            elementsSelectable
+            selectNodesOnDrag={false}
+            panOnDrag={true}
             style={{ 
               backgroundColor: '#f8f9fb',
             }}

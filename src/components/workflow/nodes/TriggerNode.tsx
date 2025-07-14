@@ -16,7 +16,8 @@ export default function TriggerNode({ data, selected }: TriggerNodeProps) {
       selected={selected}
       color="#4caf50"
       icon={<PlayIcon />}
-      showHandles={false}
+      showHandles={true}
+      isTrigger={true}
     >
       <Box sx={{ mt: 1 }}>
         <Typography variant="caption" sx={{ color: '#5a6577' }}>

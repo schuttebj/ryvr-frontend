@@ -22,8 +22,9 @@ interface BaseNodeProps {
   onSettingsClick?: () => void;
   showHandles?: boolean;
   color?: string;
-  icon?: React.ReactNode;
-  children?: React.ReactNode;
+  icon?: any;
+  children?: any;
+  isTrigger?: boolean;
 }
 
 export default function BaseNode({
@@ -33,7 +34,8 @@ export default function BaseNode({
   showHandles = true,
   color = '#5f5fff',
   icon,
-  children
+  children,
+  isTrigger = false
 }: BaseNodeProps) {
   const hasErrors = data.errors && data.errors.length > 0;
   const isValid = data.isValid !== false;
@@ -57,19 +59,21 @@ export default function BaseNode({
     >
       {showHandles && (
         <>
-          <Handle
-            type="target"
-            position={Position.Top}
-            isConnectable={true}
-            style={{
-              backgroundColor: color,
-              border: '2px solid white',
-              width: 14,
-              height: 14,
-              borderRadius: '50%',
-              top: -7,
-            }}
-          />
+          {!isTrigger && (
+            <Handle
+              type="target"
+              position={Position.Top}
+              isConnectable={true}
+              style={{
+                backgroundColor: color,
+                border: '2px solid white',
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                top: -7,
+              }}
+            />
+          )}
           <Handle
             type="source"
             position={Position.Bottom}
