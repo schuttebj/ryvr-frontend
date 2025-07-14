@@ -164,13 +164,12 @@ export default function WorkflowsPage() {
 
   if (showBuilder) {
     return (
-      <Box sx={{ height: '100vh' }}>
-        <WorkflowBuilder
-          workflowId={selectedWorkflow || undefined}
-          onSave={handleWorkflowSave}
-          onExecute={handleWorkflowExecute}
-        />
-      </Box>
+      <WorkflowBuilder
+        workflowId={selectedWorkflow || undefined}
+        onSave={handleWorkflowSave}
+        onExecute={handleWorkflowExecute}
+        onClose={() => setShowBuilder(false)}
+      />
     );
   }
 

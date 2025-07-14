@@ -12,8 +12,8 @@ import {
 } from '@reactflow/core';
 import { Controls } from '@reactflow/controls';
 import { Background } from '@reactflow/background';
-import { Box, Paper, AppBar, Toolbar, Typography, Button } from '@mui/material';
-import { Save as SaveIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
+import { Box, Paper, AppBar, Toolbar, Typography, Button, Fab } from '@mui/material';
+import { Save as SaveIcon, PlayArrow as PlayIcon, Close as CloseIcon } from '@mui/icons-material';
 import NodePalette from './NodePalette';
 import TriggerNode from './nodes/TriggerNode';
 import ActionNode from './nodes/ActionNode';
@@ -38,38 +38,46 @@ interface WorkflowBuilderProps {
   workflowId?: string;
   onSave?: (nodes: Node[], edges: Edge[]) => void;
   onExecute?: (workflowId: string) => void;
+  onClose?: () => void;
 }
 
-function WorkflowBuilderContent({ workflowId, onSave, onExecute }: WorkflowBuilderProps) {
+function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: WorkflowBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [draggedType, setDraggedType] = useState<WorkflowNodeType | null>(null);
   let id = 0;
-  const getId = () => `dndnode_${id++}`;
+  const getId = () => `node_${id++}`;
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => setEdges((eds: any) => addEdge(params, eds)),
     [setEdges]
   );
 
-  const onDragOver = useCallback((event: React.DragEvent) => {
+  const onDragOver = useCallback((event: any) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
   const onDrop = useCallback(
-    (event: React.DragEvent) => {
+    (event: any) => {
       event.preventDefault();
 
+      if (!reactFlowWrapper.current) {
+        return;
+      }
+
+      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData('application/reactflow');
+      
       if (typeof type === 'undefined' || !type) {
         return;
       }
 
-      const position = reactFlowInstance?.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
+      const position = reactFlowInstance?.project({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
       });
 
       if (!position) return;
@@ -91,12 +99,14 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute }: WorkflowBuild
         deletable: true,
       };
 
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds: any) => nds.concat(newNode));
+      setDraggedType(null);
     },
     [reactFlowInstance, setNodes]
   );
 
-  const onNodeDragStart = useCallback((event: React.DragEvent, nodeType: WorkflowNodeType) => {
+  const onNodeDragStart = useCallback((event: any, nodeType: WorkflowNodeType) => {
+    setDraggedType(nodeType);
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   }, []);
@@ -113,12 +123,35 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute }: WorkflowBuild
     }
   }, [onExecute, workflowId]);
 
+  const handleClose = useCallback(() => {
+    if (onClose) {
+      onClose();
+    }
+  }, [onClose]);
+
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
+    <Box sx={{ 
+      display: 'flex', 
+      height: '100vh', 
+      bgcolor: '#f8f9fb',
+      position: 'relative',
+    }}>
       <NodePalette onNodeDragStart={onNodeDragStart} />
       
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <AppBar position="static" sx={{ bgcolor: 'white', boxShadow: 1 }}>
+      <Box sx={{ 
+        flex: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        position: 'relative',
+      }}>
+        <AppBar 
+          position="static" 
+          sx={{ 
+            bgcolor: 'white', 
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            zIndex: 1000,
+          }}
+        >
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1, color: '#2e3142', fontWeight: 600 }}>
               Workflow Builder
@@ -127,7 +160,15 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute }: WorkflowBuild
               startIcon={<SaveIcon />}
               onClick={handleSave}
               variant="outlined"
-              sx={{ mr: 1 }}
+              sx={{ 
+                mr: 1,
+                borderColor: '#5f5fff',
+                color: '#5f5fff',
+                '&:hover': {
+                  borderColor: '#5f5fff',
+                  bgcolor: '#5f5fff10',
+                },
+              }}
             >
               Save
             </Button>
@@ -135,21 +176,25 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute }: WorkflowBuild
               startIcon={<PlayIcon />}
               onClick={handleExecute}
               variant="contained"
-              disabled={!workflowId}
+              disabled={!workflowId || nodes.length === 0}
+              sx={{
+                bgcolor: '#5f5fff',
+                '&:hover': {
+                  bgcolor: '#4f4fef',
+                },
+              }}
             >
               Execute
             </Button>
           </Toolbar>
         </AppBar>
 
-        <Paper
+        <Box
           ref={reactFlowWrapper}
           sx={{
             flex: 1,
-            m: 2,
             position: 'relative',
-            overflow: 'hidden',
-            borderRadius: 2,
+            bgcolor: '#f8f9fb',
           }}
         >
           <ReactFlow
@@ -163,12 +208,87 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute }: WorkflowBuild
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
             fitView
-            style={{ backgroundColor: '#f8f9fb' }}
+            fitViewOptions={{
+              padding: 0.2,
+              includeHiddenNodes: false,
+            }}
+            defaultEdgeOptions={{
+              animated: true,
+              style: {
+                stroke: '#5f5fff',
+                strokeWidth: 2,
+              },
+            }}
+            connectionLineStyle={{
+              stroke: '#5f5fff',
+              strokeWidth: 2,
+            }}
+            style={{ 
+              backgroundColor: '#f8f9fb',
+            }}
+            proOptions={{ hideAttribution: true }}
           >
-            <Controls />
-            <Background color="#aaa" gap={16} />
+            <Controls 
+              position="bottom-left"
+              style={{
+                button: {
+                  backgroundColor: 'white',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                },
+              }}
+            />
+            <Background 
+              color="#e0e0e0" 
+              gap={20} 
+              size={1}
+              variant="dots"
+            />
           </ReactFlow>
-        </Paper>
+
+          {/* Empty state */}
+          {nodes.length === 0 && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                textAlign: 'center',
+                color: '#5a6577',
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+                Start Building Your Workflow
+              </Typography>
+              <Typography variant="body2">
+                Drag elements from the left panel to create your workflow
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Close button */}
+        {onClose && (
+          <Fab
+            size="small"
+            onClick={handleClose}
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              bgcolor: 'white',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              '&:hover': {
+                bgcolor: '#f5f5f5',
+              },
+            }}
+          >
+            <CloseIcon />
+          </Fab>
+        )}
       </Box>
     </Box>
   );

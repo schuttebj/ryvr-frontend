@@ -41,16 +41,17 @@ export default function BaseNode({
   return (
     <Card
       sx={{
-        minWidth: 200,
-        maxWidth: 300,
+        minWidth: 220,
+        maxWidth: 320,
         border: selected ? `2px solid ${color}` : '1px solid #e0e0e0',
-        borderRadius: 2,
-        boxShadow: selected ? `0 0 0 2px ${color}20` : 1,
+        borderRadius: 3,
+        boxShadow: selected ? `0 4px 12px ${color}30` : '0 2px 8px rgba(0,0,0,0.08)',
         backgroundColor: 'white',
         transition: 'all 0.2s ease',
         '&:hover': {
-          boxShadow: 3,
-          transform: 'translateY(-1px)',
+          boxShadow: `0 4px 12px ${color}20`,
+          transform: 'translateY(-2px)',
+          borderColor: color,
         },
       }}
     >
