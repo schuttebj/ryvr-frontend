@@ -1,23 +1,23 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
   addEdge,
   useNodesState,
   useEdgesState,
-  Controls,
-  Background,
   Connection,
   Edge,
   Node,
   ReactFlowProvider,
   ReactFlowInstance,
 } from '@reactflow/core';
-import { Box, Paper, AppBar, Toolbar, Typography, Button, IconButton } from '@mui/material';
-import { Save as SaveIcon, Play as PlayIcon, Undo as UndoIcon } from '@mui/icons-material';
+import { Controls } from '@reactflow/controls';
+import { Background } from '@reactflow/background';
+import { Box, Paper, AppBar, Toolbar, Typography, Button } from '@mui/material';
+import { Save as SaveIcon, PlayArrow as PlayIcon } from '@mui/icons-material';
 import NodePalette from './NodePalette';
 import TriggerNode from './nodes/TriggerNode';
 import ActionNode from './nodes/ActionNode';
-import { WorkflowNodeType, WorkflowNode as WorkflowNodeData } from '../../types/workflow';
+import { WorkflowNodeType } from '../../types/workflow';
 
 // Define custom node types
 const nodeTypes = {

@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Box,
   Typography,
@@ -8,7 +7,6 @@ import {
   Card,
   CardContent,
   Avatar,
-  Chip,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -18,7 +16,7 @@ import {
   Http as HttpIcon,
   SmartToy as AIIcon,
   Search as SEOIcon,
-  Branch as BranchIcon,
+  CallSplit as BranchIcon,
   Schedule as ScheduleIcon,
   Share as ShareIcon,
 } from '@mui/icons-material';

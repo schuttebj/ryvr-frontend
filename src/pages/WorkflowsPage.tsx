@@ -28,7 +28,6 @@ import {
   Error as ErrorIcon,
   Pause as PauseIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
 import { Node, Edge } from '@reactflow/core';
 
@@ -85,7 +84,6 @@ export default function WorkflowsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
-  const navigate = useNavigate();
 
   const handleCreateWorkflow = () => {
     if (newWorkflowName.trim()) {
