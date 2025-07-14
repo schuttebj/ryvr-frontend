@@ -60,21 +60,27 @@ export default function BaseNode({
           <Handle
             type="target"
             position={Position.Top}
+            isConnectable={true}
             style={{
               backgroundColor: color,
               border: '2px solid white',
-              width: 12,
-              height: 12,
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              top: -7,
             }}
           />
           <Handle
             type="source"
             position={Position.Bottom}
+            isConnectable={true}
             style={{
               backgroundColor: color,
               border: '2px solid white',
-              width: 12,
-              height: 12,
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              bottom: -7,
             }}
           />
         </>

@@ -10,7 +10,7 @@ import {
   ReactFlowProvider,
   ReactFlowInstance,
 } from '@reactflow/core';
-import { Controls } from '@reactflow/controls';
+
 import { Background } from '@reactflow/background';
 import { Box, AppBar, Toolbar, Typography, Button, Fab } from '@mui/material';
 import { Save as SaveIcon, PlayArrow as PlayIcon, Close as CloseIcon } from '@mui/icons-material';
@@ -221,20 +221,94 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               stroke: '#5f5fff',
               strokeWidth: 2,
             }}
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={true}
             style={{ 
               backgroundColor: '#f8f9fb',
             }}
             proOptions={{ hideAttribution: true }}
           >
-            <Controls 
-              position="bottom-left"
-            />
             <Background 
               color="#e0e0e0" 
               gap={20} 
               size={1}
             />
           </ReactFlow>
+
+          {/* Custom Controls */}
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 20,
+              left: 20,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+              zIndex: 1000,
+            }}
+          >
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => reactFlowInstance?.fitView()}
+              sx={{
+                minWidth: 40,
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                bgcolor: 'white',
+                color: '#5f5fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                '&:hover': {
+                  bgcolor: '#f5f5f5',
+                  color: '#5f5fff',
+                },
+              }}
+            >
+              📍
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => reactFlowInstance?.zoomIn()}
+              sx={{
+                minWidth: 40,
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                bgcolor: 'white',
+                color: '#5f5fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                '&:hover': {
+                  bgcolor: '#f5f5f5',
+                  color: '#5f5fff',
+                },
+              }}
+            >
+              ➕
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => reactFlowInstance?.zoomOut()}
+              sx={{
+                minWidth: 40,
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                bgcolor: 'white',
+                color: '#5f5fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                '&:hover': {
+                  bgcolor: '#f5f5f5',
+                  color: '#5f5fff',
+                },
+              }}
+            >
+              ➖
+            </Button>
+          </Box>
 
           {/* Empty state */}
           {nodes.length === 0 && (
