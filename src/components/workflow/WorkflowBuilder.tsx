@@ -51,7 +51,18 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   const getId = () => `node_${id++}`;
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds: any) => addEdge(params, eds)),
+    (params: Connection) => {
+      const edge = {
+        ...params,
+        id: `edge-${params.source}-${params.target}`,
+        animated: true,
+        style: {
+          stroke: '#5f5fff',
+          strokeWidth: 2,
+        },
+      };
+      setEdges((eds: any) => addEdge(edge, eds));
+    },
     [setEdges]
   );
 
@@ -64,20 +75,15 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     (event: any) => {
       event.preventDefault();
 
-      if (!reactFlowWrapper.current) {
-        return;
-      }
-
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const type = event.dataTransfer.getData('application/reactflow');
       
       if (typeof type === 'undefined' || !type) {
         return;
       }
 
-      const position = reactFlowInstance?.project({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
+      const position = reactFlowInstance?.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
       });
 
       if (!position) return;
@@ -100,6 +106,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
         connectable: true,
       };
 
+      console.log('Creating node:', newNode);
       setNodes((nds: any) => nds.concat(newNode));
     },
     [reactFlowInstance, setNodes]
@@ -225,8 +232,10 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             nodesDraggable
             nodesConnectable
             elementsSelectable
-            selectNodesOnDrag={false}
-            panOnDrag={true}
+            selectNodesOnDrag={true}
+            panOnDrag={[1, 2]}
+            zoomOnScroll={true}
+            zoomOnPinch={true}
             style={{ 
               backgroundColor: '#f8f9fb',
             }}
