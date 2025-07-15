@@ -52,6 +52,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
 
   const onConnect = useCallback(
     (params: Connection) => {
+      console.log('Connecting nodes:', params);
       const edge = {
         ...params,
         id: `edge-${params.source}-${params.target}`,
@@ -65,6 +66,22 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     },
     [setEdges]
   );
+
+  const onNodeDrag = useCallback((event: any, node: Node) => {
+    console.log('Node drag:', node.id, node.position);
+  }, []);
+
+  const onNodeDragStartHandler = useCallback((event: any, node: Node) => {
+    console.log('Node drag start:', node.id);
+  }, []);
+
+  const onNodeDragStop = useCallback((event: any, node: Node) => {
+    console.log('Node drag stop:', node.id, node.position);
+  }, []);
+
+  const onSelectionChange = useCallback((params: any) => {
+    console.log('Selection change:', params);
+  }, []);
 
   const onDragOver = useCallback((event: any) => {
     event.preventDefault();
@@ -88,12 +105,13 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
 
       if (!position) return;
 
+      const nodeId = getId();
       const newNode: Node = {
-        id: getId(),
+        id: nodeId,
         type: type === WorkflowNodeType.TRIGGER ? 'trigger' : 'action',
         position,
         data: {
-          id: getId(),
+          id: nodeId,
           type: type as WorkflowNodeType,
           label: getNodeLabel(type as WorkflowNodeType),
           description: getNodeDescription(type as WorkflowNodeType),
@@ -212,6 +230,10 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeDragStart={onNodeDragStartHandler}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStop={onNodeDragStop}
+            onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{
@@ -229,9 +251,9 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               stroke: '#5f5fff',
               strokeWidth: 2,
             }}
-            nodesDraggable
-            nodesConnectable
-            elementsSelectable
+            nodesDraggable={true}
+            nodesConnectable={true}
+            elementsSelectable={true}
             selectNodesOnDrag={true}
             panOnDrag={[1, 2]}
             zoomOnScroll={true}
