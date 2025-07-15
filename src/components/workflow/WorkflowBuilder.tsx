@@ -67,15 +67,15 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     [setEdges]
   );
 
-  const onNodeDrag = useCallback((event: any, node: Node) => {
+  const onNodeDrag = useCallback((_event: any, node: Node) => {
     console.log('Node drag:', node.id, node.position);
   }, []);
 
-  const onNodeDragStartHandler = useCallback((event: any, node: Node) => {
+  const onNodeDragStartHandler = useCallback((_event: any, node: Node) => {
     console.log('Node drag start:', node.id);
   }, []);
 
-  const onNodeDragStop = useCallback((event: any, node: Node) => {
+  const onNodeDragStop = useCallback((_event: any, node: Node) => {
     console.log('Node drag stop:', node.id, node.position);
   }, []);
 
