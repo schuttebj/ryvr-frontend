@@ -43,13 +43,51 @@ interface WorkflowBuilderProps {
 }
 
 function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: WorkflowBuilderProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  // Initial test nodes for development
+  const initialNodes: Node[] = [
+    {
+      id: 'test-trigger',
+      type: 'trigger',
+      position: { x: 100, y: 100 },
+      data: {
+        id: 'test-trigger',
+        type: WorkflowNodeType.TRIGGER,
+        label: 'Test Trigger',
+        description: 'Manual trigger for testing',
+        config: {},
+        isValid: true,
+      },
+      draggable: true,
+      selectable: true,
+      deletable: true,
+      connectable: true,
+    },
+    {
+      id: 'test-action',
+      type: 'action',
+      position: { x: 400, y: 200 },
+      data: {
+        id: 'test-action',
+        type: WorkflowNodeType.EMAIL,
+        label: 'Test Email Action',
+        description: 'Send test email',
+        config: {},
+        isValid: true,
+      },
+      draggable: true,
+      selectable: true,
+      deletable: true,
+      connectable: true,
+    },
+  ];
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
-  let id = 0;
+  let id = 2; // Start from 2 since we have 2 test nodes
   const getId = () => `node_${id++}`;
 
   const onConnect = useCallback(
@@ -65,10 +103,11 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
           animated: true,
           style: {
             stroke: '#5f5fff',
-            strokeWidth: 2,
+            strokeWidth: 3,
           },
         };
         setEdges((eds: Edge[]) => addEdge(edge, eds));
+        console.log('Edge created successfully:', edge);
       }
     },
     [setEdges]
@@ -79,7 +118,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     event.stopPropagation();
     console.log('Node clicked:', node.id);
     setSelectedNode(node.id);
-    // TODO: Open node configuration panel/modal
+    alert(`Node clicked: ${node.data.label}\nID: ${node.id}\nType: ${node.data.type}`);
   }, []);
 
   const onNodeDrag = useCallback((_event: any, node: Node) => {
@@ -188,6 +227,14 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     selected: node.id === selectedNode
   }));
 
+  // Handle settings click for any node
+  const handleNodeSettings = useCallback((nodeId: string) => {
+    const node = nodes.find((n: Node) => n.id === nodeId);
+    if (node) {
+      alert(`Settings for: ${node.data.label}\nID: ${nodeId}\nType: ${node.data.type}\n\n(This would open a configuration panel)`);
+    }
+  }, [nodes]);
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -213,7 +260,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
         >
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1, color: '#2e3142', fontWeight: 600 }}>
-              Workflow Builder
+              Workflow Builder - Test Mode (2 Test Nodes)
             </Typography>
             <Button
               startIcon={<SaveIcon />}
@@ -254,6 +301,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             flex: 1,
             position: 'relative',
             bgcolor: '#f8f9fb',
+            overflow: 'hidden', // Prevent scrollbars that might interfere
           }}
         >
           <ReactFlow
@@ -280,24 +328,27 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               animated: true,
               style: {
                 stroke: '#5f5fff',
-                strokeWidth: 2,
+                strokeWidth: 3,
               },
             }}
             connectionLineStyle={{
               stroke: '#5f5fff',
-              strokeWidth: 2,
+              strokeWidth: 3,
+              strokeDasharray: '5,5',
             }}
             nodesDraggable={true}
             nodesConnectable={true}
             elementsSelectable={true}
             selectNodesOnDrag={false}
-            panOnDrag={[1, 2]}
+            panOnDrag={[1]}
             zoomOnScroll={true}
             zoomOnPinch={true}
             deleteKeyCode="Delete"
             multiSelectionKeyCode="Control"
             style={{ 
               backgroundColor: '#f8f9fb',
+              width: '100%',
+              height: '100%',
             }}
             proOptions={{ hideAttribution: true }}
           >
@@ -305,6 +356,9 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               color="#e0e0e0" 
               gap={20} 
               size={1}
+              style={{
+                opacity: 0.3, // Make background less prominent
+              }}
             />
           </ReactFlow>
 
@@ -317,7 +371,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               display: 'flex',
               flexDirection: 'column',
               gap: 1,
-              zIndex: 1000,
+              zIndex: 10,
             }}
           >
             <Button
@@ -382,28 +436,36 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             </Button>
           </Box>
 
-          {/* Empty state */}
-          {nodes.length === 0 && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                textAlign: 'center',
-                color: '#5a6577',
-                pointerEvents: 'none',
-                zIndex: 1,
-              }}
-            >
-              <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-                Start Building Your Workflow
-              </Typography>
-              <Typography variant="body2">
-                Drag elements from the left panel to create your workflow
-              </Typography>
-            </Box>
-          )}
+          {/* Test Instructions */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 20,
+              left: 20,
+              bgcolor: 'rgba(255,255,255,0.95)',
+              borderRadius: 2,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              p: 2,
+              maxWidth: 300,
+              zIndex: 10,
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#4caf50' }}>
+              🧪 Test Mode Active
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block', mb: 1 }}>
+              • Try dragging the nodes around
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block', mb: 1 }}>
+              • Click nodes to test selection
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block', mb: 1 }}>
+              • Drag from bottom handle to top handle to connect
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block' }}>
+              • Click settings icon on nodes
+            </Typography>
+          </Box>
 
           {/* Selected node info */}
           {selectedNode && (
@@ -417,15 +479,23 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 p: 2,
                 minWidth: 200,
-                zIndex: 1000,
+                zIndex: 10,
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                Node Settings
+                Selected Node
               </Typography>
-              <Typography variant="body2" sx={{ color: '#5a6577' }}>
-                Selected: {selectedNode}
+              <Typography variant="body2" sx={{ color: '#5a6577', mb: 1 }}>
+                ID: {selectedNode}
               </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ mt: 1, mr: 1 }}
+                onClick={() => handleNodeSettings(selectedNode)}
+              >
+                Configure
+              </Button>
               <Button
                 size="small"
                 sx={{ mt: 1 }}
@@ -448,6 +518,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               right: 16,
               bgcolor: 'white',
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              zIndex: 1001,
               '&:hover': {
                 bgcolor: '#f5f5f5',
               },

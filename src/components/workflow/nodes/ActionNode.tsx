@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { 
   Settings as SettingsIcon,
@@ -50,18 +51,46 @@ const getActionColor = (type: WorkflowNodeType) => {
   }
 };
 
+const getActionStatus = (type: WorkflowNodeType) => {
+  switch (type) {
+    case WorkflowNodeType.EMAIL:
+      return '📧 Ready to send email';
+    case WorkflowNodeType.WEBHOOK:
+      return '🔗 Ready for API call';
+    case WorkflowNodeType.AI_ANALYSIS:
+      return '🤖 AI analysis configured';
+    case WorkflowNodeType.CONTENT_GENERATION:
+      return '✨ Content generation ready';
+    case WorkflowNodeType.SEO_AUDIT:
+      return '🔍 SEO audit prepared';
+    case WorkflowNodeType.KEYWORD_RESEARCH:
+      return '🎯 Keyword research ready';
+    default:
+      return '⚙️ Action configured';
+  }
+};
+
 export default function ActionNode({ data, selected, onSettingsClick }: ActionNodeProps) {
+  const handleSettingsClick = () => {
+    if (onSettingsClick) {
+      onSettingsClick();
+    } else {
+      // Fallback alert for testing
+      alert(`Settings clicked for: ${data.label}\nID: ${data.id}\nType: ${data.type}\n\nConfiguration options would appear here.`);
+    }
+  };
+
   return (
     <BaseNode
       data={data}
       selected={selected}
       color={getActionColor(data.type)}
       icon={getActionIcon(data.type)}
-      onSettingsClick={onSettingsClick}
+      onSettingsClick={handleSettingsClick}
     >
       <Box sx={{ mt: 1 }}>
         <Typography variant="caption" sx={{ color: '#5a6577' }}>
-          {data.config?.summary || 'Configure action settings'}
+          {getActionStatus(data.type)}
         </Typography>
       </Box>
     </BaseNode>
