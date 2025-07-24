@@ -44,39 +44,6 @@ interface WorkflowSummary {
   createdAt?: string;
 }
 
-// Mock data - replace with actual API calls
-const mockWorkflows: WorkflowSummary[] = [
-  {
-    id: '1',
-    name: 'Lead Generation Flow',
-    description: 'Automated lead generation and nurturing workflow',
-    status: 'active',
-    nodeCount: 8,
-    lastExecuted: '2024-01-15T10:30:00Z',
-    successRate: 94.2,
-    createdAt: '2024-01-10T08:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'SEO Content Analysis',
-    description: 'Analyze and optimize content for SEO',
-    status: 'paused',
-    nodeCount: 5,
-    lastExecuted: '2024-01-14T14:20:00Z',
-    successRate: 89.5,
-    createdAt: '2024-01-08T12:00:00Z',
-  },
-  {
-    id: '3',
-    name: 'Social Media Automation',
-    description: 'Automated social media posting and engagement',
-    status: 'draft',
-    nodeCount: 3,
-    successRate: 0,
-    createdAt: '2024-01-16T09:00:00Z',
-  },
-];
-
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
