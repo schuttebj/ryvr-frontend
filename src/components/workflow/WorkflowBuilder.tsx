@@ -147,12 +147,10 @@ interface WorkflowBuilderProps {
 function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [settingsNode, setSettingsNode] = useState<{ id: string; data: WorkflowNodeData } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true); // Default to fullscreen
   const [workflowName, setWorkflowName] = useState('My Workflow');
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
@@ -205,7 +203,6 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
       };
 
       setNodes((nds: Node[]) => [...nds, newNode]);
-      setIsDragging(false);
     },
     [screenToFlowPosition, setNodes, getNodeLabel, getNodeDescription]
   );
@@ -247,7 +244,6 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
   // Node click handler for settings/configuration
   const onNodeClick: NodeMouseHandler = useCallback((_event: any, node: Node) => {
     console.log('Node clicked:', node.id);
-    setSelectedNode(node.id);
     setSettingsNode({ id: node.id, data: node.data as unknown as WorkflowNodeData });
   }, []);
 
@@ -394,7 +390,6 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
-    setIsDragging(true);
   };
 
   const flowStyle = useMemo(() => ({

@@ -29,7 +29,6 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
-import { Node, Edge } from '@xyflow/react';
 
 interface WorkflowSummary {
   id: string;
