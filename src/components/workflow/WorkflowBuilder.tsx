@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   ReactFlow,
   Node,
@@ -23,16 +23,7 @@ import {
   Typography,
   Button,
   Paper,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Divider,
   IconButton,
-  Toolbar,
-  AppBar,
-  Chip,
   Alert,
   Dialog,
   DialogActions,
@@ -45,9 +36,6 @@ import {
   Search as SearchIcon,
   SmartToy as AiIcon,
   Email as EmailIcon,
-  Schedule as ScheduleIcon,
-  Webhook as WebhookIcon,
-  Close as CloseIcon,
   Settings as SettingsIcon,
   Save as SaveIcon,
   Fullscreen as FullscreenIcon,
