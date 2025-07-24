@@ -1,5 +1,5 @@
 
-import { Handle, Position } from '@reactflow/core';
+import { Handle, Position } from '@xyflow/react';
 import { 
   Card, 
   CardContent, 

@@ -10,9 +10,9 @@ import {
   ReactFlowProvider,
   ReactFlowInstance,
   NodeMouseHandler,
-} from '@reactflow/core';
-
-import { Background } from '@reactflow/background';
+  Background,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import { Box, AppBar, Toolbar, Typography, Button, Fab } from '@mui/material';
 import { Save as SaveIcon, PlayArrow as PlayIcon, Close as CloseIcon } from '@mui/icons-material';
 import NodePalette from './NodePalette';

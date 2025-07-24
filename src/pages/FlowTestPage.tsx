@@ -92,7 +92,7 @@ export default function FlowTestPage() {
     [],
   );
 
-  const onNodeClick = useCallback((event: any, node: Node) => {
+  const onNodeClick = useCallback((_event: any, node: Node) => {
     console.log('Node clicked:', node);
     alert(`Clicked: ${node.data.label}\nID: ${node.id}\n\nThis shows the node is interactive!`);
   }, []);
