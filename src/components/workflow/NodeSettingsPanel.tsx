@@ -77,18 +77,28 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     setTestResult(null);
     
     try {
-      // Simulate API call for testing
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let result;
+      
+      // Import the workflow API for testing
+      const { workflowApi } = await import('../../services/workflowApi');
+      
+      // Test the node with its current configuration
+      result = await workflowApi.testNode(formData.type, formData.config);
+      
       setTestResult({
-        success: true,
-        data: { message: 'Node test successful', nodeType: formData.type, config: formData.config },
+        success: result.success,
+        data: result.data,
         nodeType: formData.type,
+        message: result.success ? 'Node executed successfully!' : result.error,
       });
+      
     } catch (error: any) {
+      console.error('Node test failed:', error);
       setTestResult({
         success: false,
-        error: error.message,
+        error: error.message || 'Test failed',
         nodeType: formData.type,
+        message: `Test failed: ${error.message || 'Unknown error'}`,
       });
     } finally {
       setTesting(false);
@@ -202,6 +212,47 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               SERP Analysis Settings
             </Typography>
+            
+            {/* DataForSEO Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              DataForSEO Configuration
+            </Typography>
+            
+            <TextField
+              fullWidth
+              label="DataForSEO Login"
+              value={formData.config?.dataforSeoLogin || ''}
+              onChange={(e) => handleConfigChange('dataforSeoLogin', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Your DataForSEO account login"
+            />
+            
+            <TextField
+              fullWidth
+              label="DataForSEO Password"
+              type="password"
+              value={formData.config?.dataforSeoPassword || ''}
+              onChange={(e) => handleConfigChange('dataforSeoPassword', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Your DataForSEO account password"
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.useSandbox || true}
+                  onChange={(e) => handleConfigChange('useSandbox', e.target.checked)}
+                />
+              }
+              label="Use Sandbox Mode (recommended for testing)"
+              sx={{ mb: 2 }}
+            />
+            
+            {/* Search Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Search Configuration
+            </Typography>
+            
             <TextField
               fullWidth
               label="Target Keyword"
@@ -222,6 +273,8 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 <MenuItem value={2826}>United Kingdom</MenuItem>
                 <MenuItem value={2124}>Canada</MenuItem>
                 <MenuItem value={2036}>Australia</MenuItem>
+                <MenuItem value={2276}>Germany</MenuItem>
+                <MenuItem value={2250}>France</MenuItem>
               </Select>
             </FormControl>
             
@@ -236,6 +289,8 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 <MenuItem value="es">Spanish</MenuItem>
                 <MenuItem value="fr">French</MenuItem>
                 <MenuItem value="de">German</MenuItem>
+                <MenuItem value="it">Italian</MenuItem>
+                <MenuItem value="pt">Portuguese</MenuItem>
               </Select>
             </FormControl>
             
@@ -246,7 +301,55 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               value={formData.config?.maxResults || 10}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value))}
               sx={{ mb: 2 }}
-              helperText="Number of SERP results to analyze"
+              inputProps={{ min: 1, max: 100 }}
+              helperText="Number of SERP results to analyze (1-100)"
+            />
+            
+            {/* Output Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Output Configuration
+            </Typography>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.includeMetrics || true}
+                  onChange={(e) => handleConfigChange('includeMetrics', e.target.checked)}
+                />
+              }
+              label="Include ranking metrics"
+              sx={{ mb: 1 }}
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.includeSnippets || true}
+                  onChange={(e) => handleConfigChange('includeSnippets', e.target.checked)}
+                />
+              }
+              label="Include meta descriptions and snippets"
+              sx={{ mb: 1 }}
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.includeImages || false}
+                  onChange={(e) => handleConfigChange('includeImages', e.target.checked)}
+                />
+              }
+              label="Include image results"
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              fullWidth
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'serp_results'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this node's output (used in next nodes)"
             />
           </Box>
         );
@@ -257,40 +360,135 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               AI Analysis Settings
             </Typography>
+            
+            {/* OpenAI Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              OpenAI Configuration
+            </Typography>
+            
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Analysis Type</InputLabel>
+              <InputLabel>Model</InputLabel>
               <Select
-                value={formData.config?.analysisType || 'content'}
-                label="Analysis Type"
-                onChange={(e) => handleConfigChange('analysisType', e.target.value)}
+                value={formData.config?.model || 'gpt-4o-mini'}
+                label="Model"
+                onChange={(e) => handleConfigChange('model', e.target.value)}
               >
-                <MenuItem value="content">Content Analysis</MenuItem>
-                <MenuItem value="sentiment">Sentiment Analysis</MenuItem>
-                <MenuItem value="seo">SEO Analysis</MenuItem>
-                <MenuItem value="competitive">Competitive Analysis</MenuItem>
-                <MenuItem value="readability">Readability Score</MenuItem>
+                <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
+                <MenuItem value="gpt-4o">GPT-4o</MenuItem>
+                <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
+                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
               </Select>
             </FormControl>
             
             <TextField
               fullWidth
+              type="number"
+              label="Temperature"
+              value={formData.config?.temperature || 0.7}
+              onChange={(e) => handleConfigChange('temperature', parseFloat(e.target.value))}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 0, max: 2, step: 0.1 }}
+              helperText="Controls randomness: 0 = focused, 2 = creative"
+            />
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Max Tokens"
+              value={formData.config?.maxTokens || 1000}
+              onChange={(e) => handleConfigChange('maxTokens', parseInt(e.target.value))}
+              sx={{ mb: 2 }}
+              helperText="Maximum response length"
+            />
+            
+            <TextField
+              fullWidth
+              label="API Key"
+              type="password"
+              value={formData.config?.apiKey || ''}
+              onChange={(e) => handleConfigChange('apiKey', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Your OpenAI API key (stored securely)"
+            />
+            
+            {/* Custom Prompt */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Custom Prompt
+            </Typography>
+            
+            <TextField
+              fullWidth
               multiline
               rows={4}
-              label="Content to Analyze"
-              value={formData.config?.content || ''}
-              onChange={(e) => handleConfigChange('content', e.target.value)}
-              placeholder="Enter content or use data from previous nodes"
+              label="System Prompt"
+              value={formData.config?.systemPrompt || ''}
+              onChange={(e) => handleConfigChange('systemPrompt', e.target.value)}
+              placeholder="You are a helpful AI assistant that analyzes content..."
               sx={{ mb: 2 }}
+              helperText="Define the AI's role and behavior"
             />
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="User Prompt Template"
+              value={formData.config?.userPrompt || ''}
+              onChange={(e) => handleConfigChange('userPrompt', e.target.value)}
+              placeholder="Analyze the following content: {input_content}"
+              sx={{ mb: 2 }}
+              helperText="Use {variable_name} for dynamic content from previous nodes"
+            />
+            
+            {/* JSON Response Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Response Format
+            </Typography>
             
             <FormControlLabel
               control={
                 <Switch
-                  checked={formData.config?.includeKeywords || false}
-                  onChange={(e) => handleConfigChange('includeKeywords', e.target.checked)}
+                  checked={formData.config?.jsonResponse || false}
+                  onChange={(e) => handleConfigChange('jsonResponse', e.target.checked)}
                 />
               }
-              label="Include keyword analysis"
+              label="Return response as JSON"
+              sx={{ mb: 2 }}
+            />
+            
+            {formData.config?.jsonResponse && (
+              <TextField
+                fullWidth
+                multiline
+                rows={6}
+                label="JSON Schema"
+                value={formData.config?.jsonSchema || ''}
+                onChange={(e) => handleConfigChange('jsonSchema', e.target.value)}
+                placeholder={`{
+  "analysis": {
+    "sentiment": "positive|negative|neutral",
+    "keywords": ["keyword1", "keyword2"],
+    "summary": "Brief summary here",
+    "score": 0.85
+  }
+}`}
+                sx={{ mb: 2 }}
+                helperText="Define the expected JSON structure for the AI response"
+              />
+            )}
+            
+            {/* Output Mapping */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Output Mapping
+            </Typography>
+            
+            <TextField
+              fullWidth
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'ai_analysis'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this node's output (used in next nodes)"
             />
           </Box>
         );
@@ -301,6 +499,74 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               AI Content Generation Settings
             </Typography>
+            
+            {/* OpenAI Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              OpenAI Configuration
+            </Typography>
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Model</InputLabel>
+              <Select
+                value={formData.config?.model || 'gpt-4o-mini'}
+                label="Model"
+                onChange={(e) => handleConfigChange('model', e.target.value)}
+              >
+                <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
+                <MenuItem value="gpt-4o">GPT-4o</MenuItem>
+                <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
+                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Temperature"
+              value={formData.config?.temperature || 0.7}
+              onChange={(e) => handleConfigChange('temperature', parseFloat(e.target.value))}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 0, max: 2, step: 0.1 }}
+              helperText="Controls creativity: 0 = focused, 2 = creative"
+            />
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Max Tokens"
+              value={formData.config?.maxTokens || 1000}
+              onChange={(e) => handleConfigChange('maxTokens', parseInt(e.target.value))}
+              sx={{ mb: 2 }}
+              helperText="Maximum response length"
+            />
+            
+            <TextField
+              fullWidth
+              label="API Key"
+              type="password"
+              value={formData.config?.apiKey || ''}
+              onChange={(e) => handleConfigChange('apiKey', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Your OpenAI API key (stored securely)"
+            />
+            
+            {/* Content Generation Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Content Configuration
+            </Typography>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="Generation Prompt"
+              value={formData.config?.prompt || ''}
+              onChange={(e) => handleConfigChange('prompt', e.target.value)}
+              placeholder="Generate a summary based on: {ai_analysis}"
+              sx={{ mb: 2 }}
+              helperText="Use {variable_name} to reference data from previous nodes"
+            />
+            
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Content Type</InputLabel>
               <Select
@@ -313,6 +579,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 <MenuItem value="social_post">Social Media Post</MenuItem>
                 <MenuItem value="email">Email Content</MenuItem>
                 <MenuItem value="meta_description">Meta Description</MenuItem>
+                <MenuItem value="custom">Custom</MenuItem>
               </Select>
             </FormControl>
             
@@ -322,26 +589,53 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               value={formData.config?.tone || 'professional'}
               onChange={(e) => handleConfigChange('tone', e.target.value)}
               sx={{ mb: 2 }}
-              helperText="e.g., professional, casual, friendly"
+              helperText="e.g., professional, casual, friendly, technical"
             />
             
-            <TextField
-              fullWidth
-              type="number"
-              label="Max Words"
-              value={formData.config?.maxWords || 150}
-              onChange={(e) => handleConfigChange('maxWords', parseInt(e.target.value))}
+            {/* JSON Response Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Response Format
+            </Typography>
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.jsonResponse || false}
+                  onChange={(e) => handleConfigChange('jsonResponse', e.target.checked)}
+                />
+              }
+              label="Return response as JSON"
               sx={{ mb: 2 }}
             />
             
+            {formData.config?.jsonResponse && (
+              <TextField
+                fullWidth
+                multiline
+                rows={4}
+                label="JSON Schema"
+                value={formData.config?.jsonSchema || ''}
+                onChange={(e) => handleConfigChange('jsonSchema', e.target.value)}
+                placeholder={`{
+  "content": "Generated content here",
+  "metadata": {
+    "word_count": 150,
+    "tone": "professional"
+  }
+}`}
+                sx={{ mb: 2 }}
+                helperText="Define the expected JSON structure"
+              />
+            )}
+            
+            {/* Output Mapping */}
             <TextField
               fullWidth
-              multiline
-              rows={3}
-              label="Additional Instructions"
-              value={formData.config?.instructions || ''}
-              onChange={(e) => handleConfigChange('instructions', e.target.value)}
-              placeholder="Any specific instructions for content generation"
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'generated_content'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this node's output (used in next nodes)"
             />
           </Box>
         );
@@ -459,7 +753,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               severity={testResult.success ? 'success' : 'error'}
               sx={{ mb: 1 }}
             >
-              {testResult.success ? 'Node executed successfully!' : `Error: ${testResult.error}`}
+              {testResult.message}
             </Alert>
             {testResult.success && testResult.data && (
               <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1, maxHeight: 200, overflow: 'auto' }}>
@@ -520,4 +814,4 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       </Box>
     </Box>
   );
-} 
+}

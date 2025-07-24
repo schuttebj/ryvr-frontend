@@ -404,7 +404,7 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
       position: isFullscreen ? 'fixed' : 'relative',
       top: isFullscreen ? 0 : 'auto',
       left: isFullscreen ? 0 : 'auto',
-      zIndex: isFullscreen ? 1000 : 'auto',
+      zIndex: isFullscreen ? 9999 : 'auto', // Increased z-index to be above nav/header
       bgcolor: 'background.default'
     }}>
       {/* Left Sidebar - Node Palette */}

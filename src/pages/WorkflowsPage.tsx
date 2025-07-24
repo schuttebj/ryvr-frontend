@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -29,6 +29,7 @@ import {
   Pause as PauseIcon,
 } from '@mui/icons-material';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
+import { workflowApi } from '../services/workflowApi';
 
 interface WorkflowSummary {
   id: string;
@@ -37,8 +38,10 @@ interface WorkflowSummary {
   status: 'active' | 'paused' | 'draft' | 'error';
   nodeCount: number;
   lastExecuted?: string;
-  successRate: number;
-  createdAt: string;
+  tags?: string[];
+  executionCount?: number;
+  successRate?: number;
+  createdAt?: string;
 }
 
 // Mock data - replace with actual API calls
@@ -75,14 +78,40 @@ const mockWorkflows: WorkflowSummary[] = [
 ];
 
 export default function WorkflowsPage() {
+  const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
-  const [workflows, setWorkflows] = useState(mockWorkflows);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuWorkflowId, setMenuWorkflowId] = useState<string | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newWorkflowDialog, setNewWorkflowDialog] = useState(false);
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
+
+  // Load workflows on component mount
+  useEffect(() => {
+    const loadWorkflows = async () => {
+      try {
+        const savedWorkflows = await workflowApi.listWorkflows();
+        // Convert to WorkflowSummary format
+        const workflowSummaries: WorkflowSummary[] = savedWorkflows.map((workflow: any) => ({
+          id: workflow.id,
+          name: workflow.name,
+          description: workflow.description || '',
+          status: workflow.isActive ? 'active' : 'draft',
+          nodeCount: workflow.nodes?.length || 0,
+          lastExecuted: workflow.lastExecuted,
+          tags: workflow.tags || [],
+          executionCount: workflow.executionCount || 0,
+          successRate: workflow.successRate || 0,
+        }));
+        setWorkflows(workflowSummaries);
+      } catch (error) {
+        console.error('Failed to load workflows:', error);
+      }
+    };
+
+    loadWorkflows();
+  }, []);
 
   const handleCreateWorkflow = () => {
     if (newWorkflowName.trim()) {
@@ -98,7 +127,7 @@ export default function WorkflowsPage() {
       setWorkflows([...workflows, newWorkflow]);
       setSelectedWorkflow(newWorkflow.id);
       setShowBuilder(true);
-      setShowCreateDialog(false);
+      setNewWorkflowDialog(false);
       setNewWorkflowName('');
       setNewWorkflowDescription('');
     }
@@ -125,9 +154,43 @@ export default function WorkflowsPage() {
     setMenuWorkflowId(null);
   };
 
-  const handleWorkflowSave = useCallback((workflow: any) => {
+  const handleWorkflowSave = useCallback(async (workflow: any) => {
     console.log('Saving workflow:', workflow);
-    // TODO: Implement actual save functionality
+    
+    try {
+      await workflowApi.saveWorkflow(workflow);
+      
+      // Update the workflows list
+      const newSummary: WorkflowSummary = {
+        id: workflow.id,
+        name: workflow.name,
+        description: workflow.description || '',
+        status: workflow.isActive ? 'active' : 'draft',
+        nodeCount: workflow.nodes?.length || 0,
+        lastExecuted: workflow.lastExecuted,
+        tags: workflow.tags || [],
+        executionCount: workflow.executionCount || 0,
+        successRate: workflow.successRate || 0,
+      };
+
+      setWorkflows(prev => {
+        const existingIndex = prev.findIndex(w => w.id === workflow.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = newSummary;
+          return updated;
+        } else {
+          return [...prev, newSummary];
+        }
+      });
+
+      // Close builder and show success
+      setShowBuilder(false);
+      console.log('Workflow saved and added to list successfully!');
+      
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+    }
   }, []);
 
   const handleWorkflowExecute = useCallback((workflowId: string) => {
@@ -179,7 +242,7 @@ export default function WorkflowsPage() {
         <Button
           startIcon={<AddIcon />}
           variant="contained"
-          onClick={() => setShowCreateDialog(true)}
+          onClick={() => setNewWorkflowDialog(true)}
         >
           Create Workflow
         </Button>
@@ -273,7 +336,7 @@ export default function WorkflowsPage() {
         </MenuItem>
       </Menu>
 
-      <Dialog open={showCreateDialog} onClose={() => setShowCreateDialog(false)} maxWidth="sm" fullWidth>
+      <Dialog open={newWorkflowDialog} onClose={() => setNewWorkflowDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Create New Workflow</DialogTitle>
         <DialogContent>
           <TextField
@@ -298,7 +361,7 @@ export default function WorkflowsPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+          <Button onClick={() => setNewWorkflowDialog(false)}>Cancel</Button>
           <Button onClick={handleCreateWorkflow} variant="contained">
             Create
           </Button>
