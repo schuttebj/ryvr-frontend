@@ -227,27 +227,43 @@ export const workflowApi = {
   executeNode: async (nodeType: string, config: any, inputData: any = {}) => {
     try {
       let result;
+      let finalConfig = config;
+      
+      // If node has an integrationId, merge integration config with node config
+      if (config.integrationId) {
+        try {
+          const integrations = JSON.parse(localStorage.getItem('integrations') || '[]');
+          const integration = integrations.find((i: any) => i.id === config.integrationId);
+          if (integration) {
+            // Merge integration config with node config, node config takes precedence
+            finalConfig = { ...integration.config, ...config };
+            console.log('Using integration:', integration.name, 'for node type:', nodeType);
+          }
+        } catch (error) {
+          console.warn('Failed to load integration config:', error);
+        }
+      }
       
       switch (nodeType) {
         // DataForSEO nodes
         case 'seo_serp_analyze':
         case WorkflowNodeType.SEO_SERP_ANALYZE:
           // Validate required fields
-          if (!config.keyword && !inputData.keyword) {
+          if (!finalConfig.keyword && !inputData.keyword) {
             throw new Error('Keyword is required for SERP analysis');
           }
           
-          const keyword = config.keyword || inputData.keyword;
-          const locationCode = config.locationCode || 2840;
-          const languageCode = config.languageCode || 'en';
-          const maxResults = config.maxResults || 10;
+          const keyword = finalConfig.keyword || inputData.keyword;
+          const locationCode = finalConfig.locationCode || 2840;
+          const languageCode = finalConfig.languageCode || 'en';
+          const maxResults = finalConfig.maxResults || 10;
           
           // Use sandbox or live API based on configuration
-          const baseUrl = config.useSandbox !== false ? 
+          const baseUrl = finalConfig.useSandbox !== false ? 
             'https://sandbox.dataforseo.com' : 
             'https://api.dataforseo.com';
           
-          if (!config.dataforSeoLogin || !config.dataforSeoPassword) {
+          if (!finalConfig.login || !finalConfig.password) {
             // Return mock data if no credentials provided
             result = {
               results: [
@@ -267,7 +283,7 @@ export const workflowApi = {
                     description: `This is a sample SERP result description for testing purposes. Result #${i + 1}`,
                     url: `https://example${i + 1}.com/page`,
                     is_featured_snippet: i === 0,
-                    ...(config.includeMetrics && {
+                    ...(finalConfig.includeMetrics && {
                       metrics: {
                         organic_etv: Math.random() * 1000,
                         organic_count: Math.floor(Math.random() * 50),
@@ -280,7 +296,7 @@ export const workflowApi = {
             };
           } else {
             // Make actual API call to DataForSEO
-            const auth = btoa(`${config.dataforSeoLogin}:${config.dataforSeoPassword}`);
+            const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
             
             const requestData = {
               language_code: languageCode,
@@ -310,12 +326,12 @@ export const workflowApi = {
         // AI nodes with OpenAI integration
         case 'ai_content_analyze':
         case WorkflowNodeType.AI_CONTENT_ANALYZE:
-          if (!config.apiKey) {
-            throw new Error('OpenAI API key is required');
+          if (!finalConfig.apiKey) {
+            throw new Error('OpenAI API key is required. Please configure an OpenAI integration.');
           }
           
-          const systemPrompt = config.systemPrompt || 'You are a helpful AI assistant that analyzes content.';
-          const userPrompt = config.userPrompt || 'Analyze the following content: {input_content}';
+          const systemPrompt = finalConfig.systemPrompt || 'You are a helpful AI assistant that analyzes content.';
+          const userPrompt = finalConfig.userPrompt || 'Analyze the following content: {input_content}';
           
           // Replace template variables
           let processedPrompt = userPrompt;
@@ -329,25 +345,31 @@ export const workflowApi = {
           ];
           
           // Add JSON format instruction if requested
-          if (config.jsonResponse && config.jsonSchema) {
+          if (finalConfig.jsonResponse && finalConfig.jsonSchema) {
             messages.push({
               role: 'system',
-              content: `Please respond in JSON format following this schema: ${config.jsonSchema}`
+              content: `Please respond in JSON format following this schema: ${finalConfig.jsonSchema}`
             });
           }
+          
+          // Use model override if provided, otherwise use integration default
+          const model = finalConfig.modelOverride || finalConfig.model || 'gpt-4o-mini';
+          const temperature = finalConfig.temperatureOverride !== undefined ? 
+            finalConfig.temperatureOverride : 
+            (finalConfig.temperature || 0.7);
           
           const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${config.apiKey}`,
+              'Authorization': `Bearer ${finalConfig.apiKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: config.model || 'gpt-4o-mini',
+              model: model,
               messages: messages,
-              temperature: config.temperature || 0.7,
-              max_tokens: config.maxTokens || 1000,
-              ...(config.jsonResponse && { response_format: { type: 'json_object' } })
+              temperature: temperature,
+              max_tokens: finalConfig.maxTokens || 1000,
+              ...(finalConfig.jsonResponse && { response_format: { type: 'json_object' } })
             })
           });
           
@@ -358,18 +380,18 @@ export const workflowApi = {
           const openaiData = await openaiResponse.json();
           const content = openaiData.choices[0]?.message?.content;
           
-          result = config.jsonResponse ? 
+          result = finalConfig.jsonResponse ? 
             { analysis: JSON.parse(content), raw_response: content } :
             { analysis: content, raw_response: content };
           break;
           
         case 'ai_content_generate':
         case WorkflowNodeType.AI_CONTENT_GENERATE:
-          if (!config.apiKey) {
-            throw new Error('OpenAI API key is required');
+          if (!finalConfig.apiKey) {
+            throw new Error('OpenAI API key is required. Please configure an OpenAI integration.');
           }
           
-          let generationPrompt = config.prompt || 'Generate content based on the provided information.';
+          let generationPrompt = finalConfig.prompt || 'Generate content based on the provided information.';
           
           // Replace template variables
           Object.keys(inputData).forEach(key => {
@@ -381,25 +403,31 @@ export const workflowApi = {
           ];
           
           // Add JSON format instruction if requested
-          if (config.jsonResponse && config.jsonSchema) {
+          if (finalConfig.jsonResponse && finalConfig.jsonSchema) {
             generationMessages.unshift({
               role: 'system',
-              content: `Please respond in JSON format following this schema: ${config.jsonSchema}`
+              content: `Please respond in JSON format following this schema: ${finalConfig.jsonSchema}`
             });
           }
+          
+          // Use model override if provided, otherwise use integration default
+          const genModel = finalConfig.modelOverride || finalConfig.model || 'gpt-4o-mini';
+          const genTemperature = finalConfig.temperatureOverride !== undefined ? 
+            finalConfig.temperatureOverride : 
+            (finalConfig.temperature || 0.7);
           
           const generateResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${config.apiKey}`,
+              'Authorization': `Bearer ${finalConfig.apiKey}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              model: config.model || 'gpt-4o-mini',
+              model: genModel,
               messages: generationMessages,
-              temperature: config.temperature || 0.7,
-              max_tokens: config.maxTokens || 1000,
-              ...(config.jsonResponse && { response_format: { type: 'json_object' } })
+              temperature: genTemperature,
+              max_tokens: finalConfig.maxTokens || 1000,
+              ...(finalConfig.jsonResponse && { response_format: { type: 'json_object' } })
             })
           });
           
@@ -410,62 +438,62 @@ export const workflowApi = {
           const generateData = await generateResponse.json();
           const generateContent = generateData.choices[0]?.message?.content;
           
-          result = config.jsonResponse ? 
+          result = finalConfig.jsonResponse ? 
             { content: JSON.parse(generateContent), raw_response: generateContent } :
             { content: generateContent, raw_response: generateContent };
           break;
           
         // Legacy DataForSEO nodes (keeping for backward compatibility)  
         case 'seo_keywords_volume':
-          const keywords = config.keywords ? config.keywords.split(',').map((k: string) => k.trim()) : [];
-          result = await dataforSeoApi.getKeywordVolume(keywords, config.location, config.language);
+          const keywords = finalConfig.keywords ? finalConfig.keywords.split(',').map((k: string) => k.trim()) : [];
+          result = await dataforSeoApi.getKeywordVolume(keywords, finalConfig.location, finalConfig.language);
           break;
           
         case 'seo_keywords_site':
           result = await dataforSeoApi.getKeywordsForSite(
-            config.url || inputData.url,
-            config.location,
-            config.language
+            finalConfig.url || inputData.url,
+            finalConfig.location,
+            finalConfig.language
           );
           break;
           
         case 'seo_competitors':
           result = await dataforSeoApi.analyzeCompetitors(
-            config.domain || inputData.domain,
-            config.location,
-            config.language
+            finalConfig.domain || inputData.domain,
+            finalConfig.location,
+            finalConfig.language
           );
           break;
           
         case 'seo_content_analyze':
           result = await dataforSeoApi.analyzeContent(
-            config.content || inputData.content,
-            config.keyword || inputData.keyword
+            finalConfig.content || inputData.content,
+            finalConfig.keyword || inputData.keyword
           );
           break;
           
         // Legacy AI nodes (keeping for backward compatibility)
         case 'ai_content_seo':
           result = await aiApi.generateSeoContent(
-            config.topic || inputData.topic,
-            config.keyword || inputData.keyword,
-            config.contentType
+            finalConfig.topic || inputData.topic,
+            finalConfig.keyword || inputData.keyword,
+            finalConfig.contentType
           );
           break;
           
         case 'ai_keywords_generate':
           result = await aiApi.generateKeywords(
-            config.topic || inputData.topic,
-            config.audience,
-            config.intent
+            finalConfig.topic || inputData.topic,
+            finalConfig.audience,
+            finalConfig.intent
           );
           break;
           
         case 'ai_ads_generate':
           result = await aiApi.generateAdCopy(
-            config.product || inputData.product,
-            config.platform,
-            config.audience
+            finalConfig.product || inputData.product,
+            finalConfig.platform,
+            finalConfig.audience
           );
           break;
           
@@ -478,7 +506,7 @@ export const workflowApi = {
         data: result,
         nodeType,
         executedAt: new Date().toISOString(),
-        outputVariable: config.outputVariable || nodeType.replace('_', ''),
+        outputVariable: finalConfig.outputVariable || nodeType.replace('_', ''),
       };
       
     } catch (error: any) {

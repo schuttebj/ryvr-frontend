@@ -17,6 +17,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Link,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -26,8 +27,18 @@ import {
   PlayArrow as TestIcon,
   ExpandMore as ExpandMoreIcon,
   DataArray as DataIcon,
+  Link as LinkIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
+
+interface Integration {
+  id: string;
+  name: string;
+  type: 'openai' | 'dataforseo' | 'custom';
+  status: 'connected' | 'disconnected' | 'error';
+  config: Record<string, any>;
+}
 
 interface NodeSettingsPanelProps {
   node: {
@@ -52,6 +63,12 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   );
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
+
+  // Load integrations on mount
+  useEffect(() => {
+    loadIntegrations();
+  }, []);
 
   // Update form data when node changes
   useEffect(() => {
@@ -59,6 +76,21 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       setFormData(node.data);
     }
   }, [node]);
+
+  const loadIntegrations = () => {
+    try {
+      const saved = localStorage.getItem('integrations');
+      if (saved) {
+        setIntegrations(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Failed to load integrations:', error);
+    }
+  };
+
+  const getIntegrationsByType = (type: 'openai' | 'dataforseo') => {
+    return integrations.filter(i => i.type === type && i.status === 'connected');
+  };
 
   if (!node) return null;
 
@@ -82,8 +114,14 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       // Import the workflow API for testing
       const { workflowApi } = await import('../../services/workflowApi');
       
+      // Get integration data and merge with node config
+      const selectedIntegration = integrations.find(i => i.id === formData.config?.integrationId);
+      const testConfig = selectedIntegration ? 
+        { ...selectedIntegration.config, ...formData.config } : 
+        formData.config;
+      
       // Test the node with its current configuration
-      result = await workflowApi.testNode(formData.type, formData.config);
+      result = await workflowApi.testNode(formData.type, testConfig);
       
       setTestResult({
         success: result.success,
@@ -148,6 +186,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             value={formData.config?.inputMapping || ''}
             label="Map Input Data"
             onChange={(e) => handleConfigChange('inputMapping', e.target.value)}
+            MenuProps={{
+              PaperProps: {
+                style: { maxHeight: 200, zIndex: 9999 }
+              }
+            }}
           >
             <MenuItem value="">No mapping</MenuItem>
             <MenuItem value="trigger_1.manual">Previous: Manual trigger</MenuItem>
@@ -174,6 +217,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.triggerType || 'manual'}
                 label="Trigger Type"
                 onChange={(e) => handleConfigChange('triggerType', e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 200, zIndex: 9999 }
+                  }
+                }}
               >
                 <MenuItem value="manual">Manual Start</MenuItem>
                 <MenuItem value="webhook">Webhook URL</MenuItem>
@@ -207,46 +255,49 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         );
 
       case WorkflowNodeType.SEO_SERP_ANALYZE:
+        const dataforSeoIntegrations = getIntegrationsByType('dataforseo');
+        
         return (
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               SERP Analysis Settings
             </Typography>
             
-            {/* DataForSEO Configuration */}
+            {/* Integration Selection */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              DataForSEO Configuration
+              DataForSEO Integration
             </Typography>
             
-            <TextField
-              fullWidth
-              label="DataForSEO Login"
-              value={formData.config?.dataforSeoLogin || ''}
-              onChange={(e) => handleConfigChange('dataforSeoLogin', e.target.value)}
-              sx={{ mb: 2 }}
-              helperText="Your DataForSEO account login"
-            />
-            
-            <TextField
-              fullWidth
-              label="DataForSEO Password"
-              type="password"
-              value={formData.config?.dataforSeoPassword || ''}
-              onChange={(e) => handleConfigChange('dataforSeoPassword', e.target.value)}
-              sx={{ mb: 2 }}
-              helperText="Your DataForSEO account password"
-            />
-            
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.config?.useSandbox || true}
-                  onChange={(e) => handleConfigChange('useSandbox', e.target.checked)}
-                />
-              }
-              label="Use Sandbox Mode (recommended for testing)"
-              sx={{ mb: 2 }}
-            />
+            {dataforSeoIntegrations.length > 0 ? (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Integration</InputLabel>
+                <Select
+                  value={formData.config?.integrationId || ''}
+                  label="Select Integration"
+                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 200, zIndex: 9999 }
+                    }
+                  }}
+                >
+                  {dataforSeoIntegrations.map(integration => (
+                    <MenuItem key={integration.id} value={integration.id}>
+                      {integration.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No DataForSEO integrations found. 
+                <Link href="/integrations" sx={{ ml: 1 }}>
+                  <Button size="small" startIcon={<AddIcon />}>
+                    Add Integration
+                  </Button>
+                </Link>
+              </Alert>
+            )}
             
             {/* Search Configuration */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -268,6 +319,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.locationCode || 2840}
                 label="Location"
                 onChange={(e) => handleConfigChange('locationCode', e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 200, zIndex: 9999 }
+                  }
+                }}
               >
                 <MenuItem value={2840}>United States</MenuItem>
                 <MenuItem value={2826}>United Kingdom</MenuItem>
@@ -284,6 +340,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.languageCode || 'en'}
                 label="Language"
                 onChange={(e) => handleConfigChange('languageCode', e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 200, zIndex: 9999 }
+                  }
+                }}
               >
                 <MenuItem value="en">English</MenuItem>
                 <MenuItem value="es">Spanish</MenuItem>
@@ -305,44 +366,6 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               helperText="Number of SERP results to analyze (1-100)"
             />
             
-            {/* Output Configuration */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Output Configuration
-            </Typography>
-            
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.config?.includeMetrics || true}
-                  onChange={(e) => handleConfigChange('includeMetrics', e.target.checked)}
-                />
-              }
-              label="Include ranking metrics"
-              sx={{ mb: 1 }}
-            />
-            
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.config?.includeSnippets || true}
-                  onChange={(e) => handleConfigChange('includeSnippets', e.target.checked)}
-                />
-              }
-              label="Include meta descriptions and snippets"
-              sx={{ mb: 1 }}
-            />
-            
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.config?.includeImages || false}
-                  onChange={(e) => handleConfigChange('includeImages', e.target.checked)}
-                />
-              }
-              label="Include image results"
-              sx={{ mb: 2 }}
-            />
-            
             <TextField
               fullWidth
               label="Output Variable Name"
@@ -355,25 +378,69 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         );
 
       case WorkflowNodeType.AI_CONTENT_ANALYZE:
+        const openaiIntegrations = getIntegrationsByType('openai');
+        
         return (
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               AI Analysis Settings
             </Typography>
             
-            {/* OpenAI Configuration */}
+            {/* Integration Selection */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              OpenAI Configuration
+              OpenAI Integration
+            </Typography>
+            
+            {openaiIntegrations.length > 0 ? (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Integration</InputLabel>
+                <Select
+                  value={formData.config?.integrationId || ''}
+                  label="Select Integration"
+                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 200, zIndex: 9999 }
+                    }
+                  }}
+                >
+                  {openaiIntegrations.map(integration => (
+                    <MenuItem key={integration.id} value={integration.id}>
+                      {integration.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No OpenAI integrations found. 
+                <Link href="/integrations" sx={{ ml: 1 }}>
+                  <Button size="small" startIcon={<AddIcon />}>
+                    Add Integration
+                  </Button>
+                </Link>
+              </Alert>
+            )}
+            
+            {/* Model Configuration Override */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Model Configuration (Optional Override)
             </Typography>
             
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Model</InputLabel>
+              <InputLabel>Model Override</InputLabel>
               <Select
-                value={formData.config?.model || 'gpt-4o-mini'}
-                label="Model"
-                onChange={(e) => handleConfigChange('model', e.target.value)}
+                value={formData.config?.modelOverride || ''}
+                label="Model Override"
+                onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 200, zIndex: 9999 }
+                  }
+                }}
               >
-                <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
+                <MenuItem value="">Use integration default</MenuItem>
+                <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
                 <MenuItem value="gpt-4o">GPT-4o</MenuItem>
                 <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
                 <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
@@ -383,37 +450,17 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <TextField
               fullWidth
               type="number"
-              label="Temperature"
-              value={formData.config?.temperature || 0.7}
-              onChange={(e) => handleConfigChange('temperature', parseFloat(e.target.value))}
+              label="Temperature Override"
+              value={formData.config?.temperatureOverride || ''}
+              onChange={(e) => handleConfigChange('temperatureOverride', e.target.value ? parseFloat(e.target.value) : '')}
               sx={{ mb: 2 }}
               inputProps={{ min: 0, max: 2, step: 0.1 }}
-              helperText="Controls randomness: 0 = focused, 2 = creative"
-            />
-            
-            <TextField
-              fullWidth
-              type="number"
-              label="Max Tokens"
-              value={formData.config?.maxTokens || 1000}
-              onChange={(e) => handleConfigChange('maxTokens', parseInt(e.target.value))}
-              sx={{ mb: 2 }}
-              helperText="Maximum response length"
-            />
-            
-            <TextField
-              fullWidth
-              label="API Key"
-              type="password"
-              value={formData.config?.apiKey || ''}
-              onChange={(e) => handleConfigChange('apiKey', e.target.value)}
-              sx={{ mb: 2 }}
-              helperText="Your OpenAI API key (stored securely)"
+              helperText="Leave empty to use integration default"
             />
             
             {/* Custom Prompt */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Custom Prompt
+              Analysis Prompt
             </Typography>
             
             <TextField
@@ -477,11 +524,6 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               />
             )}
             
-            {/* Output Mapping */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Output Mapping
-            </Typography>
-            
             <TextField
               fullWidth
               label="Output Variable Name"
@@ -494,61 +536,49 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         );
 
       case WorkflowNodeType.AI_CONTENT_GENERATE:
+        const openaiGenIntegrations = getIntegrationsByType('openai');
+        
         return (
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               AI Content Generation Settings
             </Typography>
             
-            {/* OpenAI Configuration */}
+            {/* Integration Selection */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              OpenAI Configuration
+              OpenAI Integration
             </Typography>
             
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Model</InputLabel>
-              <Select
-                value={formData.config?.model || 'gpt-4o-mini'}
-                label="Model"
-                onChange={(e) => handleConfigChange('model', e.target.value)}
-              >
-                <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
-                <MenuItem value="gpt-4o">GPT-4o</MenuItem>
-                <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
-                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <TextField
-              fullWidth
-              type="number"
-              label="Temperature"
-              value={formData.config?.temperature || 0.7}
-              onChange={(e) => handleConfigChange('temperature', parseFloat(e.target.value))}
-              sx={{ mb: 2 }}
-              inputProps={{ min: 0, max: 2, step: 0.1 }}
-              helperText="Controls creativity: 0 = focused, 2 = creative"
-            />
-            
-            <TextField
-              fullWidth
-              type="number"
-              label="Max Tokens"
-              value={formData.config?.maxTokens || 1000}
-              onChange={(e) => handleConfigChange('maxTokens', parseInt(e.target.value))}
-              sx={{ mb: 2 }}
-              helperText="Maximum response length"
-            />
-            
-            <TextField
-              fullWidth
-              label="API Key"
-              type="password"
-              value={formData.config?.apiKey || ''}
-              onChange={(e) => handleConfigChange('apiKey', e.target.value)}
-              sx={{ mb: 2 }}
-              helperText="Your OpenAI API key (stored securely)"
-            />
+            {openaiGenIntegrations.length > 0 ? (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Integration</InputLabel>
+                <Select
+                  value={formData.config?.integrationId || ''}
+                  label="Select Integration"
+                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 200, zIndex: 9999 }
+                    }
+                  }}
+                >
+                  {openaiGenIntegrations.map(integration => (
+                    <MenuItem key={integration.id} value={integration.id}>
+                      {integration.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No OpenAI integrations found. 
+                <Link href="/integrations" sx={{ ml: 1 }}>
+                  <Button size="small" startIcon={<AddIcon />}>
+                    Add Integration
+                  </Button>
+                </Link>
+              </Alert>
+            )}
             
             {/* Content Generation Configuration */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -573,6 +603,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.contentType || 'summary'}
                 label="Content Type"
                 onChange={(e) => handleConfigChange('contentType', e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 200, zIndex: 9999 }
+                  }
+                }}
               >
                 <MenuItem value="summary">Summary</MenuItem>
                 <MenuItem value="article">Article</MenuItem>
@@ -628,7 +663,6 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               />
             )}
             
-            {/* Output Mapping */}
             <TextField
               fullWidth
               label="Output Variable Name"

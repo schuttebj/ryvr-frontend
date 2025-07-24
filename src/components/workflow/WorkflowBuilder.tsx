@@ -1,592 +1,551 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
-import {
-  ReactFlow,
-  Node,
-  Edge,
-  addEdge,
-  Connection,
-  useNodesState,
-  useEdgesState,
-  Controls,
-  MiniMap,
-  Background,
-  BackgroundVariant,
-  ReactFlowProvider,
-  NodeMouseHandler,
-  EdgeMouseHandler,
-  useReactFlow,
-  Panel,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Box,
   Typography,
   Button,
   Paper,
-  IconButton,
-  Alert,
+  Divider,
   Dialog,
-  DialogActions,
-  DialogContent,
   DialogTitle,
+  DialogContent,
+  DialogActions,
   TextField,
+  IconButton,
+  Tooltip,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import {
-  PlayArrow as TriggerIcon,
-  Search as SearchIcon,
-  SmartToy as AiIcon,
-  Email as EmailIcon,
-  Settings as SettingsIcon,
+  Add as AddIcon,
   Save as SaveIcon,
+  PlayArrow as PlayIcon,
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
-  Add as AddIcon,
+  BugReport as TestIcon,
+  Close as CloseIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
+import {
+  ReactFlow,
+  Node,
+  Edge,
+  Controls,
+  MiniMap,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Connection,
+  ReactFlowProvider,
+  Panel,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+import { useNavigate } from 'react-router-dom';
 
-import { WorkflowNodeData, WorkflowNodeType, Workflow } from '../../types/workflow';
-import { workflowApi } from '../../services/workflowApi';
-import BaseNode from './BaseNode';
+import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import NodeSettingsPanel from './NodeSettingsPanel';
+import BaseNode from './BaseNode';
 
-// Custom Node Components
-const TriggerNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
-  <BaseNode 
-    data={data} 
-    selected={selected} 
-    color="#4CAF50" 
-    icon={<TriggerIcon />}
-    isTrigger={true}
-  />
-);
+// Custom node components
+const TriggerNode = (props: any) => <BaseNode {...props} nodeType="trigger" />;
+const SerpNode = (props: any) => <BaseNode {...props} nodeType="serp" />;
+const AiNode = (props: any) => <BaseNode {...props} nodeType="ai" />;
+const EmailNode = (props: any) => <BaseNode {...props} nodeType="email" />;
 
-const SerpNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
-  <BaseNode 
-    data={data} 
-    selected={selected} 
-    color="#2196F3" 
-    icon={<SearchIcon />}
-  />
-);
-
-const AiNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
-  <BaseNode 
-    data={data} 
-    selected={selected} 
-    color="#FF9800" 
-    icon={<AiIcon />}
-  />
-);
-
-const EmailNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
-  <BaseNode 
-    data={data} 
-    selected={selected} 
-    color="#9C27B0" 
-    icon={<EmailIcon />}
-  />
-);
-
-// Node type definitions for the palette
 const nodeTypes = {
   trigger: TriggerNode,
-  seo_serp_analyze: SerpNode,
-  ai_content_generate: AiNode,
-  ai_content_analyze: AiNode,
+  serp: SerpNode,
+  ai: AiNode,
   email: EmailNode,
 };
 
-// Node palette items
-const nodePaletteItems = [
+interface WorkflowBuilderProps {
+  onSave?: (workflow: any) => void;
+}
+
+interface NodePaletteItem {
+  type: WorkflowNodeType;
+  label: string;
+  description: string;
+  category: string;
+}
+
+const nodePaletteItems: NodePaletteItem[] = [
   {
     type: WorkflowNodeType.TRIGGER,
     label: 'Manual Trigger',
     description: 'Start workflow manually',
-    icon: TriggerIcon,
-    color: '#4CAF50',
     category: 'Triggers'
   },
   {
     type: WorkflowNodeType.SEO_SERP_ANALYZE,
     label: 'SERP Analysis',
     description: 'Analyze search results',
-    icon: SearchIcon,
-    color: '#2196F3',
     category: 'SEO Tools'
   },
   {
     type: WorkflowNodeType.AI_CONTENT_ANALYZE,
     label: 'AI Analysis',
     description: 'Analyze content with AI',
-    icon: AiIcon,
-    color: '#FF9800',
     category: 'AI Tools'
   },
   {
     type: WorkflowNodeType.AI_CONTENT_GENERATE,
-    label: 'AI Summarize',
-    description: 'Generate AI summary',
-    icon: AiIcon,
-    color: '#FF9800',
+    label: 'AI Generate',
+    description: 'Generate content with AI',
     category: 'AI Tools'
   },
   {
     type: WorkflowNodeType.EMAIL,
     label: 'Send Email',
     description: 'Send email notification',
-    icon: EmailIcon,
-    color: '#9C27B0',
     category: 'Actions'
-  },
+  }
 ];
 
-interface WorkflowBuilderProps {
-  workflowId?: string;
-  onSave?: (workflow: any) => void;
-}
-
-function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
+export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
+  const navigate = useNavigate();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const [settingsNode, setSettingsNode] = useState<{ id: string; data: WorkflowNodeData } | null>(null);
-  const [isFullscreen, setIsFullscreen] = useState(true); // Default to fullscreen
-  const [workflowName, setWorkflowName] = useState('My Workflow');
+  const [settingsNode, setSettingsNode] = useState<any>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const [workflowName, setWorkflowName] = useState('');
+  const [workflowDescription, setWorkflowDescription] = useState('');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  
+  // Auto-save timer
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedState = useRef<string>('');
 
-  // Get node label helper
-  const getNodeLabel = (type: WorkflowNodeType): string => {
-    const item = nodePaletteItems.find(item => item.type === type);
-    return item?.label || type.replace('_', ' ').toUpperCase();
-  };
+  // Track changes to nodes and edges
+  useEffect(() => {
+    const currentState = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
+    if (currentState !== lastSavedState.current && lastSavedState.current !== '') {
+      setHasUnsavedChanges(true);
+      
+      // Auto-save after 2 seconds of no changes
+      if (autoSaveEnabled && (workflowName || nodes.length > 0)) {
+        if (autoSaveTimer.current) {
+          clearTimeout(autoSaveTimer.current);
+        }
+        autoSaveTimer.current = setTimeout(() => {
+          handleAutoSave();
+        }, 2000);
+      }
+    }
+  }, [nodes, edges, workflowName, workflowDescription, autoSaveEnabled]);
 
-  // Get node description helper  
-  const getNodeDescription = (type: WorkflowNodeType): string => {
-    const item = nodePaletteItems.find(item => item.type === type);
-    return item?.description || `${type} node`;
-  };
-
-  // Handle drag over
-  const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+      }
+    };
   }, []);
 
-  // Handle drop - create new node
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow');
-      
-      if (!type || !reactFlowWrapper.current) return;
-
-      const position = screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      const nodeId = `${type}_${Date.now()}`;
-      const newNode: Node = {
-        id: nodeId,
-        type: type,
-        position,
-        data: {
-          id: nodeId,
-          type: type as WorkflowNodeType,
-          label: getNodeLabel(type as WorkflowNodeType),
-          description: getNodeDescription(type as WorkflowNodeType),
-          config: {},
-          isValid: true,
-        } as unknown as Record<string, unknown>,
-        draggable: true,
-        selectable: true,
+  const handleAutoSave = useCallback(async () => {
+    if (!hasUnsavedChanges || (!workflowName && nodes.length === 0)) return;
+    
+    try {
+      const workflow = {
+        id: `workflow_${Date.now()}`,
+        name: workflowName || `Untitled Workflow ${new Date().toLocaleTimeString()}`,
+        description: workflowDescription,
+        nodes,
+        edges,
+        lastModified: new Date().toISOString(),
       };
 
-      setNodes((nds: Node[]) => [...nds, newNode]);
-    },
-    [screenToFlowPosition, setNodes, getNodeLabel, getNodeDescription]
-  );
+      if (onSave) {
+        await onSave(workflow);
+        setHasUnsavedChanges(false);
+        lastSavedState.current = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
+        setSnackbarMessage('Workflow auto-saved');
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    }
+  }, [nodes, edges, workflowName, workflowDescription, hasUnsavedChanges, onSave]);
 
-  // Handle connection between nodes
+  const handleClose = () => {
+    if (hasUnsavedChanges && !autoSaveEnabled) {
+      setShowCloseDialog(true);
+    } else if (hasUnsavedChanges && autoSaveEnabled) {
+      // Auto-save before closing
+      handleAutoSave().then(() => {
+        navigate('/workflows');
+      });
+    } else {
+      navigate('/workflows');
+    }
+  };
+
+  const handleCloseConfirm = async (saveChanges: boolean) => {
+    if (saveChanges) {
+      await handleAutoSave();
+    }
+    setShowCloseDialog(false);
+    navigate('/workflows');
+  };
+
   const onConnect = useCallback(
-    (params: Edge | Connection) => {
-      console.log('Connecting nodes:', params);
+    (params: Connection) => {
       const newEdge: Edge = {
-        ...params,
-        id: `${params.source}-${params.target}`,
-        animated: true,
-        style: { stroke: '#5f5fff', strokeWidth: 2 },
+        id: `edge-${params.source}-${params.target}`,
+        source: params.source!,
+        target: params.target!,
+        type: 'default',
       };
       setEdges((eds: Edge[]) => addEdge(newEdge, eds));
     },
     [setEdges]
   );
 
-  // Handle settings save
-  const handleSettingsSave = useCallback((nodeId: string, updatedData: WorkflowNodeData) => {
-    setNodes((nds: Node[]) => 
-      nds.map((node: Node) => 
-        node.id === nodeId 
-          ? { ...node, data: updatedData as unknown as Record<string, unknown> }
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const nodeType = event.dataTransfer.getData('application/reactflow');
+      if (!nodeType) return;
+
+      const position = {
+        x: event.clientX - 300, // Adjust for sidebar width
+        y: event.clientY - 100,
+      };
+
+      const newNode: Node = {
+        id: `${nodeType}-${Date.now()}`,
+        type: nodeType === 'trigger' ? 'trigger' : nodeType === 'serp' ? 'serp' : nodeType === 'ai' ? 'ai' : 'email',
+        position,
+        data: {
+          id: `${nodeType}-${Date.now()}`,
+          type: nodeType as WorkflowNodeType,
+          label: nodePaletteItems.find(item => item.type === nodeType)?.label || nodeType,
+          description: nodePaletteItems.find(item => item.type === nodeType)?.description || '',
+          config: {},
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+      };
+
+      setNodes((nds: Node[]) => nds.concat(newNode));
+    },
+    [setNodes]
+  );
+
+  const onNodeClick = (event: React.MouseEvent, node: Node) => {
+    setSettingsNode(node);
+  };
+
+  const handleSettingsSave = (nodeId: string, updatedData: WorkflowNodeData) => {
+    setNodes((nds: Node[]) =>
+      nds.map((node: Node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: updatedData as unknown as Record<string, unknown>,
+            }
           : node
       )
     );
     setSettingsNode(null);
-  }, [setNodes]);
+  };
 
-  // Handle node deletion
-  const handleNodeDelete = useCallback((nodeId: string) => {
+  const handleNodeDelete = (nodeId: string) => {
     setNodes((nds: Node[]) => nds.filter((node: Node) => node.id !== nodeId));
     setEdges((eds: Edge[]) => eds.filter((edge: Edge) => edge.source !== nodeId && edge.target !== nodeId));
     setSettingsNode(null);
-  }, [setNodes, setEdges]);
-
-  // Node click handler for settings/configuration
-  const onNodeClick: NodeMouseHandler = useCallback((_event: any, node: Node) => {
-    console.log('Node clicked:', node.id);
-    setSettingsNode({ id: node.id, data: node.data as unknown as WorkflowNodeData });
-  }, []);
-
-  const onNodeDrag = useCallback((_event: any, node: Node) => {
-    console.log('Node drag:', node.id, node.position);
-  }, []);
-
-  const onNodeDragStartHandler = useCallback((_event: any, node: Node) => {
-    console.log('Node drag start:', node.id);
-  }, []);
-
-  const onNodeDragStop = useCallback((_event: any, node: Node) => {
-    console.log('Node drag stop:', node.id, node.position);
-  }, []);
-
-  // Edge click handler
-  const onEdgeClick: EdgeMouseHandler = useCallback((_event: any, edge: Edge) => {
-    console.log('Edge clicked:', edge.id);
-  }, []);
-
-  // Save workflow
-  const handleSaveWorkflow = async () => {
-    try {
-      const workflow: Workflow = {
-        id: workflowId || `workflow_${Date.now()}`,
-        name: workflowName,
-        description: 'Workflow created with builder',
-        nodes: nodes.map((node: Node) => ({
-          id: node.id,
-          type: node.type || 'default',
-          position: node.position,
-          data: node.data as unknown as WorkflowNodeData,
-        })),
-        edges: edges.map((edge: Edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          type: edge.type,
-          animated: edge.animated,
-          style: edge.style,
-        })),
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      await workflowApi.saveWorkflow(workflow);
-      if (onSave) onSave(workflow);
-      setSaveDialogOpen(false);
-      
-      // Show success message
-      console.log('Workflow saved successfully!');
-    } catch (error) {
-      console.error('Failed to save workflow:', error);
-    }
   };
 
-  // Create test workflow
-  const createTestWorkflow = useCallback(() => {
+  const handleSaveWorkflow = () => {
+    setSaveDialogOpen(true);
+  };
+
+  const handleSaveConfirm = async () => {
+    const workflow = {
+      id: `workflow_${Date.now()}`,
+      name: workflowName,
+      description: workflowDescription,
+      nodes,
+      edges,
+      lastModified: new Date().toISOString(),
+    };
+
+    if (onSave) {
+      await onSave(workflow);
+      setHasUnsavedChanges(false);
+      lastSavedState.current = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
+      setSnackbarMessage('Workflow saved successfully');
+      setSnackbarOpen(true);
+    }
+
+    setSaveDialogOpen(false);
+    setWorkflowName('');
+    setWorkflowDescription('');
+  };
+
+  const createTestWorkflow = () => {
     const testNodes: Node[] = [
       {
-        id: 'trigger_1',
+        id: 'trigger-1',
         type: 'trigger',
         position: { x: 100, y: 100 },
         data: {
-          id: 'trigger_1',
+          id: 'trigger-1',
           type: WorkflowNodeType.TRIGGER,
-          label: 'Manual Trigger',
-          description: 'Start workflow manually',
+          label: 'Manual Start',
+          description: 'Manual trigger to start the workflow',
           config: { triggerType: 'manual' },
           isValid: true,
         } as unknown as Record<string, unknown>,
       },
       {
-        id: 'serp_1',
-        type: 'seo_serp_analyze',
-        position: { x: 100, y: 250 },
+        id: 'serp-1',
+        type: 'serp',
+        position: { x: 300, y: 100 },
         data: {
-          id: 'serp_1',
+          id: 'serp-1',
           type: WorkflowNodeType.SEO_SERP_ANALYZE,
           label: 'SERP Analysis',
-          description: 'Analyze search results',
-          config: { keyword: '', locationCode: 2840 },
+          description: 'Analyze search engine results',
+          config: { keyword: 'example keyword', locationCode: 2840, languageCode: 'en' },
           isValid: true,
         } as unknown as Record<string, unknown>,
       },
       {
-        id: 'ai_1',
-        type: 'ai_content_analyze',
-        position: { x: 100, y: 400 },
+        id: 'ai-1',
+        type: 'ai',
+        position: { x: 500, y: 100 },
         data: {
-          id: 'ai_1',
+          id: 'ai-1',
           type: WorkflowNodeType.AI_CONTENT_ANALYZE,
           label: 'AI Analysis',
           description: 'Analyze content with AI',
-          config: { analysisType: 'content' },
+          config: { 
+            systemPrompt: 'You are an SEO analyst.',
+            userPrompt: 'Analyze these SERP results: {serp_results}',
+            jsonResponse: true
+          },
           isValid: true,
         } as unknown as Record<string, unknown>,
       },
       {
-        id: 'summarize_1',
-        type: 'ai_content_generate',
-        position: { x: 100, y: 550 },
+        id: 'ai-2',
+        type: 'ai',
+        position: { x: 700, y: 100 },
         data: {
-          id: 'summarize_1',
+          id: 'ai-2',
           type: WorkflowNodeType.AI_CONTENT_GENERATE,
           label: 'AI Summarize',
-          description: 'Generate AI summary',
-          config: { contentType: 'summary' },
+          description: 'Generate summary',
+          config: { 
+            prompt: 'Create a summary based on: {ai_analysis}',
+            contentType: 'summary',
+            tone: 'professional'
+          },
           isValid: true,
         } as unknown as Record<string, unknown>,
       },
     ];
 
     const testEdges: Edge[] = [
-      {
-        id: 'trigger_1-serp_1',
-        source: 'trigger_1',
-        target: 'serp_1',
-        animated: true,
-        style: { stroke: '#5f5fff', strokeWidth: 2 },
-      },
-      {
-        id: 'serp_1-ai_1',
-        source: 'serp_1',
-        target: 'ai_1',
-        animated: true,
-        style: { stroke: '#5f5fff', strokeWidth: 2 },
-      },
-      {
-        id: 'ai_1-summarize_1',
-        source: 'ai_1',
-        target: 'summarize_1',
-        animated: true,
-        style: { stroke: '#5f5fff', strokeWidth: 2 },
-      },
+      { id: 'e1-2', source: 'trigger-1', target: 'serp-1' },
+      { id: 'e2-3', source: 'serp-1', target: 'ai-1' },
+      { id: 'e3-4', source: 'ai-1', target: 'ai-2' },
     ];
 
     setNodes(testNodes);
     setEdges(testEdges);
-  }, [setNodes, setEdges]);
+    setWorkflowName('Test Workflow: SERP → AI Analysis → Summary');
+    setWorkflowDescription('Sample workflow demonstrating SERP analysis followed by AI processing');
+  };
 
-  // Drag handlers for node palette
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
   };
 
-  const flowStyle = useMemo(() => ({
-    background: 'linear-gradient(to bottom, #f0f2f5, #ffffff)',
-  }), []);
-
   return (
-    <Box sx={{ 
-      height: isFullscreen ? '100vh' : '80vh',
-      width: '100%',
-      display: 'flex',
-      position: isFullscreen ? 'fixed' : 'relative',
-      top: isFullscreen ? 0 : 'auto',
-      left: isFullscreen ? 0 : 'auto',
-      zIndex: isFullscreen ? 9999 : 'auto', // Increased z-index to be above nav/header
-      bgcolor: 'background.default'
-    }}>
-      {/* Left Sidebar - Node Palette */}
-      <Paper sx={{ 
-        width: 280, 
-        height: '100%',
-        borderRadius: 0,
-        borderRight: '1px solid #e0e0e0',
-        overflow: 'auto'
-      }}>
-        {/* Header */}
-        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <SettingsIcon color="primary" />
-              Workflow Builder
+    <ReactFlowProvider>
+      <Box
+        sx={{
+          position: isFullscreen ? 'fixed' : 'relative',
+          top: isFullscreen ? 0 : 'auto',
+          left: isFullscreen ? 0 : 'auto',
+          width: isFullscreen ? '100vw' : '100%',
+          height: isFullscreen ? '100vh' : 'calc(100vh - 120px)',
+          zIndex: isFullscreen ? 9999 : 'auto',
+          backgroundColor: 'white',
+          display: 'flex',
+        }}
+      >
+        {/* Left Sidebar - Node Palette */}
+        <Paper sx={{
+          width: 280,
+          borderRadius: 0,
+          borderRight: '1px solid #e0e0e0',
+          overflow: 'auto',
+          flexShrink: 0
+        }}>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+              Workflow Nodes
             </Typography>
-            <IconButton 
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              size="small"
-            >
-              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
-            </IconButton>
-          </Box>
-          
-          <Button
-            variant="contained"
-            fullWidth
-            startIcon={<AddIcon />}
-            onClick={createTestWorkflow}
-            sx={{ mb: 1 }}
-          >
-            Create Test Workflow
-          </Button>
-          
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<SaveIcon />}
-            onClick={() => setSaveDialogOpen(true)}
-          >
-            Save Workflow
-          </Button>
-        </Box>
+            
+            {/* Workflow Controls */}
+            <Box sx={{ mb: 3 }}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={createTestWorkflow}
+                sx={{ mb: 1 }}
+              >
+                Create Test Flow
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<SaveIcon />}
+                onClick={handleSaveWorkflow}
+                color={hasUnsavedChanges ? "warning" : "primary"}
+                sx={{ mb: 1 }}
+              >
+                {hasUnsavedChanges ? 'Save Changes' : 'Save Workflow'}
+              </Button>
+            </Box>
 
-        {/* Node Palette */}
-        <Box sx={{ p: 2 }}>
-          <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>
-            Drag nodes to canvas
-          </Typography>
-          
-          {/* Group nodes by category */}
-          {['Triggers', 'SEO Tools', 'AI Tools', 'Actions'].map(category => (
-            <Box key={category} sx={{ mb: 3 }}>
-              <Typography variant="caption" sx={{ 
-                textTransform: 'uppercase', 
-                fontWeight: 'bold',
-                color: 'text.secondary',
-                mb: 1,
-                display: 'block'
-              }}>
-                {category}
-              </Typography>
-              
-              {nodePaletteItems
-                .filter(item => item.category === category)
-                .map((item) => (
-                  <Paper
-                    key={item.type}
-                    sx={{
-                      p: 2,
-                      mb: 1,
-                      cursor: 'grab',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: 2,
-                      '&:hover': {
-                        borderColor: item.color,
-                        boxShadow: `0 2px 8px ${item.color}20`,
-                      },
-                      '&:active': {
-                        cursor: 'grabbing',
-                      },
-                    }}
-                    draggable
-                    onDragStart={(event) => onDragStart(event, item.type)}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Box sx={{ 
-                        color: item.color,
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}>
-                        <item.icon fontSize="small" />
-                      </Box>
-                      <Typography variant="body2" fontWeight="medium">
+            <Divider sx={{ mb: 2 }} />
+
+            {/* Node Categories */}
+            {['Triggers', 'SEO Tools', 'AI Tools', 'Actions'].map((category) => (
+              <Box key={category} sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>
+                  {category}
+                </Typography>
+                {nodePaletteItems
+                  .filter(item => item.category === category)
+                  .map((item) => (
+                    <Paper
+                      key={item.type}
+                      elevation={1}
+                      draggable
+                      onDragStart={(event) => onDragStart(event, item.type)}
+                      sx={{
+                        p: 2,
+                        mb: 1,
+                        cursor: 'grab',
+                        border: '1px solid #e0e0e0',
+                        '&:hover': {
+                          backgroundColor: '#f5f5f5',
+                          borderColor: '#1976d2',
+                        },
+                        '&:active': {
+                          cursor: 'grabbing',
+                        }
+                      }}
+                    >
+                      <Typography variant="body2" fontWeight={500} sx={{ mb: 0.5 }}>
                         {item.label}
                       </Typography>
-                    </Box>
-                    <Typography variant="caption" color="text.secondary">
-                      {item.description}
-                    </Typography>
-                  </Paper>
-                ))}
-            </Box>
-          ))}
-        </Box>
-      </Paper>
+                      <Typography variant="caption" color="text.secondary">
+                        {item.description}
+                      </Typography>
+                    </Paper>
+                  ))}
+              </Box>
+            ))}
+          </Box>
+        </Paper>
 
-      {/* Main Canvas */}
-      <Box sx={{ 
-        flex: 1, 
-        height: '100%',
-        position: 'relative',
-        marginRight: settingsNode ? '400px' : '0px',
-        transition: 'margin-right 0.3s ease'
-      }}>
-        <div ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }}>
+        {/* Main Canvas Area */}
+        <Box sx={{ flex: 1, position: 'relative' }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onNodeClick={onNodeClick}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStart={onNodeDragStartHandler}
-            onNodeDragStop={onNodeDragStop}
-            onEdgeClick={onEdgeClick}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
             nodeTypes={nodeTypes}
-            style={flowStyle}
-            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-            fitView={false}
-            snapToGrid={true}
-            snapGrid={[15, 15]}
-            deleteKeyCode="Delete"
-            multiSelectionKeyCode="Shift"
-            panOnDrag={true}
-            panOnScroll={true}
-            zoomOnScroll={true}
-            zoomOnPinch={true}
-            zoomOnDoubleClick={true}
+            fitView
+            style={{ background: '#fafafa' }}
           >
-            <Background 
-              variant={BackgroundVariant.Dots} 
-              gap={20} 
-              size={1}
-              color="#e0e0e0"
-            />
-            <Controls 
-              position="bottom-left"
-              showZoom={true}
-              showFitView={true}
-              showInteractive={false}
-            />
-            <MiniMap 
-              position="bottom-right"
-              zoomable
-              pannable
-              nodeStrokeWidth={3}
-              nodeColor={(node) => {
-                const nodeItem = nodePaletteItems.find(item => item.type === node.type);
-                return nodeItem?.color || '#5f5fff';
-              }}
-              style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                border: '1px solid #e0e0e0',
-                borderRadius: 8,
-              }}
-            />
+            <Background />
+            <Controls />
+            <MiniMap />
             
-            {/* Canvas Instructions */}
-            {nodes.length === 0 && (
-              <Panel position="top-center">
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  Drag nodes from the left panel to start building your workflow, or click "Create Test Workflow"
-                </Alert>
+            {/* Top Controls Panel */}
+            <Panel position="top-right">
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                {hasUnsavedChanges && (
+                  <Tooltip title="You have unsaved changes">
+                    <WarningIcon color="warning" fontSize="small" />
+                  </Tooltip>
+                )}
+                
+                <Tooltip title={autoSaveEnabled ? "Auto-save enabled" : "Auto-save disabled"}>
+                  <Button
+                    size="small"
+                    variant={autoSaveEnabled ? "contained" : "outlined"}
+                    onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+                    sx={{ minWidth: 'auto', px: 1 }}
+                  >
+                    Auto
+                  </Button>
+                </Tooltip>
+                
+                <Tooltip title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
+                  <IconButton
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    size="small"
+                    sx={{ backgroundColor: 'white', '&:hover': { backgroundColor: '#f5f5f5' } }}
+                  >
+                    {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+                  </IconButton>
+                </Tooltip>
+                
+                <Tooltip title="Close builder">
+                  <IconButton
+                    onClick={handleClose}
+                    size="small"
+                    sx={{ backgroundColor: 'white', '&:hover': { backgroundColor: '#f5f5f5' } }}
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Panel>
+
+            {/* Auto-save Status */}
+            {autoSaveEnabled && (
+              <Panel position="bottom-right">
+                <Box sx={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                  padding: '4px 8px', 
+                  borderRadius: 1,
+                  fontSize: '12px',
+                  color: 'text.secondary'
+                }}>
+                  {hasUnsavedChanges ? 'Auto-saving...' : 'All changes saved'}
+                </Box>
               </Panel>
             )}
           </ReactFlow>
-        </div>
+        </Box>
       </Box>
 
       {/* Right Settings Panel */}
@@ -597,7 +556,7 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
           top: 0,
           height: '100vh',
           width: 400,
-          zIndex: 1001,
+          zIndex: 10000, // Higher than fullscreen builder
           borderRadius: 0,
           borderLeft: '1px solid #e0e0e0',
           overflow: 'auto'
@@ -625,25 +584,53 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
             onChange={(e) => setWorkflowName(e.target.value)}
             sx={{ mb: 2 }}
           />
-          <Typography variant="body2" color="text.secondary">
-            This workflow contains {nodes.length} nodes and {edges.length} connections.
-          </Typography>
+          <TextField
+            margin="dense"
+            label="Description"
+            fullWidth
+            multiline
+            rows={3}
+            variant="outlined"
+            value={workflowDescription}
+            onChange={(e) => setWorkflowDescription(e.target.value)}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveWorkflow} variant="contained">
-            Save Workflow
+          <Button onClick={handleSaveConfirm} variant="contained">
+            Save
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
-  );
-}
 
-export default function WorkflowBuilder(props: WorkflowBuilderProps) {
-  return (
-    <ReactFlowProvider>
-      <WorkflowBuilderContent {...props} />
+      {/* Close Confirmation Dialog */}
+      <Dialog open={showCloseDialog} onClose={() => setShowCloseDialog(false)}>
+        <DialogTitle>Unsaved Changes</DialogTitle>
+        <DialogContent>
+          <Typography>
+            You have unsaved changes. Would you like to save them before closing?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleCloseConfirm(false)} color="error">
+            Don't Save
+          </Button>
+          <Button onClick={() => setShowCloseDialog(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => handleCloseConfirm(true)} variant="contained">
+            Save & Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </ReactFlowProvider>
   );
 } 
