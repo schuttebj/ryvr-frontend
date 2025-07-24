@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Handle, Position } from '@reactflow/core';
 import { 
   Card, 
@@ -40,6 +41,13 @@ export default function BaseNode({
   const hasErrors = data.errors && data.errors.length > 0;
   const isValid = data.isValid !== false;
 
+  const handleSettingsClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onSettingsClick) {
+      onSettingsClick();
+    }
+  };
+
   return (
     <Card
       sx={{
@@ -50,6 +58,7 @@ export default function BaseNode({
         boxShadow: selected ? `0 4px 12px ${color}30` : '0 2px 8px rgba(0,0,0,0.08)',
         backgroundColor: 'white',
         transition: 'all 0.2s ease',
+        cursor: 'pointer',
         '&:hover': {
           boxShadow: `0 4px 12px ${color}20`,
           transform: 'translateY(-2px)',
@@ -59,32 +68,41 @@ export default function BaseNode({
     >
       {showHandles && (
         <>
+          {/* Target handle - for receiving connections */}
           {!isTrigger && (
             <Handle
               type="target"
               position={Position.Top}
+              id="target-top"
               isConnectable={true}
               style={{
                 backgroundColor: color,
                 border: '2px solid white',
-                width: 14,
-                height: 14,
+                width: 16,
+                height: 16,
                 borderRadius: '50%',
-                top: -7,
+                top: -8,
+                left: '50%',
+                transform: 'translateX(-50%)',
               }}
             />
           )}
+          
+          {/* Source handle - for creating connections */}
           <Handle
             type="source"
             position={Position.Bottom}
+            id="source-bottom"
             isConnectable={true}
             style={{
               backgroundColor: color,
               border: '2px solid white',
-              width: 14,
-              height: 14,
+              width: 16,
+              height: 16,
               borderRadius: '50%',
-              bottom: -7,
+              bottom: -8,
+              left: '50%',
+              transform: 'translateX(-50%)',
             }}
           />
         </>
@@ -142,18 +160,16 @@ export default function BaseNode({
             {isValid && !hasErrors && (
               <CheckCircleIcon sx={{ color: '#4caf50', fontSize: 20 }} />
             )}
-            {onSettingsClick && (
-              <IconButton
-                size="small"
-                onClick={onSettingsClick}
-                sx={{ 
-                  color: '#5a6577',
-                  '&:hover': { color: color }
-                }}
-              >
-                <SettingsIcon fontSize="small" />
-              </IconButton>
-            )}
+            <IconButton
+              size="small"
+              onClick={handleSettingsClick}
+              sx={{ 
+                color: '#5a6577',
+                '&:hover': { color: color }
+              }}
+            >
+              <SettingsIcon fontSize="small" />
+            </IconButton>
           </Box>
         </Box>
 

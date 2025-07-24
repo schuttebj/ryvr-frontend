@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
   addEdge,
@@ -9,6 +9,7 @@ import {
   Node,
   ReactFlowProvider,
   ReactFlowInstance,
+  NodeMouseHandler,
 } from '@reactflow/core';
 
 import { Background } from '@reactflow/background';
@@ -45,6 +46,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   let id = 0;
@@ -53,19 +55,32 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   const onConnect = useCallback(
     (params: Connection) => {
       console.log('Connecting nodes:', params);
-      const edge = {
-        ...params,
-        id: `edge-${params.source}-${params.target}`,
-        animated: true,
-        style: {
-          stroke: '#5f5fff',
-          strokeWidth: 2,
-        },
-      };
-      setEdges((eds: any) => addEdge(edge, eds));
+      if (params.source && params.target) {
+        const edge = {
+          id: `edge-${params.source}-${params.target}-${Date.now()}`,
+          source: params.source,
+          target: params.target,
+          sourceHandle: params.sourceHandle,
+          targetHandle: params.targetHandle,
+          animated: true,
+          style: {
+            stroke: '#5f5fff',
+            strokeWidth: 2,
+          },
+        };
+        setEdges((eds: Edge[]) => addEdge(edge, eds));
+      }
     },
     [setEdges]
   );
+
+  // Node click handler for settings/configuration
+  const onNodeClick: NodeMouseHandler = useCallback((event: React.MouseEvent, node: Node) => {
+    event.stopPropagation();
+    console.log('Node clicked:', node.id);
+    setSelectedNode(node.id);
+    // TODO: Open node configuration panel/modal
+  }, []);
 
   const onNodeDrag = useCallback((_event: any, node: Node) => {
     console.log('Node drag:', node.id, node.position);
@@ -81,6 +96,11 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
 
   const onSelectionChange = useCallback((params: any) => {
     console.log('Selection change:', params);
+    if (params.nodes && params.nodes.length > 0) {
+      setSelectedNode(params.nodes[0].id);
+    } else {
+      setSelectedNode(null);
+    }
   }, []);
 
   const onDragOver = useCallback((event: any) => {
@@ -98,12 +118,21 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
         return;
       }
 
-      const position = reactFlowInstance?.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
+      // Get the bounding box of the ReactFlow wrapper
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      
+      if (!reactFlowBounds || !reactFlowInstance) {
+        console.error('ReactFlow instance or bounds not available');
+        return;
+      }
+
+      // Calculate position relative to the ReactFlow wrapper
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
       });
 
-      if (!position) return;
+      console.log('Drop position calculated:', position);
 
       const nodeId = getId();
       const newNode: Node = {
@@ -125,7 +154,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
       };
 
       console.log('Creating node:', newNode);
-      setNodes((nds: any) => nds.concat(newNode));
+      setNodes((nds: Node[]) => nds.concat(newNode));
     },
     [reactFlowInstance, setNodes]
   );
@@ -152,6 +181,12 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
       onClose();
     }
   }, [onClose]);
+
+  // Update nodes with selection state
+  const nodesWithSelection = nodes.map((node: Node) => ({
+    ...node,
+    selected: node.id === selectedNode
+  }));
 
   return (
     <Box sx={{ 
@@ -222,7 +257,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
           }}
         >
           <ReactFlow
-            nodes={nodes}
+            nodes={nodesWithSelection}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
@@ -230,6 +265,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
             onNodeDragStart={onNodeDragStartHandler}
             onNodeDrag={onNodeDrag}
             onNodeDragStop={onNodeDragStop}
@@ -254,10 +290,12 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             nodesDraggable={true}
             nodesConnectable={true}
             elementsSelectable={true}
-            selectNodesOnDrag={true}
+            selectNodesOnDrag={false}
             panOnDrag={[1, 2]}
             zoomOnScroll={true}
             zoomOnPinch={true}
+            deleteKeyCode="Delete"
+            multiSelectionKeyCode="Control"
             style={{ 
               backgroundColor: '#f8f9fb',
             }}
@@ -364,6 +402,37 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
               <Typography variant="body2">
                 Drag elements from the left panel to create your workflow
               </Typography>
+            </Box>
+          )}
+
+          {/* Selected node info */}
+          {selectedNode && (
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 20,
+                right: 20,
+                bgcolor: 'white',
+                borderRadius: 2,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                p: 2,
+                minWidth: 200,
+                zIndex: 1000,
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                Node Settings
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#5a6577' }}>
+                Selected: {selectedNode}
+              </Typography>
+              <Button
+                size="small"
+                sx={{ mt: 1 }}
+                onClick={() => setSelectedNode(null)}
+              >
+                Close
+              </Button>
             </Box>
           )}
         </Box>
