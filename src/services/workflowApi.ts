@@ -137,6 +137,91 @@ export const aiApi = {
 
 // Workflow execution with data mapping
 export const workflowApi = {
+  // Save workflow to backend
+  saveWorkflow: async (workflow: any) => {
+    try {
+      console.log('Saving workflow:', workflow);
+      
+      // For now, save to localStorage since backend might not be ready
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const existingIndex = workflows.findIndex((w: any) => w.id === workflow.id);
+      
+      if (existingIndex >= 0) {
+        workflows[existingIndex] = { ...workflow, updatedAt: new Date().toISOString() };
+      } else {
+        workflows.push(workflow);
+      }
+      
+      localStorage.setItem('workflows', JSON.stringify(workflows));
+      
+      // TODO: Replace with actual API call when backend is ready
+      // const response = await api.post('/api/v1/workflows', workflow);
+      // return response.data;
+      
+      return { success: true, workflow };
+    } catch (error: any) {
+      console.error('Failed to save workflow:', error);
+      throw new Error('Failed to save workflow: ' + error.message);
+    }
+  },
+
+  // Load workflow from backend
+  loadWorkflow: async (workflowId: string) => {
+    try {
+      // For now, load from localStorage
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const workflow = workflows.find((w: any) => w.id === workflowId);
+      
+      if (!workflow) {
+        throw new Error('Workflow not found');
+      }
+      
+      // TODO: Replace with actual API call when backend is ready
+      // const response = await api.get(`/api/v1/workflows/${workflowId}`);
+      // return response.data;
+      
+      return workflow;
+    } catch (error: any) {
+      console.error('Failed to load workflow:', error);
+      throw new Error('Failed to load workflow: ' + error.message);
+    }
+  },
+
+  // List all workflows
+  listWorkflows: async () => {
+    try {
+      // For now, load from localStorage
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      
+      // TODO: Replace with actual API call when backend is ready
+      // const response = await api.get('/api/v1/workflows');
+      // return response.data;
+      
+      return workflows;
+    } catch (error: any) {
+      console.error('Failed to list workflows:', error);
+      throw new Error('Failed to list workflows: ' + error.message);
+    }
+  },
+
+  // Delete workflow
+  deleteWorkflow: async (workflowId: string) => {
+    try {
+      // For now, delete from localStorage
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const filteredWorkflows = workflows.filter((w: any) => w.id !== workflowId);
+      localStorage.setItem('workflows', JSON.stringify(filteredWorkflows));
+      
+      // TODO: Replace with actual API call when backend is ready
+      // await api.delete(`/api/v1/workflows/${workflowId}`);
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to delete workflow:', error);
+      throw new Error('Failed to delete workflow: ' + error.message);
+    }
+  },
+
   // Execute a single node with input data
   executeNode: async (nodeType: string, config: any, inputData: any = {}) => {
     try {
@@ -237,5 +322,55 @@ export const workflowApi = {
   // Test a node configuration
   testNode: async (nodeType: string, config: any) => {
     return workflowApi.executeNode(nodeType, config, {});
+  },
+
+  // Execute entire workflow
+  executeWorkflow: async (workflow: any) => {
+    try {
+      console.log('Executing workflow:', workflow.name);
+      const results: any[] = [];
+      let currentData: any = {};
+
+      // Sort nodes by their position to execute in order
+      const sortedNodes = [...workflow.nodes].sort((a, b) => a.position.y - b.position.y);
+
+      for (const node of sortedNodes) {
+        console.log(`Executing node: ${node.id} (${node.data.type})`);
+        
+        const result = await workflowApi.executeNode(
+          node.data.type,
+          node.data.config,
+          currentData
+        );
+        
+        results.push({
+          nodeId: node.id,
+          ...result
+        });
+
+        // Pass successful results to next node
+        if (result.success) {
+          currentData = { ...currentData, [node.id]: result.data };
+        } else {
+          console.error(`Node ${node.id} failed:`, result.error);
+          break; // Stop execution on first failure
+        }
+      }
+
+      return {
+        success: true,
+        workflowId: workflow.id,
+        results,
+        executedAt: new Date().toISOString(),
+      };
+    } catch (error: any) {
+      console.error('Workflow execution failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        workflowId: workflow.id,
+        executedAt: new Date().toISOString(),
+      };
+    }
   },
 }; 

@@ -1,119 +1,260 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
+  Node,
+  Edge,
   addEdge,
+  Connection,
   useNodesState,
   useEdgesState,
-  Connection,
-  Edge,
-  Node,
-  ReactFlowProvider,
-  ReactFlowInstance,
-  NodeMouseHandler,
+  Controls,
+  MiniMap,
   Background,
+  BackgroundVariant,
+  ReactFlowProvider,
+  NodeMouseHandler,
+  EdgeMouseHandler,
+  useReactFlow,
+  Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Box, AppBar, Toolbar, Typography, Button, Fab } from '@mui/material';
-import { Save as SaveIcon, PlayArrow as PlayIcon, Close as CloseIcon } from '@mui/icons-material';
-import NodePalette from './NodePalette';
-import TriggerNode from './nodes/TriggerNode';
-import ActionNode from './nodes/ActionNode';
-import NodeSettingsPanel from './NodeSettingsPanel';
-import { WorkflowNodeType, WorkflowNodeData } from '../../types/workflow';
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Divider,
+  IconButton,
+  Toolbar,
+  AppBar,
+  Chip,
+  Alert,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+} from '@mui/material';
+import {
+  PlayArrow as TriggerIcon,
+  Search as SearchIcon,
+  SmartToy as AiIcon,
+  Email as EmailIcon,
+  Schedule as ScheduleIcon,
+  Webhook as WebhookIcon,
+  Close as CloseIcon,
+  Settings as SettingsIcon,
+  Save as SaveIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
+  Add as AddIcon,
+} from '@mui/icons-material';
 
-// Define custom node types
+import { WorkflowNodeData, WorkflowNodeType, Workflow } from '../../types/workflow';
+import { workflowApi } from '../../services/workflowApi';
+import BaseNode from './BaseNode';
+import NodeSettingsPanel from './NodeSettingsPanel';
+
+// Custom Node Components
+const TriggerNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
+  <BaseNode 
+    data={data} 
+    selected={selected} 
+    color="#4CAF50" 
+    icon={<TriggerIcon />}
+    isTrigger={true}
+  />
+);
+
+const SerpNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
+  <BaseNode 
+    data={data} 
+    selected={selected} 
+    color="#2196F3" 
+    icon={<SearchIcon />}
+  />
+);
+
+const AiNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
+  <BaseNode 
+    data={data} 
+    selected={selected} 
+    color="#FF9800" 
+    icon={<AiIcon />}
+  />
+);
+
+const EmailNode = ({ data, selected }: { data: WorkflowNodeData; selected: boolean }) => (
+  <BaseNode 
+    data={data} 
+    selected={selected} 
+    color="#9C27B0" 
+    icon={<EmailIcon />}
+  />
+);
+
+// Node type definitions for the palette
 const nodeTypes = {
   trigger: TriggerNode,
-  action: ActionNode,
-  email: ActionNode,
-  webhook: ActionNode,
-  delay: ActionNode,
-  ai_analysis: ActionNode,
-  seo_audit: ActionNode,
-  keyword_research: ActionNode,
-  social_media_post: ActionNode,
-  content_generation: ActionNode,
-  condition: ActionNode,
+  seo_serp_analyze: SerpNode,
+  ai_content_generate: AiNode,
+  ai_content_analyze: AiNode,
+  email: EmailNode,
 };
+
+// Node palette items
+const nodePaletteItems = [
+  {
+    type: WorkflowNodeType.TRIGGER,
+    label: 'Manual Trigger',
+    description: 'Start workflow manually',
+    icon: TriggerIcon,
+    color: '#4CAF50',
+    category: 'Triggers'
+  },
+  {
+    type: WorkflowNodeType.SEO_SERP_ANALYZE,
+    label: 'SERP Analysis',
+    description: 'Analyze search results',
+    icon: SearchIcon,
+    color: '#2196F3',
+    category: 'SEO Tools'
+  },
+  {
+    type: WorkflowNodeType.AI_CONTENT_ANALYZE,
+    label: 'AI Analysis',
+    description: 'Analyze content with AI',
+    icon: AiIcon,
+    color: '#FF9800',
+    category: 'AI Tools'
+  },
+  {
+    type: WorkflowNodeType.AI_CONTENT_GENERATE,
+    label: 'AI Summarize',
+    description: 'Generate AI summary',
+    icon: AiIcon,
+    color: '#FF9800',
+    category: 'AI Tools'
+  },
+  {
+    type: WorkflowNodeType.EMAIL,
+    label: 'Send Email',
+    description: 'Send email notification',
+    icon: EmailIcon,
+    color: '#9C27B0',
+    category: 'Actions'
+  },
+];
 
 interface WorkflowBuilderProps {
   workflowId?: string;
-  onSave?: (nodes: Node[], edges: Edge[]) => void;
-  onExecute?: (workflowId: string) => void;
-  onClose?: () => void;
+  onSave?: (workflow: any) => void;
 }
 
-function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: WorkflowBuilderProps) {
-  // Initial test nodes for development
-  const initialNodes: Node[] = [
-    {
-      id: 'test-trigger',
-      type: 'trigger',
-      position: { x: 100, y: 100 },
-      data: {
-        id: 'test-trigger',
-        type: WorkflowNodeType.TRIGGER,
-        label: 'Test Trigger',
-        description: 'Manual trigger for testing',
-        config: {},
-        isValid: true,
-      },
-      draggable: true,
-      selectable: true,
-      deletable: true,
-      connectable: true,
-    },
-    {
-      id: 'test-action',
-      type: 'action',
-      position: { x: 400, y: 200 },
-      data: {
-        id: 'test-action',
-        type: WorkflowNodeType.EMAIL,
-        label: 'Test Email Action',
-        description: 'Send test email',
-        config: {},
-        isValid: true,
-      },
-      draggable: true,
-      selectable: true,
-      deletable: true,
-      connectable: true,
-    },
-  ];
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [settingsNode, setSettingsNode] = useState<{ id: string; data: WorkflowNodeData } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(true); // Default to fullscreen
+  const [workflowName, setWorkflowName] = useState('My Workflow');
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const { screenToFlowPosition } = useReactFlow();
 
-  let id = 2; // Start from 2 since we have 2 test nodes
-  const getId = () => `node_${id++}`;
+  // Get node label helper
+  const getNodeLabel = (type: WorkflowNodeType): string => {
+    const item = nodePaletteItems.find(item => item.type === type);
+    return item?.label || type.replace('_', ' ').toUpperCase();
+  };
 
+  // Get node description helper  
+  const getNodeDescription = (type: WorkflowNodeType): string => {
+    const item = nodePaletteItems.find(item => item.type === type);
+    return item?.description || `${type} node`;
+  };
+
+  // Handle drag over
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  // Handle drop - create new node
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const type = event.dataTransfer.getData('application/reactflow');
+      
+      if (!type || !reactFlowWrapper.current) return;
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const nodeId = `${type}_${Date.now()}`;
+      const newNode: Node = {
+        id: nodeId,
+        type: type,
+        position,
+        data: {
+          id: nodeId,
+          type: type as WorkflowNodeType,
+          label: getNodeLabel(type as WorkflowNodeType),
+          description: getNodeDescription(type as WorkflowNodeType),
+          config: {},
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+        draggable: true,
+        selectable: true,
+      };
+
+      setNodes((nds) => [...nds, newNode]);
+      setIsDragging(false);
+    },
+    [screenToFlowPosition, setNodes]
+  );
+
+  // Handle connection between nodes
   const onConnect = useCallback(
-    (params: Connection) => {
+    (params: Edge | Connection) => {
       console.log('Connecting nodes:', params);
-      if (params.source && params.target) {
-        const edge: Edge = {
-          id: `edge-${params.source}-${params.target}-${Date.now()}`,
-          source: params.source,
-          target: params.target,
-          sourceHandle: params.sourceHandle || null,
-          targetHandle: params.targetHandle || null,
-          animated: true,
-          style: {
-            stroke: '#5f5fff',
-            strokeWidth: 3,
-          },
-        };
-        setEdges((eds: Edge[]) => addEdge(edge, eds));
-        console.log('Edge created successfully:', edge);
-      }
+      const newEdge = {
+        ...params,
+        id: `${params.source}-${params.target}`,
+        animated: true,
+        style: { stroke: '#5f5fff', strokeWidth: 2 },
+      };
+      setEdges((eds) => addEdge(newEdge, eds));
     },
     [setEdges]
   );
+
+  // Handle settings save
+  const handleSettingsSave = useCallback((nodeId: string, updatedData: WorkflowNodeData) => {
+    setNodes((nds: Node[]) => 
+      nds.map(node => 
+        node.id === nodeId 
+          ? { ...node, data: updatedData as unknown as Record<string, unknown> }
+          : node
+      )
+    );
+    setSettingsNode(null);
+  }, [setNodes]);
+
+  // Handle node deletion
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setSettingsNode(null);
+  }, [setNodes, setEdges]);
 
   // Node click handler for settings/configuration
   const onNodeClick: NodeMouseHandler = useCallback((event: any, node: Node) => {
@@ -135,421 +276,384 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     console.log('Node drag stop:', node.id, node.position);
   }, []);
 
-  const onSelectionChange = useCallback((params: any) => {
-    console.log('Selection change:', params);
-    if (params.nodes && params.nodes.length > 0) {
-      setSelectedNode(params.nodes[0].id);
-    } else {
-      setSelectedNode(null);
-    }
+  // Edge click handler
+  const onEdgeClick: EdgeMouseHandler = useCallback((event: any, edge: Edge) => {
+    console.log('Edge clicked:', edge.id);
   }, []);
 
-  const onDragOver = useCallback((event: any) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
-  }, []);
-
-  const onDrop = useCallback(
-    (event: any) => {
-      event.preventDefault();
-
-      const type = event.dataTransfer.getData('application/reactflow');
-      
-      if (typeof type === 'undefined' || !type) {
-        return;
-      }
-
-      // Get the bounding box of the ReactFlow wrapper
-      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
-      
-      if (!reactFlowBounds || !reactFlowInstance) {
-        console.error('ReactFlow instance or bounds not available');
-        return;
-      }
-
-      // Calculate position relative to the ReactFlow wrapper
-      const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX,
-        y: event.clientY,
-      });
-
-      console.log('Drop position calculated:', position, 'Client position:', { x: event.clientX, y: event.clientY });
-
-      const nodeId = getId();
-      const newNode: Node = {
-        id: nodeId,
-        type: type === WorkflowNodeType.TRIGGER ? 'trigger' : 'action',
-        position,
-        data: {
-          id: nodeId,
-          type: type as WorkflowNodeType,
-          label: getNodeLabel(type as WorkflowNodeType),
-          description: getNodeDescription(type as WorkflowNodeType),
-          config: {},
-          isValid: true,
-        } as unknown as Record<string, unknown>,
-        draggable: true,
-        selectable: true,
-        deletable: true,
-        connectable: true,
+  // Save workflow
+  const handleSaveWorkflow = async () => {
+    try {
+      const workflow: Workflow = {
+        id: workflowId || `workflow_${Date.now()}`,
+        name: workflowName,
+        description: 'Workflow created with builder',
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type || 'default',
+          position: node.position,
+          data: node.data as unknown as WorkflowNodeData,
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          animated: edge.animated,
+          style: edge.style,
+        })),
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
-      console.log('Creating node:', newNode);
-      setNodes((nds: Node[]) => nds.concat(newNode));
-    },
-    [reactFlowInstance, setNodes]
-  );
+      await workflowApi.saveWorkflow(workflow);
+      if (onSave) onSave(workflow);
+      setSaveDialogOpen(false);
+      
+      // Show success message
+      console.log('Workflow saved successfully!');
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+    }
+  };
 
-  const onNodeDragStart = useCallback((event: any, nodeType: WorkflowNodeType) => {
+  // Create test workflow
+  const createTestWorkflow = useCallback(() => {
+    const testNodes: Node[] = [
+      {
+        id: 'trigger_1',
+        type: 'trigger',
+        position: { x: 100, y: 100 },
+        data: {
+          id: 'trigger_1',
+          type: WorkflowNodeType.TRIGGER,
+          label: 'Manual Trigger',
+          description: 'Start workflow manually',
+          config: { triggerType: 'manual' },
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+      },
+      {
+        id: 'serp_1',
+        type: 'seo_serp_analyze',
+        position: { x: 100, y: 250 },
+        data: {
+          id: 'serp_1',
+          type: WorkflowNodeType.SEO_SERP_ANALYZE,
+          label: 'SERP Analysis',
+          description: 'Analyze search results',
+          config: { keyword: '', locationCode: 2840 },
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+      },
+      {
+        id: 'ai_1',
+        type: 'ai_content_analyze',
+        position: { x: 100, y: 400 },
+        data: {
+          id: 'ai_1',
+          type: WorkflowNodeType.AI_CONTENT_ANALYZE,
+          label: 'AI Analysis',
+          description: 'Analyze content with AI',
+          config: { analysisType: 'content' },
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+      },
+      {
+        id: 'summarize_1',
+        type: 'ai_content_generate',
+        position: { x: 100, y: 550 },
+        data: {
+          id: 'summarize_1',
+          type: WorkflowNodeType.AI_CONTENT_GENERATE,
+          label: 'AI Summarize',
+          description: 'Generate AI summary',
+          config: { contentType: 'summary' },
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+      },
+    ];
+
+    const testEdges: Edge[] = [
+      {
+        id: 'trigger_1-serp_1',
+        source: 'trigger_1',
+        target: 'serp_1',
+        animated: true,
+        style: { stroke: '#5f5fff', strokeWidth: 2 },
+      },
+      {
+        id: 'serp_1-ai_1',
+        source: 'serp_1',
+        target: 'ai_1',
+        animated: true,
+        style: { stroke: '#5f5fff', strokeWidth: 2 },
+      },
+      {
+        id: 'ai_1-summarize_1',
+        source: 'ai_1',
+        target: 'summarize_1',
+        animated: true,
+        style: { stroke: '#5f5fff', strokeWidth: 2 },
+      },
+    ];
+
+    setNodes(testNodes);
+    setEdges(testEdges);
+  }, [setNodes, setEdges]);
+
+  // Drag handlers for node palette
+  const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
-  }, []);
+    setIsDragging(true);
+  };
 
-  const handleSave = useCallback(() => {
-    if (onSave) {
-      onSave(nodes, edges);
-    }
-  }, [nodes, edges, onSave]);
-
-  const handleExecute = useCallback(() => {
-    if (onExecute && workflowId) {
-      onExecute(workflowId);
-    }
-  }, [onExecute, workflowId]);
-
-  const handleClose = useCallback(() => {
-    if (onClose) {
-      onClose();
-    }
-  }, [onClose]);
-
-  // Update nodes with selection state
-  const nodesWithSelection = nodes.map((node: Node) => ({
-    ...node,
-    selected: node.id === selectedNode
-  }));
-
-  // Handle settings save
-  const handleSettingsSave = useCallback((nodeId: string, updatedData: WorkflowNodeData) => {
-    setNodes((nds: Node[]) => 
-      nds.map(node => 
-        node.id === nodeId 
-          ? { ...node, data: updatedData as unknown as Record<string, unknown> }
-          : node
-      )
-    );
-  }, [setNodes]);
-
-  // Handle node delete
-  const handleNodeDelete = useCallback((nodeId: string) => {
-    setNodes((nds: Node[]) => nds.filter(node => node.id !== nodeId));
-    setEdges((eds: Edge[]) => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
-  }, [setNodes, setEdges]);
+  const flowStyle = useMemo(() => ({
+    background: 'linear-gradient(to bottom, #f0f2f5, #ffffff)',
+  }), []);
 
   return (
     <Box sx={{ 
-      display: 'flex', 
-      height: '100vh', 
-      bgcolor: '#f8f9fb',
-      position: 'relative',
+      height: isFullscreen ? '100vh' : '80vh',
+      width: '100%',
+      display: 'flex',
+      position: isFullscreen ? 'fixed' : 'relative',
+      top: isFullscreen ? 0 : 'auto',
+      left: isFullscreen ? 0 : 'auto',
+      zIndex: isFullscreen ? 1000 : 'auto',
+      bgcolor: 'background.default'
     }}>
-      <NodePalette onNodeDragStart={onNodeDragStart} />
-      
+      {/* Left Sidebar - Node Palette */}
+      <Paper sx={{ 
+        width: 280, 
+        height: '100%',
+        borderRadius: 0,
+        borderRight: '1px solid #e0e0e0',
+        overflow: 'auto'
+      }}>
+        {/* Header */}
+        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SettingsIcon color="primary" />
+              Workflow Builder
+            </Typography>
+            <IconButton 
+              onClick={() => setIsFullscreen(!isFullscreen)}
+              size="small"
+            >
+              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            </IconButton>
+          </Box>
+          
+          <Button
+            variant="contained"
+            fullWidth
+            startIcon={<AddIcon />}
+            onClick={createTestWorkflow}
+            sx={{ mb: 1 }}
+          >
+            Create Test Workflow
+          </Button>
+          
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<SaveIcon />}
+            onClick={() => setSaveDialogOpen(true)}
+          >
+            Save Workflow
+          </Button>
+        </Box>
+
+        {/* Node Palette */}
+        <Box sx={{ p: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 2, color: 'text.secondary' }}>
+            Drag nodes to canvas
+          </Typography>
+          
+          {/* Group nodes by category */}
+          {['Triggers', 'SEO Tools', 'AI Tools', 'Actions'].map(category => (
+            <Box key={category} sx={{ mb: 3 }}>
+              <Typography variant="caption" sx={{ 
+                textTransform: 'uppercase', 
+                fontWeight: 'bold',
+                color: 'text.secondary',
+                mb: 1,
+                display: 'block'
+              }}>
+                {category}
+              </Typography>
+              
+              {nodePaletteItems
+                .filter(item => item.category === category)
+                .map((item) => (
+                  <Paper
+                    key={item.type}
+                    sx={{
+                      p: 2,
+                      mb: 1,
+                      cursor: 'grab',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 2,
+                      '&:hover': {
+                        borderColor: item.color,
+                        boxShadow: `0 2px 8px ${item.color}20`,
+                      },
+                      '&:active': {
+                        cursor: 'grabbing',
+                      },
+                    }}
+                    draggable
+                    onDragStart={(event) => onDragStart(event, item.type)}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Box sx={{ 
+                        color: item.color,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <item.icon fontSize="small" />
+                      </Box>
+                      <Typography variant="body2" fontWeight="medium">
+                        {item.label}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {item.description}
+                    </Typography>
+                  </Paper>
+                ))}
+            </Box>
+          ))}
+        </Box>
+      </Paper>
+
+      {/* Main Canvas */}
       <Box sx={{ 
         flex: 1, 
-        display: 'flex', 
-        flexDirection: 'column',
+        height: '100%',
         position: 'relative',
+        marginRight: settingsNode ? '400px' : '0px',
+        transition: 'margin-right 0.3s ease'
       }}>
-        <AppBar 
-          position="static" 
-          sx={{ 
-            bgcolor: 'white', 
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            zIndex: 1000,
-          }}
-        >
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1, color: '#2e3142', fontWeight: 600 }}>
-              Workflow Builder - Test Mode (2 Test Nodes)
-            </Typography>
-            <Button
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              variant="outlined"
-              sx={{ 
-                mr: 1,
-                borderColor: '#5f5fff',
-                color: '#5f5fff',
-                '&:hover': {
-                  borderColor: '#5f5fff',
-                  bgcolor: '#5f5fff10',
-                },
-              }}
-            >
-              Save
-            </Button>
-            <Button
-              startIcon={<PlayIcon />}
-              onClick={handleExecute}
-              variant="contained"
-              disabled={!workflowId || nodes.length === 0}
-              sx={{
-                bgcolor: '#5f5fff',
-                '&:hover': {
-                  bgcolor: '#4f4fef',
-                },
-              }}
-            >
-              Execute
-            </Button>
-          </Toolbar>
-        </AppBar>
-
-        <Box
-          ref={reactFlowWrapper}
-          sx={{
-            flex: 1,
-            position: 'relative',
-            bgcolor: '#f8f9fb',
-            overflow: 'hidden', // Prevent scrollbars that might interfere
-          }}
-        >
+        <div ref={reactFlowWrapper} style={{ width: '100%', height: '100%' }}>
           <ReactFlow
-            nodes={nodesWithSelection}
+            nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            onInit={setReactFlowInstance}
+            onNodeClick={onNodeClick}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStart={onNodeDragStartHandler}
+            onNodeDragStop={onNodeDragStop}
+            onEdgeClick={onEdgeClick}
             onDrop={onDrop}
             onDragOver={onDragOver}
-            onNodeClick={onNodeClick}
-            onNodeDragStart={onNodeDragStartHandler}
-            onNodeDrag={onNodeDrag}
-            onNodeDragStop={onNodeDragStop}
-            onSelectionChange={onSelectionChange}
             nodeTypes={nodeTypes}
-            fitView
-            fitViewOptions={{
-              padding: 0.2,
-              includeHiddenNodes: false,
-            }}
-            defaultEdgeOptions={{
-              animated: true,
-              style: {
-                stroke: '#5f5fff',
-                strokeWidth: 3,
-              },
-            }}
-            connectionLineStyle={{
-              stroke: '#5f5fff',
-              strokeWidth: 3,
-              strokeDasharray: '5,5',
-            }}
-            nodesDraggable={true}
-            nodesConnectable={true}
-            elementsSelectable={true}
-            selectNodesOnDrag={false}
-            panOnDrag={[1]}
+            style={flowStyle}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            fitView={false}
+            snapToGrid={true}
+            snapGrid={[15, 15]}
+            deleteKeyCode="Delete"
+            multiSelectionKeyCode="Shift"
+            panOnDrag={true}
+            panOnScroll={true}
             zoomOnScroll={true}
             zoomOnPinch={true}
-            deleteKeyCode="Delete"
-            multiSelectionKeyCode="Control"
-            style={{ 
-              backgroundColor: '#f8f9fb',
-              width: '100%',
-              height: '100%',
-            }}
-            proOptions={{ hideAttribution: true }}
+            zoomOnDoubleClick={true}
           >
             <Background 
-              color="#e0e0e0" 
+              variant={BackgroundVariant.Dots} 
               gap={20} 
               size={1}
+              color="#e0e0e0"
+            />
+            <Controls 
+              position="bottom-left"
+              showZoom={true}
+              showFitView={true}
+              showInteractive={false}
+            />
+            <MiniMap 
+              position="bottom-right"
+              zoomable
+              pannable
+              nodeStrokeWidth={3}
+              nodeColor={(node) => {
+                const nodeItem = nodePaletteItems.find(item => item.type === node.type);
+                return nodeItem?.color || '#5f5fff';
+              }}
               style={{
-                opacity: 0.3, // Make background less prominent
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                border: '1px solid #e0e0e0',
+                borderRadius: 8,
               }}
             />
+            
+            {/* Canvas Instructions */}
+            {nodes.length === 0 && (
+              <Panel position="top-center">
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  Drag nodes from the left panel to start building your workflow, or click "Create Test Workflow"
+                </Alert>
+              </Panel>
+            )}
           </ReactFlow>
-
-          {/* Custom Controls */}
-          <Box
-            sx={{
-              position: 'absolute',
-              bottom: 20,
-              left: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 1,
-              zIndex: 10,
-            }}
-          >
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => reactFlowInstance?.fitView()}
-              sx={{
-                minWidth: 40,
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                bgcolor: 'white',
-                color: '#5f5fff',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                '&:hover': {
-                  bgcolor: '#f5f5f5',
-                  color: '#5f5fff',
-                },
-              }}
-            >
-              📍
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => reactFlowInstance?.zoomIn()}
-              sx={{
-                minWidth: 40,
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                bgcolor: 'white',
-                color: '#5f5fff',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                '&:hover': {
-                  bgcolor: '#f5f5f5',
-                  color: '#5f5fff',
-                },
-              }}
-            >
-              ➕
-            </Button>
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => reactFlowInstance?.zoomOut()}
-              sx={{
-                minWidth: 40,
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                bgcolor: 'white',
-                color: '#5f5fff',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                '&:hover': {
-                  bgcolor: '#f5f5f5',
-                  color: '#5f5fff',
-                },
-              }}
-            >
-              ➖
-            </Button>
-          </Box>
-
-          {/* Test Instructions */}
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 20,
-              left: 20,
-              bgcolor: 'rgba(255,255,255,0.95)',
-              borderRadius: 2,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              p: 2,
-              maxWidth: 300,
-              zIndex: 10,
-            }}
-          >
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: '#4caf50' }}>
-              🧪 Test Mode Active
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block', mb: 1 }}>
-              • Try dragging the nodes around
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block', mb: 1 }}>
-              • Click nodes to test selection
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block', mb: 1 }}>
-              • Drag from bottom handle to top handle to connect
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#5a6577', display: 'block' }}>
-              • Click settings icon on nodes
-            </Typography>
-          </Box>
-
-          {/* Selected node info */}
-          {selectedNode && (
-            <Box
-              sx={{
-                position: 'absolute',
-                top: 20,
-                right: 20,
-                bgcolor: 'white',
-                borderRadius: 2,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                p: 2,
-                minWidth: 200,
-                zIndex: 10,
-              }}
-            >
-              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                Selected Node
-              </Typography>
-              <Typography variant="body2" sx={{ color: '#5a6577', mb: 1 }}>
-                ID: {selectedNode}
-              </Typography>
-              <Button
-                size="small"
-                variant="outlined"
-                sx={{ mt: 1, mr: 1 }}
-                onClick={() => {
-                  const node = nodes.find((n: Node) => n.id === selectedNode);
-                  if (node) setSettingsNode({ id: node.id, data: node.data as unknown as WorkflowNodeData });
-                }}
-              >
-                Configure
-              </Button>
-              <Button
-                size="small"
-                sx={{ mt: 1 }}
-                onClick={() => setSelectedNode(null)}
-              >
-                Close
-              </Button>
-            </Box>
-          )}
-        </Box>
-
-        {/* Close button */}
-        {onClose && (
-          <Fab
-            size="small"
-            onClick={handleClose}
-            sx={{
-              position: 'absolute',
-              top: 16,
-              right: 16,
-              bgcolor: 'white',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-              zIndex: 1001,
-              '&:hover': {
-                bgcolor: '#f5f5f5',
-              },
-            }}
-          >
-            <CloseIcon />
-          </Fab>
-        )}
-
-        {/* Settings Panel */}
-        <NodeSettingsPanel
-          node={settingsNode}
-          onClose={() => setSettingsNode(null)}
-          onSave={handleSettingsSave}
-          onDelete={handleNodeDelete}
-        />
+        </div>
       </Box>
+
+      {/* Right Settings Panel */}
+      {settingsNode && (
+        <Paper sx={{
+          position: 'fixed',
+          right: 0,
+          top: 0,
+          height: '100vh',
+          width: 400,
+          zIndex: 1001,
+          borderRadius: 0,
+          borderLeft: '1px solid #e0e0e0',
+          overflow: 'auto'
+        }}>
+          <NodeSettingsPanel
+            node={settingsNode}
+            onClose={() => setSettingsNode(null)}
+            onSave={handleSettingsSave}
+            onDelete={handleNodeDelete}
+          />
+        </Paper>
+      )}
+
+      {/* Save Dialog */}
+      <Dialog open={saveDialogOpen} onClose={() => setSaveDialogOpen(false)}>
+        <DialogTitle>Save Workflow</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Workflow Name"
+            fullWidth
+            variant="outlined"
+            value={workflowName}
+            onChange={(e) => setWorkflowName(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            This workflow contains {nodes.length} nodes and {edges.length} connections.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSaveDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveWorkflow} variant="contained">
+            Save Workflow
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
@@ -560,59 +664,4 @@ export default function WorkflowBuilder(props: WorkflowBuilderProps) {
       <WorkflowBuilderContent {...props} />
     </ReactFlowProvider>
   );
-}
-
-// Helper functions
-function getNodeLabel(type: WorkflowNodeType): string {
-  switch (type) {
-    case WorkflowNodeType.TRIGGER:
-      return 'Manual Trigger';
-    case WorkflowNodeType.EMAIL:
-      return 'Send Email';
-    case WorkflowNodeType.WEBHOOK:
-      return 'Webhook Call';
-    case WorkflowNodeType.DELAY:
-      return 'Wait/Delay';
-    case WorkflowNodeType.AI_ANALYSIS:
-      return 'AI Analysis';
-    case WorkflowNodeType.SEO_AUDIT:
-      return 'SEO Audit';
-    case WorkflowNodeType.KEYWORD_RESEARCH:
-      return 'Keyword Research';
-    case WorkflowNodeType.SOCIAL_MEDIA_POST:
-      return 'Social Media Post';
-    case WorkflowNodeType.CONTENT_GENERATION:
-      return 'Content Generation';
-    case WorkflowNodeType.CONDITION:
-      return 'Condition';
-    default:
-      return 'Unknown Action';
-  }
-}
-
-function getNodeDescription(type: WorkflowNodeType): string {
-  switch (type) {
-    case WorkflowNodeType.TRIGGER:
-      return 'Starts workflow execution';
-    case WorkflowNodeType.EMAIL:
-      return 'Send email to contacts';
-    case WorkflowNodeType.WEBHOOK:
-      return 'Make HTTP API call';
-    case WorkflowNodeType.DELAY:
-      return 'Wait for specified time';
-    case WorkflowNodeType.AI_ANALYSIS:
-      return 'Analyze content with AI';
-    case WorkflowNodeType.SEO_AUDIT:
-      return 'Analyze website SEO';
-    case WorkflowNodeType.KEYWORD_RESEARCH:
-      return 'Research keywords';
-    case WorkflowNodeType.SOCIAL_MEDIA_POST:
-      return 'Post to social media';
-    case WorkflowNodeType.CONTENT_GENERATION:
-      return 'Generate content using AI';
-    case WorkflowNodeType.CONDITION:
-      return 'Branch workflow based on condition';
-    default:
-      return 'Workflow action';
-  }
 } 
