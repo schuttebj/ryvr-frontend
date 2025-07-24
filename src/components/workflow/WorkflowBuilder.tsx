@@ -114,7 +114,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   );
 
   // Node click handler for settings/configuration
-  const onNodeClick: NodeMouseHandler = useCallback((event: MouseEvent, node: Node) => {
+  const onNodeClick: NodeMouseHandler = useCallback((event: any, node: Node) => {
     event.stopPropagation();
     console.log('Node clicked:', node.id);
     setSelectedNode(node.id);

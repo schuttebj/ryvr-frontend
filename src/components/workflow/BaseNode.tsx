@@ -40,7 +40,7 @@ export default function BaseNode({
   const hasErrors = data.errors && data.errors.length > 0;
   const isValid = data.isValid !== false;
 
-  const handleSettingsClick = (event: MouseEvent) => {
+  const handleSettingsClick = (event: any) => {
     event.stopPropagation();
     if (onSettingsClick) {
       onSettingsClick();
