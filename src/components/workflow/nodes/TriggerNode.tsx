@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { PlayArrow as PlayIcon } from '@mui/icons-material';
 import BaseNode from '../BaseNode';

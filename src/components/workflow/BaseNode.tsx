@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Handle, Position } from '@reactflow/core';
 import { 
   Card, 
@@ -41,7 +40,7 @@ export default function BaseNode({
   const hasErrors = data.errors && data.errors.length > 0;
   const isValid = data.isValid !== false;
 
-  const handleSettingsClick = (event: React.MouseEvent) => {
+  const handleSettingsClick = (event: MouseEvent) => {
     event.stopPropagation();
     if (onSettingsClick) {
       onSettingsClick();
