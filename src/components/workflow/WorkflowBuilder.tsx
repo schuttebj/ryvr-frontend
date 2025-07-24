@@ -120,7 +120,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     event.stopPropagation();
     console.log('Node clicked:', node.id);
     setSelectedNode(node.id);
-    setSettingsNode({ id: node.id, data: node.data });
+    setSettingsNode({ id: node.id, data: node.data as WorkflowNodeData });
   }, []);
 
   const onNodeDrag = useCallback((_event: any, node: Node) => {
@@ -187,7 +187,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
           description: getNodeDescription(type as WorkflowNodeType),
           config: {},
           isValid: true,
-        },
+        } as any,
         draggable: true,
         selectable: true,
         deletable: true,
@@ -234,7 +234,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     setNodes((nds: Node[]) => 
       nds.map(node => 
         node.id === nodeId 
-          ? { ...node, data: updatedData }
+          ? { ...node, data: updatedData as any }
           : node
       )
     );
@@ -505,7 +505,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
                 sx={{ mt: 1, mr: 1 }}
                 onClick={() => {
                   const node = nodes.find((n: Node) => n.id === selectedNode);
-                  if (node) setSettingsNode({ id: node.id, data: node.data });
+                  if (node) setSettingsNode({ id: node.id, data: node.data as WorkflowNodeData });
                 }}
               >
                 Configure

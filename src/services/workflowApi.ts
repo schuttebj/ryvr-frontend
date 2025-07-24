@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
 // Create axios instance with auth
 const api = axios.create({
@@ -8,7 +8,7 @@ const api = axios.create({
 });
 
 // Add auth token to requests
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: any) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
 // DataForSEO API calls
 export const dataforSeoApi = {
   // SERP Analysis
-  analyzeSERP: async (keyword: string, location = 'US', language = 'en') => {
+  analyzeSERP: async (keyword: string, _location = 'US', language = 'en') => {
     const response = await api.post('/api/v1/seo/serp/analyze', null, {
       params: { keyword, location_code: 2840, language_code: language }
     });
@@ -27,7 +27,7 @@ export const dataforSeoApi = {
   },
 
   // Keyword Search Volume
-  getKeywordVolume: async (keywords: string[], location = 'US', language = 'en') => {
+  getKeywordVolume: async (keywords: string[], _location = 'US', language = 'en') => {
     const response = await api.post('/api/v1/seo/keywords/search-volume', null, {
       params: { keywords: keywords.join(','), location_code: 2840, language_code: language }
     });
@@ -35,7 +35,7 @@ export const dataforSeoApi = {
   },
 
   // Keywords for Site
-  getKeywordsForSite: async (url: string, location = 'US', language = 'en') => {
+  getKeywordsForSite: async (url: string, _location = 'US', language = 'en') => {
     const response = await api.post('/api/v1/seo/keywords/for-site', null, {
       params: { url, location_code: 2840, language_code: language }
     });
@@ -43,7 +43,7 @@ export const dataforSeoApi = {
   },
 
   // Competitor Analysis
-  analyzeCompetitors: async (domain: string, location = 'US', language = 'en') => {
+  analyzeCompetitors: async (domain: string, _location = 'US', language = 'en') => {
     const response = await api.post('/api/v1/seo/competitors/domain', null, {
       params: { domain, location_code: 2840, language_code: language }
     });
@@ -59,7 +59,7 @@ export const dataforSeoApi = {
   },
 
   // SERP Screenshot
-  getSerpScreenshot: async (keyword: string, location = 'US', language = 'en') => {
+  getSerpScreenshot: async (keyword: string, _location = 'US', language = 'en') => {
     const response = await api.post('/api/v1/seo/serp/screenshot', null, {
       params: { keyword, location_code: 2840, language_code: language }
     });
