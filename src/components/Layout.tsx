@@ -26,6 +26,7 @@ import {
   Analytics as AnalyticsIcon,
   Logout as LogoutIcon,
   AccountCircle as AccountIcon,
+  BugReport as TestIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -42,6 +43,7 @@ const navigationItems = [
   { text: 'Workflows', icon: <WorkflowIcon />, path: '/workflows' },
   { text: 'Integrations', icon: <IntegrationIcon />, path: '/integrations' },
   { text: 'Analytics', icon: <AnalyticsIcon />, path: '/analytics' },
+  { text: 'Flow Test', icon: <TestIcon />, path: '/flow-test' },
 ];
 
 export default function Layout({ children }: LayoutProps) {

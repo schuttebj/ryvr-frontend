@@ -15,6 +15,7 @@ import ClientsPage from './pages/ClientsPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import FlowTestPage from './pages/FlowTestPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -47,6 +48,7 @@ function AppRoutes() {
                 <Route path="/workflows" element={<WorkflowsPage />} />
                 <Route path="/integrations" element={<IntegrationsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/flow-test" element={<FlowTestPage />} />
                 <Route path="*" element={<Navigate to="/dashboard" />} />
               </Routes>
             </Layout>
