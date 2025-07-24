@@ -194,7 +194,6 @@ export default function WorkflowsPage() {
   if (showBuilder) {
     return (
       <WorkflowBuilder
-        workflowId={selectedWorkflow || undefined}
         onSave={handleWorkflowSave}
       />
     );

@@ -28,9 +28,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  TestTube as TestIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
+  Science as TestIcon,
   Settings as SettingsIcon,
   Api as ApiIcon,
   Psychology as AiIcon,
@@ -46,27 +44,6 @@ interface Integration {
   lastTested?: string;
   createdAt: string;
   updatedAt: string;
-}
-
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`integration-tabpanel-${index}`}
-      aria-labelledby={`integration-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
 }
 
 export default function IntegrationsPage() {
@@ -120,7 +97,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
   };
 

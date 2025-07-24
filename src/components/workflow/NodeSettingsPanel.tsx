@@ -27,7 +27,6 @@ import {
   PlayArrow as TestIcon,
   ExpandMore as ExpandMoreIcon,
   DataArray as DataIcon,
-  Link as LinkIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';

@@ -12,16 +12,13 @@ import {
   TextField,
   IconButton,
   Tooltip,
-  Alert,
   Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Save as SaveIcon,
-  PlayArrow as PlayIcon,
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
-  BugReport as TestIcon,
   Close as CloseIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
@@ -119,7 +116,7 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   
   // Auto-save timer
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimer = useRef<number | null>(null);
   const lastSavedState = useRef<string>('');
 
   // Track changes to nodes and edges
@@ -244,7 +241,7 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
     [setNodes]
   );
 
-  const onNodeClick = (event: React.MouseEvent, node: Node) => {
+  const onNodeClick = (_event: React.MouseEvent, node: Node) => {
     setSettingsNode(node);
   };
 
