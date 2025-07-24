@@ -128,7 +128,7 @@ export default function WorkflowsPage() {
     }
   };
 
-  const handleEditWorkflow = (workflowId: string) => {
+  const handleEditWorkflow = (_workflowId: string) => {
     setShowBuilder(true);
     setAnchorEl(null);
   };
