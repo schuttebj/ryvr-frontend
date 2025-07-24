@@ -82,7 +82,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   ];
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -94,12 +94,12 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     (params: Connection) => {
       console.log('Connecting nodes:', params);
       if (params.source && params.target) {
-        const edge = {
+        const edge: Edge = {
           id: `edge-${params.source}-${params.target}-${Date.now()}`,
           source: params.source,
           target: params.target,
-          sourceHandle: params.sourceHandle,
-          targetHandle: params.targetHandle,
+          sourceHandle: params.sourceHandle || null,
+          targetHandle: params.targetHandle || null,
           animated: true,
           style: {
             stroke: '#5f5fff',
