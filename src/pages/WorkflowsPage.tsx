@@ -126,8 +126,8 @@ export default function WorkflowsPage() {
     setMenuWorkflowId(null);
   };
 
-  const handleWorkflowSave = useCallback((nodes: Node[], edges: Edge[]) => {
-    console.log('Saving workflow:', { nodes, edges });
+  const handleWorkflowSave = useCallback((workflow: any) => {
+    console.log('Saving workflow:', workflow);
     // TODO: Implement actual save functionality
   }, []);
 
@@ -167,8 +167,6 @@ export default function WorkflowsPage() {
       <WorkflowBuilder
         workflowId={selectedWorkflow || undefined}
         onSave={handleWorkflowSave}
-        onExecute={handleWorkflowExecute}
-        onClose={() => setShowBuilder(false)}
       />
     );
   }

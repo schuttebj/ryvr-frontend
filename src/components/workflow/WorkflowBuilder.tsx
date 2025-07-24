@@ -145,8 +145,8 @@ interface WorkflowBuilderProps {
 }
 
 function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [settingsNode, setSettingsNode] = useState<{ id: string; data: WorkflowNodeData } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(true); // Default to fullscreen
@@ -204,23 +204,23 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
         selectable: true,
       };
 
-      setNodes((nds) => [...nds, newNode]);
+      setNodes((nds: Node[]) => [...nds, newNode]);
       setIsDragging(false);
     },
-    [screenToFlowPosition, setNodes]
+    [screenToFlowPosition, setNodes, getNodeLabel, getNodeDescription]
   );
 
   // Handle connection between nodes
   const onConnect = useCallback(
     (params: Edge | Connection) => {
       console.log('Connecting nodes:', params);
-      const newEdge = {
+      const newEdge: Edge = {
         ...params,
         id: `${params.source}-${params.target}`,
         animated: true,
         style: { stroke: '#5f5fff', strokeWidth: 2 },
       };
-      setEdges((eds) => addEdge(newEdge, eds));
+      setEdges((eds: Edge[]) => addEdge(newEdge, eds));
     },
     [setEdges]
   );
@@ -228,7 +228,7 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
   // Handle settings save
   const handleSettingsSave = useCallback((nodeId: string, updatedData: WorkflowNodeData) => {
     setNodes((nds: Node[]) => 
-      nds.map(node => 
+      nds.map((node: Node) => 
         node.id === nodeId 
           ? { ...node, data: updatedData as unknown as Record<string, unknown> }
           : node
@@ -239,14 +239,13 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
 
   // Handle node deletion
   const handleNodeDelete = useCallback((nodeId: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
+    setNodes((nds: Node[]) => nds.filter((node: Node) => node.id !== nodeId));
+    setEdges((eds: Edge[]) => eds.filter((edge: Edge) => edge.source !== nodeId && edge.target !== nodeId));
     setSettingsNode(null);
   }, [setNodes, setEdges]);
 
   // Node click handler for settings/configuration
-  const onNodeClick: NodeMouseHandler = useCallback((event: any, node: Node) => {
-    event.stopPropagation();
+  const onNodeClick: NodeMouseHandler = useCallback((_event: any, node: Node) => {
     console.log('Node clicked:', node.id);
     setSelectedNode(node.id);
     setSettingsNode({ id: node.id, data: node.data as unknown as WorkflowNodeData });
@@ -265,7 +264,7 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
   }, []);
 
   // Edge click handler
-  const onEdgeClick: EdgeMouseHandler = useCallback((event: any, edge: Edge) => {
+  const onEdgeClick: EdgeMouseHandler = useCallback((_event: any, edge: Edge) => {
     console.log('Edge clicked:', edge.id);
   }, []);
 
@@ -276,13 +275,13 @@ function WorkflowBuilderContent({ workflowId, onSave }: WorkflowBuilderProps) {
         id: workflowId || `workflow_${Date.now()}`,
         name: workflowName,
         description: 'Workflow created with builder',
-        nodes: nodes.map(node => ({
+        nodes: nodes.map((node: Node) => ({
           id: node.id,
           type: node.type || 'default',
           position: node.position,
           data: node.data as unknown as WorkflowNodeData,
         })),
-        edges: edges.map(edge => ({
+        edges: edges.map((edge: Edge) => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
