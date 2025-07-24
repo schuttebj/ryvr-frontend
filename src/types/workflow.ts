@@ -6,6 +6,24 @@ export enum WorkflowNodeType {
   EMAIL = 'email',
   WEBHOOK = 'webhook',
   DELAY = 'delay',
+  
+  // AI Tools (OpenAI Integration)
+  AI_CONTENT_GENERATE = 'ai_content_generate',
+  AI_CONTENT_SEO = 'ai_content_seo', 
+  AI_CONTENT_ANALYZE = 'ai_content_analyze',
+  AI_KEYWORDS_GENERATE = 'ai_keywords_generate',
+  AI_ADS_GENERATE = 'ai_ads_generate',
+  AI_EMAIL_SEQUENCE = 'ai_email_sequence',
+  
+  // SEO Tools (DataForSEO Integration)
+  SEO_SERP_ANALYZE = 'seo_serp_analyze',
+  SEO_KEYWORDS_VOLUME = 'seo_keywords_volume',
+  SEO_KEYWORDS_SITE = 'seo_keywords_site', 
+  SEO_COMPETITORS = 'seo_competitors',
+  SEO_CONTENT_ANALYZE = 'seo_content_analyze',
+  SEO_SERP_SCREENSHOT = 'seo_serp_screenshot',
+  
+  // Legacy (for backward compatibility)
   AI_ANALYSIS = 'ai_analysis',
   SEO_AUDIT = 'seo_audit',
   KEYWORD_RESEARCH = 'keyword_research',

@@ -18,7 +18,8 @@ import { Save as SaveIcon, PlayArrow as PlayIcon, Close as CloseIcon } from '@mu
 import NodePalette from './NodePalette';
 import TriggerNode from './nodes/TriggerNode';
 import ActionNode from './nodes/ActionNode';
-import { WorkflowNodeType } from '../../types/workflow';
+import NodeSettingsPanel from './NodeSettingsPanel';
+import { WorkflowNodeType, WorkflowNodeData } from '../../types/workflow';
 
 // Define custom node types
 const nodeTypes = {
@@ -85,6 +86,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [settingsNode, setSettingsNode] = useState<{ id: string; data: WorkflowNodeData } | null>(null);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
 
   let id = 2; // Start from 2 since we have 2 test nodes
@@ -118,7 +120,7 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     event.stopPropagation();
     console.log('Node clicked:', node.id);
     setSelectedNode(node.id);
-    alert(`Node clicked: ${node.data.label}\nID: ${node.id}\nType: ${node.data.type}`);
+    setSettingsNode({ id: node.id, data: node.data });
   }, []);
 
   const onNodeDrag = useCallback((_event: any, node: Node) => {
@@ -167,11 +169,11 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
 
       // Calculate position relative to the ReactFlow wrapper
       const position = reactFlowInstance.screenToFlowPosition({
-        x: event.clientX - reactFlowBounds.left,
-        y: event.clientY - reactFlowBounds.top,
+        x: event.clientX,
+        y: event.clientY,
       });
 
-      console.log('Drop position calculated:', position);
+      console.log('Drop position calculated:', position, 'Client position:', { x: event.clientX, y: event.clientY });
 
       const nodeId = getId();
       const newNode: Node = {
@@ -227,13 +229,22 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
     selected: node.id === selectedNode
   }));
 
-  // Handle settings click for any node
-  const handleNodeSettings = useCallback((nodeId: string) => {
-    const node = nodes.find((n: Node) => n.id === nodeId);
-    if (node) {
-      alert(`Settings for: ${node.data.label}\nID: ${nodeId}\nType: ${node.data.type}\n\n(This would open a configuration panel)`);
-    }
-  }, [nodes]);
+  // Handle settings save
+  const handleSettingsSave = useCallback((nodeId: string, updatedData: WorkflowNodeData) => {
+    setNodes((nds: Node[]) => 
+      nds.map(node => 
+        node.id === nodeId 
+          ? { ...node, data: updatedData }
+          : node
+      )
+    );
+  }, [setNodes]);
+
+  // Handle node delete
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    setNodes((nds: Node[]) => nds.filter(node => node.id !== nodeId));
+    setEdges((eds: Edge[]) => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
+  }, [setNodes, setEdges]);
 
   return (
     <Box sx={{ 
@@ -492,7 +503,10 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
                 size="small"
                 variant="outlined"
                 sx={{ mt: 1, mr: 1 }}
-                onClick={() => handleNodeSettings(selectedNode)}
+                onClick={() => {
+                  const node = nodes.find((n: Node) => n.id === selectedNode);
+                  if (node) setSettingsNode({ id: node.id, data: node.data });
+                }}
               >
                 Configure
               </Button>
@@ -527,6 +541,14 @@ function WorkflowBuilderContent({ workflowId, onSave, onExecute, onClose }: Work
             <CloseIcon />
           </Fab>
         )}
+
+        {/* Settings Panel */}
+        <NodeSettingsPanel
+          node={settingsNode}
+          onClose={() => setSettingsNode(null)}
+          onSave={handleSettingsSave}
+          onDelete={handleNodeDelete}
+        />
       </Box>
     </Box>
   );

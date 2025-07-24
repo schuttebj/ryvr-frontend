@@ -58,6 +58,8 @@ export default function BaseNode({
         backgroundColor: 'white',
         transition: 'all 0.2s ease',
         cursor: 'pointer',
+        position: 'relative',
+        overflow: 'visible', // Allow handles to be visible outside card
         '&:hover': {
           boxShadow: `0 4px 12px ${color}20`,
           transform: 'translateY(-2px)',
