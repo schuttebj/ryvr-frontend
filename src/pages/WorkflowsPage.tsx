@@ -47,7 +47,6 @@ interface WorkflowSummary {
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
-  const [selectedWorkflow, setSelectedWorkflow] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuWorkflowId, setMenuWorkflowId] = useState<string | null>(null);
   const [newWorkflowDialog, setNewWorkflowDialog] = useState(false);
@@ -59,25 +58,55 @@ export default function WorkflowsPage() {
     const loadWorkflows = async () => {
       try {
         const savedWorkflows = await workflowApi.listWorkflows();
-        // Convert to WorkflowSummary format
-        const workflowSummaries: WorkflowSummary[] = savedWorkflows.map((workflow: any) => ({
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description || '',
-          status: workflow.isActive ? 'active' : 'draft',
-          nodeCount: workflow.nodes?.length || 0,
-          lastExecuted: workflow.lastExecuted,
-          tags: workflow.tags || [],
-          executionCount: workflow.executionCount || 0,
-          successRate: workflow.successRate || 0,
-        }));
-        setWorkflows(workflowSummaries);
+        setWorkflows(savedWorkflows.map((w: any) => ({
+          id: w.id,
+          name: w.name,
+          description: w.description,
+          status: w.isActive ? 'active' : 'draft',
+          nodeCount: w.nodes?.length || 0,
+          successRate: 0,
+          createdAt: w.createdAt,
+          tags: w.tags || [],
+          executionCount: w.executionCount || 0,
+        })));
       } catch (error) {
         console.error('Failed to load workflows:', error);
       }
     };
 
     loadWorkflows();
+  }, []);
+
+  const handleWorkflowSave = useCallback(async (workflow: any) => {
+    try {
+      await workflowApi.saveWorkflow(workflow);
+      
+      // Update the workflows list
+      setWorkflows(prev => {
+        const existingIndex = prev.findIndex(w => w.id === workflow.id);
+        const workflowSummary: WorkflowSummary = {
+          id: workflow.id,
+          name: workflow.name,
+          description: workflow.description,
+          status: 'draft',
+          nodeCount: workflow.nodes?.length || 0,
+          successRate: 0,
+          createdAt: workflow.createdAt || new Date().toISOString(),
+          tags: workflow.tags || [],
+          executionCount: workflow.executionCount || 0,
+        };
+        
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = workflowSummary;
+          return updated;
+        } else {
+          return [...prev, workflowSummary];
+        }
+      });
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+    }
   }, []);
 
   const handleCreateWorkflow = () => {
@@ -92,7 +121,6 @@ export default function WorkflowsPage() {
         createdAt: new Date().toISOString(),
       };
       setWorkflows([...workflows, newWorkflow]);
-      setSelectedWorkflow(newWorkflow.id);
       setShowBuilder(true);
       setNewWorkflowDialog(false);
       setNewWorkflowName('');
@@ -101,7 +129,6 @@ export default function WorkflowsPage() {
   };
 
   const handleEditWorkflow = (workflowId: string) => {
-    setSelectedWorkflow(workflowId);
     setShowBuilder(true);
     setAnchorEl(null);
   };
@@ -120,45 +147,6 @@ export default function WorkflowsPage() {
     setAnchorEl(null);
     setMenuWorkflowId(null);
   };
-
-  const handleWorkflowSave = useCallback(async (workflow: any) => {
-    console.log('Saving workflow:', workflow);
-    
-    try {
-      await workflowApi.saveWorkflow(workflow);
-      
-      // Update the workflows list
-      const newSummary: WorkflowSummary = {
-        id: workflow.id,
-        name: workflow.name,
-        description: workflow.description || '',
-        status: workflow.isActive ? 'active' : 'draft',
-        nodeCount: workflow.nodes?.length || 0,
-        lastExecuted: workflow.lastExecuted,
-        tags: workflow.tags || [],
-        executionCount: workflow.executionCount || 0,
-        successRate: workflow.successRate || 0,
-      };
-
-      setWorkflows(prev => {
-        const existingIndex = prev.findIndex(w => w.id === workflow.id);
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = newSummary;
-          return updated;
-        } else {
-          return [...prev, newSummary];
-        }
-      });
-
-      // Close builder and show success
-      setShowBuilder(false);
-      console.log('Workflow saved and added to list successfully!');
-      
-    } catch (error) {
-      console.error('Failed to save workflow:', error);
-    }
-  }, []);
 
   const handleWorkflowExecute = useCallback((workflowId: string) => {
     console.log('Executing workflow:', workflowId);
