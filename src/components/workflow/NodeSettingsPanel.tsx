@@ -170,11 +170,14 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
             Available Data Sources:
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mb: 1 }}>
+            Use format: node_id.property or just node_id for full output
+          </Typography>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <Chip size="small" label="trigger_1.manual" color="primary" variant="outlined" />
-            <Chip size="small" label="serp_1.results" color="primary" variant="outlined" />
-            <Chip size="small" label="serp_1.keyword" color="primary" variant="outlined" />
-            <Chip size="small" label="ai_1.analysis" color="primary" variant="outlined" />
+            <Chip size="small" label="{node_id}.results" color="primary" variant="outlined" />
+            <Chip size="small" label="{node_id}.keyword" color="primary" variant="outlined" />
+            <Chip size="small" label="{node_id}.analysis" color="primary" variant="outlined" />
+            <Chip size="small" label="{node_id}" color="secondary" variant="outlined" />
           </Box>
         </Box>
 
@@ -187,17 +190,27 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             onChange={(e) => handleConfigChange('inputMapping', e.target.value)}
             MenuProps={{
               PaperProps: {
-                style: { maxHeight: 200, zIndex: 9999 }
+                style: { maxHeight: 200, zIndex: 10001 }
               }
             }}
           >
-            <MenuItem value="">No mapping</MenuItem>
-            <MenuItem value="trigger_1.manual">Previous: Manual trigger</MenuItem>
-            <MenuItem value="serp_1.results">Previous: SERP results</MenuItem>
-            <MenuItem value="serp_1.keyword">Previous: Keyword data</MenuItem>
-            <MenuItem value="ai_1.analysis">Previous: AI analysis</MenuItem>
+            <MenuItem value="">No mapping (use all available data)</MenuItem>
+            <MenuItem value="previous_node">Previous node output</MenuItem>
+            <MenuItem value="previous_node.results">Previous node results</MenuItem>
+            <MenuItem value="previous_node.keyword">Previous node keyword</MenuItem>
+            <MenuItem value="previous_node.analysis">Previous node analysis</MenuItem>
           </Select>
         </FormControl>
+        
+        <TextField
+          fullWidth
+          label="Custom Input Mapping"
+          value={formData.config?.customInputMapping || ''}
+          onChange={(e) => handleConfigChange('customInputMapping', e.target.value)}
+          sx={{ mb: 2 }}
+          helperText="Advanced: Enter specific node mapping (e.g., 'node_id.property')"
+          placeholder="e.g., serp_node_1.results"
+        />
       </AccordionDetails>
     </Accordion>
   );
@@ -218,7 +231,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(e) => handleConfigChange('triggerType', e.target.value)}
                 MenuProps={{
                   PaperProps: {
-                    style: { maxHeight: 200, zIndex: 9999 }
+                    style: { maxHeight: 200, zIndex: 10001 }
                   }
                 }}
               >
@@ -276,7 +289,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(e) => handleConfigChange('integrationId', e.target.value)}
                   MenuProps={{
                     PaperProps: {
-                      style: { maxHeight: 200, zIndex: 9999 }
+                      style: { maxHeight: 200, zIndex: 10001 }
                     }
                   }}
                 >
@@ -320,7 +333,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(e) => handleConfigChange('locationCode', e.target.value)}
                 MenuProps={{
                   PaperProps: {
-                    style: { maxHeight: 200, zIndex: 9999 }
+                    style: { maxHeight: 200, zIndex: 10001 }
                   }
                 }}
               >
@@ -341,7 +354,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(e) => handleConfigChange('languageCode', e.target.value)}
                 MenuProps={{
                   PaperProps: {
-                    style: { maxHeight: 200, zIndex: 9999 }
+                    style: { maxHeight: 200, zIndex: 10001 }
                   }
                 }}
               >
@@ -399,7 +412,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(e) => handleConfigChange('integrationId', e.target.value)}
                   MenuProps={{
                     PaperProps: {
-                      style: { maxHeight: 200, zIndex: 9999 }
+                      style: { maxHeight: 200, zIndex: 10001 }
                     }
                   }}
                 >
@@ -463,7 +476,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
                 MenuProps={{
                   PaperProps: {
-                    style: { maxHeight: 200, zIndex: 9999 }
+                    style: { maxHeight: 200, zIndex: 10001 }
                   }
                 }}
               >
@@ -556,7 +569,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(e) => handleConfigChange('integrationId', e.target.value)}
                   MenuProps={{
                     PaperProps: {
-                      style: { maxHeight: 200, zIndex: 9999 }
+                      style: { maxHeight: 200, zIndex: 10001 }
                     }
                   }}
                 >
@@ -591,7 +604,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
                 MenuProps={{
                   PaperProps: {
-                    style: { maxHeight: 200, zIndex: 9999 }
+                    style: { maxHeight: 200, zIndex: 10001 }
                   }
                 }}
               >
@@ -714,7 +727,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(e) => handleConfigChange('integrationId', e.target.value)}
                   MenuProps={{
                     PaperProps: {
-                      style: { maxHeight: 200, zIndex: 9999 }
+                      style: { maxHeight: 200, zIndex: 10001 }
                     }
                   }}
                 >
@@ -761,7 +774,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(e) => handleConfigChange('contentType', e.target.value)}
                 MenuProps={{
                   PaperProps: {
-                    style: { maxHeight: 200, zIndex: 9999 }
+                    style: { maxHeight: 200, zIndex: 10001 }
                   }
                 }}
               >

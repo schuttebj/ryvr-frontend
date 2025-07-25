@@ -53,11 +53,13 @@ export default function WorkflowsPage() {
   const [newWorkflowName, setNewWorkflowName] = useState('');
   const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
 
-  // Load workflows on component mount
+  // Load workflows on component mount and when returning from builder
   useEffect(() => {
     const loadWorkflows = async () => {
       try {
+        console.log('Loading workflows...');
         const savedWorkflows = await workflowApi.listWorkflows();
+        console.log('Loaded workflows:', savedWorkflows);
         setWorkflows(savedWorkflows.map((w: any) => ({
           id: w.id,
           name: w.name,
@@ -75,7 +77,7 @@ export default function WorkflowsPage() {
     };
 
     loadWorkflows();
-  }, []);
+  }, [showBuilder]); // Re-load when showBuilder changes
 
   const handleWorkflowSave = useCallback(async (workflow: any) => {
     try {

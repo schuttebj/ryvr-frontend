@@ -620,10 +620,62 @@ export const workflowApi = {
       for (const node of sortedNodes) {
         console.log(`Executing node: ${node.id} (${node.data.type})`);
         
+        // Process input mapping for this node
+        let mappedInputData = { ...currentData };
+        
+        // Check for custom input mapping first, then fallback to regular input mapping
+        const mapping = node.data.config?.customInputMapping || node.data.config?.inputMapping;
+        
+        if (mapping && mapping !== "") {
+          console.log(`Processing input mapping for ${node.id}:`, mapping);
+          
+          // Handle special cases for generic mappings
+          if (mapping === "previous_node") {
+            // Get the most recent node result
+            const nodeIds = Object.keys(currentData);
+            const lastNodeId = nodeIds[nodeIds.length - 1];
+            if (lastNodeId && currentData[lastNodeId]) {
+              mappedInputData = {
+                ...mappedInputData,
+                input_data: currentData[lastNodeId],
+              };
+            }
+          } else if (mapping.startsWith("previous_node.")) {
+            // Get specific property from previous node
+            const property = mapping.replace("previous_node.", "");
+            const nodeIds = Object.keys(currentData);
+            const lastNodeId = nodeIds[nodeIds.length - 1];
+            if (lastNodeId && currentData[lastNodeId] && currentData[lastNodeId][property]) {
+              mappedInputData = {
+                ...mappedInputData,
+                input_data: currentData[lastNodeId][property],
+                [property]: currentData[lastNodeId][property],
+              };
+            }
+          } else if (mapping.includes('.')) {
+            // Parse specific mapping (e.g., "serp_1.results" -> get results from serp_1)
+            const [sourceNodeId, sourceProperty] = mapping.split('.');
+            if (currentData[sourceNodeId] && currentData[sourceNodeId][sourceProperty]) {
+              mappedInputData = {
+                ...mappedInputData,
+                input_data: currentData[sourceNodeId][sourceProperty],
+                [sourceProperty]: currentData[sourceNodeId][sourceProperty],
+              };
+              console.log(`Mapped data from ${sourceNodeId}.${sourceProperty}:`, mappedInputData);
+            }
+          } else if (currentData[mapping]) {
+            // Direct node reference (e.g., "serp_1")
+            mappedInputData = {
+              ...mappedInputData,
+              input_data: currentData[mapping],
+            };
+          }
+        }
+        
         const result = await workflowApi.executeNode(
           node.data.type,
           node.data.config,
-          currentData
+          mappedInputData
         );
         
         results.push({
@@ -631,9 +683,15 @@ export const workflowApi = {
           ...result
         });
 
-        // Pass successful results to next node
+        // Pass successful results to next node with proper structure
         if (result.success) {
-          currentData = { ...currentData, [node.id]: result.data };
+          const outputVariable = node.data.config?.outputVariable || node.id;
+          currentData = { 
+            ...currentData, 
+            [node.id]: result.data,
+            [outputVariable]: result.data
+          };
+          console.log(`Node ${node.id} completed, output stored as:`, outputVariable);
         } else {
           console.error(`Node ${node.id} failed:`, result.error);
           break; // Stop execution on first failure
