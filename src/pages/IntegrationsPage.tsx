@@ -26,7 +26,6 @@ import {
   Paper,
 } from '@mui/material';
 import {
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Science as TestIcon,
@@ -83,7 +82,7 @@ export default function IntegrationsPage() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
-  const [selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'custom' | null>(null);
+  const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'custom' | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
