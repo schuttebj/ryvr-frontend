@@ -143,14 +143,30 @@ export const workflowApi = {
     try {
       console.log('Saving workflow:', workflow);
       
+      // Standardize workflow format
+      const standardizedWorkflow = {
+        id: workflow.id,
+        name: workflow.name,
+        description: workflow.description || '',
+        nodes: workflow.nodes || [],
+        edges: workflow.edges || [],
+        isActive: workflow.isActive || false,
+        createdAt: workflow.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        tags: workflow.tags || [],
+        executionCount: workflow.executionCount || 0,
+        lastExecuted: workflow.lastExecuted || null,
+        successRate: workflow.successRate || 0,
+      };
+      
       // For now, save to localStorage since backend might not be ready
       const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
-      const existingIndex = workflows.findIndex((w: any) => w.id === workflow.id);
+      const existingIndex = workflows.findIndex((w: any) => w.id === standardizedWorkflow.id);
       
       if (existingIndex >= 0) {
-        workflows[existingIndex] = { ...workflow, updatedAt: new Date().toISOString() };
+        workflows[existingIndex] = standardizedWorkflow;
       } else {
-        workflows.push(workflow);
+        workflows.push(standardizedWorkflow);
       }
       
       localStorage.setItem('workflows', JSON.stringify(workflows));
@@ -159,7 +175,7 @@ export const workflowApi = {
       // const response = await api.post('/api/v1/workflows', workflow);
       // return response.data;
       
-      return { success: true, workflow };
+      return { success: true, workflow: standardizedWorkflow };
     } catch (error: any) {
       console.error('Failed to save workflow:', error);
       throw new Error('Failed to save workflow: ' + error.message);
@@ -245,9 +261,75 @@ export const workflowApi = {
       }
       
       switch (nodeType) {
+        // OpenAI unified task
+        case 'ai_openai_task':
+        case WorkflowNodeType.AI_OPENAI_TASK:
+          if (!finalConfig.apiKey) {
+            throw new Error('OpenAI API key is required. Please configure an OpenAI integration.');
+          }
+          
+          const taskSystemPrompt = finalConfig.systemPrompt || 'You are a helpful AI assistant.';
+          const taskUserPrompt = finalConfig.userPrompt || finalConfig.prompt || 'Please help with the following task.';
+          
+          // Replace template variables in prompts
+          let processedTaskSystemPrompt = taskSystemPrompt;
+          let processedTaskUserPrompt = taskUserPrompt;
+          Object.keys(inputData).forEach(key => {
+            const regex = new RegExp(`{${key}}`, 'g');
+            processedTaskSystemPrompt = processedTaskSystemPrompt.replace(regex, inputData[key]);
+            processedTaskUserPrompt = processedTaskUserPrompt.replace(regex, inputData[key]);
+          });
+          
+          const taskMessages = [
+            { role: 'system', content: processedTaskSystemPrompt },
+            { role: 'user', content: processedTaskUserPrompt }
+          ];
+          
+          // Add JSON format instruction if requested
+          if (finalConfig.jsonResponse && finalConfig.jsonSchema) {
+            taskMessages.push({
+              role: 'system',
+              content: `Please respond in JSON format following this schema: ${finalConfig.jsonSchema}`
+            });
+          }
+          
+          const taskModel = finalConfig.modelOverride || finalConfig.model || 'gpt-4o-mini';
+          const taskTemperature = finalConfig.temperatureOverride !== undefined ? 
+            finalConfig.temperatureOverride : 
+            (finalConfig.temperature || 0.7);
+          
+          const openaiTaskResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${finalConfig.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: taskModel,
+              messages: taskMessages,
+              temperature: taskTemperature,
+              max_tokens: finalConfig.maxTokens || 1000,
+              ...(finalConfig.jsonResponse && { response_format: { type: 'json_object' } })
+            })
+          });
+          
+          if (!openaiTaskResponse.ok) {
+            throw new Error(`OpenAI API error: ${openaiTaskResponse.status} ${openaiTaskResponse.statusText}`);
+          }
+          
+          const openaiTaskData = await openaiTaskResponse.json();
+          const taskContent = openaiTaskData.choices[0]?.message?.content;
+          
+          result = finalConfig.jsonResponse ? 
+            { result: JSON.parse(taskContent), raw_response: taskContent } :
+            { result: taskContent, raw_response: taskContent };
+          break;
+        
         // DataForSEO nodes
         case 'seo_serp_analyze':
         case WorkflowNodeType.SEO_SERP_ANALYZE:
+        case 'seo_serp_google_organic':
+        case WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC:
           // Validate required fields
           if (!finalConfig.keyword && !inputData.keyword) {
             throw new Error('Keyword is required for SERP analysis');

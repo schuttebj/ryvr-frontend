@@ -68,17 +68,20 @@ interface NodePaletteItem {
 }
 
 const nodePaletteItems: NodePaletteItem[] = [
+  // Triggers
   {
     type: WorkflowNodeType.TRIGGER,
     label: 'Manual Trigger',
     description: 'Start workflow manually',
     category: 'Triggers'
   },
+  
+  // AI Tools
   {
-    type: WorkflowNodeType.SEO_SERP_ANALYZE,
-    label: 'SERP Analysis',
-    description: 'Analyze search results',
-    category: 'SEO Tools'
+    type: WorkflowNodeType.AI_OPENAI_TASK,
+    label: 'OpenAI Task',
+    description: 'Unified OpenAI task with custom prompts',
+    category: 'AI Tools'
   },
   {
     type: WorkflowNodeType.AI_CONTENT_ANALYZE,
@@ -92,6 +95,152 @@ const nodePaletteItems: NodePaletteItem[] = [
     description: 'Generate content with AI',
     category: 'AI Tools'
   },
+  
+  // SERP Analysis
+  {
+    type: WorkflowNodeType.SEO_SERP_ANALYZE,
+    label: 'SERP Analysis',
+    description: 'Analyze search results',
+    category: 'SERP'
+  },
+  {
+    type: WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC,
+    label: 'Google Organic',
+    description: 'Google organic search results',
+    category: 'SERP'
+  },
+  {
+    type: WorkflowNodeType.SEO_SERP_GOOGLE_ADS,
+    label: 'Google Ads',
+    description: 'Google ads search results',
+    category: 'SERP'
+  },
+  {
+    type: WorkflowNodeType.SEO_SERP_GOOGLE_IMAGES,
+    label: 'Google Images',
+    description: 'Google image search results',
+    category: 'SERP'
+  },
+  {
+    type: WorkflowNodeType.SEO_SERP_GOOGLE_NEWS,
+    label: 'Google News',
+    description: 'Google news search results',
+    category: 'SERP'
+  },
+  {
+    type: WorkflowNodeType.SEO_SERP_GOOGLE_MAPS,
+    label: 'Google Maps',
+    description: 'Google maps search results',
+    category: 'SERP'
+  },
+  
+  // Keywords
+  {
+    type: WorkflowNodeType.SEO_KEYWORDS_VOLUME,
+    label: 'Search Volume',
+    description: 'Get keyword search volume',
+    category: 'Keywords'
+  },
+  {
+    type: WorkflowNodeType.SEO_KEYWORDS_GOOGLE_ADS,
+    label: 'Google Ads Keywords',
+    description: 'Google Ads keyword data',
+    category: 'Keywords'
+  },
+  {
+    type: WorkflowNodeType.SEO_KEYWORDS_SITE,
+    label: 'Site Keywords',
+    description: 'Keywords for specific site',
+    category: 'Keywords'
+  },
+  {
+    type: WorkflowNodeType.SEO_KEYWORDS_SUGGESTIONS,
+    label: 'Keyword Suggestions',
+    description: 'Get keyword suggestions',
+    category: 'Keywords'
+  },
+  
+  // DataForSEO Labs
+  {
+    type: WorkflowNodeType.SEO_LABS_RANKED_KEYWORDS,
+    label: 'Ranked Keywords',
+    description: 'Domain ranked keywords',
+    category: 'Labs'
+  },
+  {
+    type: WorkflowNodeType.SEO_LABS_SERP_COMPETITORS,
+    label: 'SERP Competitors',
+    description: 'Find SERP competitors',
+    category: 'Labs'
+  },
+  {
+    type: WorkflowNodeType.SEO_LABS_RELATED_KEYWORDS,
+    label: 'Related Keywords',
+    description: 'Find related keywords',
+    category: 'Labs'
+  },
+  {
+    type: WorkflowNodeType.SEO_LABS_SEARCH_INTENT,
+    label: 'Search Intent',
+    description: 'Analyze search intent',
+    category: 'Labs'
+  },
+  
+  // Backlinks
+  {
+    type: WorkflowNodeType.SEO_BACKLINKS_OVERVIEW,
+    label: 'Backlinks Overview',
+    description: 'Domain backlinks overview',
+    category: 'Backlinks'
+  },
+  {
+    type: WorkflowNodeType.SEO_BACKLINKS_ANCHORS,
+    label: 'Anchor Texts',
+    description: 'Backlink anchor analysis',
+    category: 'Backlinks'
+  },
+  {
+    type: WorkflowNodeType.SEO_BACKLINKS_REFERRING_DOMAINS,
+    label: 'Referring Domains',
+    description: 'Referring domains analysis',
+    category: 'Backlinks'
+  },
+  
+  // On-Page
+  {
+    type: WorkflowNodeType.SEO_ONPAGE_SUMMARY,
+    label: 'On-Page Summary',
+    description: 'Website on-page analysis',
+    category: 'On-Page'
+  },
+  {
+    type: WorkflowNodeType.SEO_ONPAGE_PAGES,
+    label: 'Page Analysis',
+    description: 'Individual page analysis',
+    category: 'On-Page'
+  },
+  {
+    type: WorkflowNodeType.SEO_ONPAGE_LIGHTHOUSE,
+    label: 'Lighthouse Audit',
+    description: 'Google Lighthouse audit',
+    category: 'On-Page'
+  },
+  
+  // Content Analysis
+  {
+    type: WorkflowNodeType.SEO_CONTENT_ANALYSIS,
+    label: 'Content Analysis',
+    description: 'Analyze content performance',
+    category: 'Content'
+  },
+  {
+    type: WorkflowNodeType.SEO_CONTENT_SENTIMENT,
+    label: 'Sentiment Analysis',
+    description: 'Content sentiment analysis',
+    category: 'Content'
+  },
+  
+  // Actions
   {
     type: WorkflowNodeType.EMAIL,
     label: 'Send Email',
@@ -156,7 +305,9 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
         description: workflowDescription,
         nodes,
         edges,
-        lastModified: new Date().toISOString(),
+        isActive: false,
+        createdAt: new Date().toISOString(),
+        tags: [],
       };
 
       if (onSave) {
@@ -276,7 +427,9 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
       description: workflowDescription,
       nodes,
       edges,
-      lastModified: new Date().toISOString(),
+      isActive: false,
+      createdAt: new Date().toISOString(),
+      tags: [],
     };
 
     if (onSave) {
@@ -426,7 +579,7 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
             <Divider sx={{ mb: 2 }} />
 
             {/* Node Categories */}
-            {['Triggers', 'SEO Tools', 'AI Tools', 'Actions'].map((category) => (
+            {['Triggers', 'AI Tools', 'SERP', 'Keywords', 'Labs', 'Backlinks', 'On-Page', 'Content', 'Actions'].map((category) => (
               <Box key={category} sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>
                   {category}

@@ -23,6 +23,7 @@ import {
   Tabs,
   Tab,
   Divider,
+  Paper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,6 +34,7 @@ import {
   Api as ApiIcon,
   Psychology as AiIcon,
   Search as SeoIcon,
+  DragIndicator as DragIcon,
 } from '@mui/icons-material';
 
 interface Integration {
@@ -46,6 +48,34 @@ interface Integration {
   updatedAt: string;
 }
 
+// Available integrations - these are the ones users can add
+const availableIntegrations = [
+  {
+    type: 'openai' as const,
+    name: 'OpenAI',
+    description: 'AI-powered content generation and analysis',
+    icon: <AiIcon />,
+    color: '#10a37f',
+    category: 'AI Tools',
+  },
+  {
+    type: 'dataforseo' as const,
+    name: 'DataForSEO',
+    description: 'SEO data and SERP analysis APIs',
+    icon: <SeoIcon />,
+    color: '#1976d2',
+    category: 'SEO Tools',
+  },
+  {
+    type: 'custom' as const,
+    name: 'Custom API',
+    description: 'Connect to any REST API endpoint',
+    icon: <ApiIcon />,
+    color: '#9c27b0',
+    category: 'Custom',
+  },
+];
+
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [showDialog, setShowDialog] = useState(false);
@@ -53,6 +83,7 @@ export default function IntegrationsPage() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
+  const [selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'custom' | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -101,7 +132,7 @@ export default function IntegrationsPage() {
     setSelectedTab(newValue);
   };
 
-  const openDialog = (integration?: Integration) => {
+  const openDialog = (integration?: Integration, integrationType?: 'openai' | 'dataforseo' | 'custom') => {
     if (integration) {
       setEditingIntegration(integration);
       setFormData({
@@ -119,9 +150,10 @@ export default function IntegrationsPage() {
       });
     } else {
       setEditingIntegration(null);
+      setSelectedIntegrationType(integrationType || null);
       setFormData({
         name: '',
-        type: 'openai',
+        type: integrationType || 'openai',
         apiKey: '',
         model: 'gpt-4o-mini',
         temperature: 0.7,
@@ -140,6 +172,7 @@ export default function IntegrationsPage() {
   const closeDialog = () => {
     setShowDialog(false);
     setEditingIntegration(null);
+    setSelectedIntegrationType(null);
     setTestResult(null);
   };
 
@@ -328,100 +361,153 @@ export default function IntegrationsPage() {
             Integrations
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Manage your API connections and external service integrations
+            Add and manage your API integrations for workflows
           </Typography>
         </Box>
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          onClick={() => openDialog()}
-        >
-          Add Integration
-        </Button>
       </Box>
 
-      {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-        <Tabs value={selectedTab} onChange={handleTabChange}>
-          <Tab label="All Integrations" />
-          <Tab label="OpenAI" />
-          <Tab label="DataForSEO" />
-          <Tab label="Custom" />
-        </Tabs>
-      </Box>
-
-      {/* Integration Cards */}
-      <Grid container spacing={3}>
-        {filteredIntegrations.map((integration) => (
-          <Grid item xs={12} md={6} lg={4} key={integration.id}>
-            <Card>
-              <CardContent>
+      {/* Available Integrations */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+          Available Integrations
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Click on any integration block to configure and add it to your workspace
+        </Typography>
+        
+        <Grid container spacing={2}>
+          {availableIntegrations.map((integration) => (
+            <Grid item xs={12} sm={6} md={4} key={integration.type}>
+              <Paper
+                elevation={2}
+                onClick={() => openDialog(undefined, integration.type)}
+                sx={{
+                  p: 3,
+                  cursor: 'pointer',
+                  border: '2px solid transparent',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    borderColor: integration.color,
+                    backgroundColor: `${integration.color}10`,
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 4px 20px ${integration.color}20`,
+                  }
+                }}
+              >
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  {getIntegrationIcon(integration.type)}
-                  <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
+                  <Box sx={{ color: integration.color, mr: 2 }}>
+                    {integration.icon}
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
                     {integration.name}
                   </Typography>
-                  <Chip
-                    label={integration.status}
-                    color={getStatusColor(integration.status)}
-                    size="small"
-                  />
                 </Box>
-                
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  {integration.type.charAt(0).toUpperCase() + integration.type.slice(1)} Integration
+                  {integration.description}
                 </Typography>
-                
-                {integration.lastTested && (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Last tested: {new Date(integration.lastTested).toLocaleString()}
-                  </Typography>
-                )}
+                <Chip
+                  label={integration.category}
+                  size="small"
+                  sx={{
+                    bgcolor: `${integration.color}20`,
+                    color: integration.color,
+                  }}
+                />
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
 
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<TestIcon />}
-                    onClick={() => handleTest(integration)}
-                    disabled={testing}
-                    variant="outlined"
-                  >
-                    Test
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => openDialog(integration)}
-                    variant="outlined"
-                  >
-                    Edit
-                  </Button>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDelete(integration.id)}
-                    color="error"
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                </Box>
-              </CardContent>
-            </Card>
+      {/* Configured Integrations */}
+      {integrations.length > 0 && (
+        <Box>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Your Integrations
+          </Typography>
+          
+          {/* Tabs */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+            <Tabs value={selectedTab} onChange={handleTabChange}>
+              <Tab label="All Integrations" />
+              <Tab label="OpenAI" />
+              <Tab label="DataForSEO" />
+              <Tab label="Custom" />
+            </Tabs>
+          </Box>
+
+          {/* Integration Cards */}
+          <Grid container spacing={3}>
+            {filteredIntegrations.map((integration) => (
+              <Grid item xs={12} md={6} lg={4} key={integration.id}>
+                <Card sx={{ position: 'relative' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <DragIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                      {getIntegrationIcon(integration.type)}
+                      <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
+                        {integration.name}
+                      </Typography>
+                      <Chip
+                        label={integration.status}
+                        color={getStatusColor(integration.status)}
+                        size="small"
+                      />
+                    </Box>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {integration.type.charAt(0).toUpperCase() + integration.type.slice(1)} Integration
+                    </Typography>
+                    
+                    {integration.lastTested && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                        Last tested: {new Date(integration.lastTested).toLocaleString()}
+                      </Typography>
+                    )}
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size="small"
+                        startIcon={<TestIcon />}
+                        onClick={() => handleTest(integration)}
+                        disabled={testing}
+                        variant="outlined"
+                      >
+                        Test
+                      </Button>
+                      <Button
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={() => openDialog(integration)}
+                        variant="outlined"
+                      >
+                        Edit
+                      </Button>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDelete(integration.id)}
+                        color="error"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+        </Box>
+      )}
 
-      {filteredIntegrations.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 8 }}>
-          <SettingsIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+      {integrations.length === 0 && (
+        <Box sx={{ textAlign: 'center', py: 4, bgcolor: '#f9f9f9', borderRadius: 2 }}>
+          <SettingsIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
-            No integrations found
+            No integrations configured yet
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Add your first integration to get started with workflow automation
+          <Typography variant="body2" color="text.secondary">
+            Start by clicking on one of the available integrations above
           </Typography>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => openDialog()}>
-            Add Integration
-          </Button>
         </Box>
       )}
 

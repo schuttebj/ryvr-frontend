@@ -376,6 +376,163 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           </Box>
         );
 
+      case WorkflowNodeType.AI_OPENAI_TASK:
+        const openaiTaskIntegrations = getIntegrationsByType('openai');
+        
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              OpenAI Task Settings
+            </Typography>
+            
+            {/* Integration Selection */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              OpenAI Integration
+            </Typography>
+            
+            {openaiTaskIntegrations.length > 0 ? (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Integration</InputLabel>
+                <Select
+                  value={formData.config?.integrationId || ''}
+                  label="Select Integration"
+                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
+                  MenuProps={{
+                    PaperProps: {
+                      style: { maxHeight: 200, zIndex: 9999 }
+                    }
+                  }}
+                >
+                  {openaiTaskIntegrations.map(integration => (
+                    <MenuItem key={integration.id} value={integration.id}>
+                      {integration.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No OpenAI integrations found. 
+                <Link href="/integrations" sx={{ ml: 1 }}>
+                  <Button size="small" startIcon={<AddIcon />}>
+                    Add Integration
+                  </Button>
+                </Link>
+              </Alert>
+            )}
+            
+            {/* Task Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Task Configuration
+            </Typography>
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="System Prompt"
+              value={formData.config?.systemPrompt || ''}
+              onChange={(e) => handleConfigChange('systemPrompt', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Define the AI's role and behavior"
+              placeholder="You are a helpful AI assistant that..."
+            />
+            
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              label="User Prompt"
+              value={formData.config?.userPrompt || ''}
+              onChange={(e) => handleConfigChange('userPrompt', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Main task description. Use {variable_name} for dynamic data"
+              placeholder="Analyze the following data: {input_data}"
+            />
+            
+            {/* Advanced Settings */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Advanced Settings
+            </Typography>
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Model Override</InputLabel>
+              <Select
+                value={formData.config?.modelOverride || ''}
+                label="Model Override"
+                onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 200, zIndex: 9999 }
+                  }
+                }}
+              >
+                <MenuItem value="">Use integration default</MenuItem>
+                <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
+                <MenuItem value="gpt-4o">GPT-4o</MenuItem>
+                <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
+                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Temperature Override"
+              value={formData.config?.temperatureOverride ?? ''}
+              onChange={(e) => handleConfigChange('temperatureOverride', e.target.value ? parseFloat(e.target.value) : undefined)}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 0, max: 2, step: 0.1 }}
+              helperText="Leave empty to use integration default (0=focused, 2=creative)"
+            />
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Max Tokens"
+              value={formData.config?.maxTokens || 1000}
+              onChange={(e) => handleConfigChange('maxTokens', parseInt(e.target.value))}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 1, max: 4000 }}
+              helperText="Maximum response length"
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.jsonResponse || false}
+                  onChange={(e) => handleConfigChange('jsonResponse', e.target.checked)}
+                />
+              }
+              label="Request JSON Response"
+              sx={{ mb: 1 }}
+            />
+            
+            {formData.config?.jsonResponse && (
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="JSON Schema"
+                value={formData.config?.jsonSchema || ''}
+                onChange={(e) => handleConfigChange('jsonSchema', e.target.value)}
+                sx={{ mb: 2 }}
+                helperText="Optional: Define expected JSON structure"
+                placeholder='{"result": "string", "confidence": "number"}'
+              />
+            )}
+            
+            <TextField
+              fullWidth
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'ai_result'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this node's output (used in next nodes)"
+            />
+          </Box>
+        );
+
       case WorkflowNodeType.AI_CONTENT_ANALYZE:
         const openaiIntegrations = getIntegrationsByType('openai');
         
