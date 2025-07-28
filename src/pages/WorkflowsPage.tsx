@@ -47,11 +47,13 @@ interface WorkflowSummary {
 export default function WorkflowsPage() {
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
+  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuWorkflowId, setMenuWorkflowId] = useState<string | null>(null);
-  const [newWorkflowDialog, setNewWorkflowDialog] = useState(false);
-  const [newWorkflowName, setNewWorkflowName] = useState('');
-  const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
+  // Remove unused dialog state since we go directly to builder
+  // const [newWorkflowDialog, setNewWorkflowDialog] = useState(false);
+  // const [newWorkflowName, setNewWorkflowName] = useState('');
+  // const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
 
   // Load workflows on component mount and when returning from builder
   useEffect(() => {
@@ -76,7 +78,11 @@ export default function WorkflowsPage() {
       }
     };
 
-    loadWorkflows();
+    // Only load workflows when not showing builder (i.e., when returning to list)
+    if (!showBuilder) {
+      loadWorkflows();
+      setEditingWorkflowId(null); // Reset editing mode when returning to list
+    }
   }, [showBuilder]); // Re-load when showBuilder changes
 
   const handleWorkflowSave = useCallback(async (workflow: any) => {
@@ -112,25 +118,13 @@ export default function WorkflowsPage() {
   }, []);
 
   const handleCreateWorkflow = () => {
-    if (newWorkflowName.trim()) {
-      const newWorkflow: WorkflowSummary = {
-        id: Date.now().toString(),
-        name: newWorkflowName,
-        description: newWorkflowDescription,
-        status: 'draft',
-        nodeCount: 0,
-        successRate: 0,
-        createdAt: new Date().toISOString(),
-      };
-      setWorkflows([...workflows, newWorkflow]);
-      setShowBuilder(true);
-      setNewWorkflowDialog(false);
-      setNewWorkflowName('');
-      setNewWorkflowDescription('');
-    }
+    // Don't create a workflow summary here - let the builder handle the creation
+    setEditingWorkflowId(null); // Clear editing mode for new workflow
+    setShowBuilder(true);
   };
 
-  const handleEditWorkflow = (_workflowId: string) => {
+  const handleEditWorkflow = (workflowId: string) => {
+    setEditingWorkflowId(workflowId); // Set the workflow ID for editing
     setShowBuilder(true);
     setAnchorEl(null);
   };
@@ -185,6 +179,7 @@ export default function WorkflowsPage() {
     return (
       <WorkflowBuilder
         onSave={handleWorkflowSave}
+        workflowId={editingWorkflowId || undefined}
       />
     );
   }
@@ -198,7 +193,7 @@ export default function WorkflowsPage() {
         <Button
           startIcon={<AddIcon />}
           variant="contained"
-          onClick={() => setNewWorkflowDialog(true)}
+          onClick={handleCreateWorkflow}
         >
           Create Workflow
         </Button>
@@ -292,37 +287,7 @@ export default function WorkflowsPage() {
         </MenuItem>
       </Menu>
 
-      <Dialog open={newWorkflowDialog} onClose={() => setNewWorkflowDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create New Workflow</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Workflow Name"
-            fullWidth
-            variant="outlined"
-            value={newWorkflowName}
-            onChange={(e) => setNewWorkflowName(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Description"
-            fullWidth
-            multiline
-            rows={3}
-            variant="outlined"
-            value={newWorkflowDescription}
-            onChange={(e) => setNewWorkflowDescription(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setNewWorkflowDialog(false)}>Cancel</Button>
-          <Button onClick={handleCreateWorkflow} variant="contained">
-            Create
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Create Workflow Dialog removed - now go directly to builder */}
     </Box>
   );
 } 

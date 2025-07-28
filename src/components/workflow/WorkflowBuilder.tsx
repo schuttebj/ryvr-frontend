@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import NodeSettingsPanel from './NodeSettingsPanel';
 import BaseNode from './BaseNode';
+import { workflowApi } from '../../services/workflowApi';
 
 // Custom node components
 const TriggerNode = (props: any) => <BaseNode {...props} nodeType="trigger" />;
@@ -57,7 +58,8 @@ const nodeTypes = {
 };
 
 interface WorkflowBuilderProps {
-  onSave?: (workflow: any) => void;
+  onSave?: (workflow: any) => Promise<void>;
+  workflowId?: string; // Optional workflow ID for editing existing workflows
 }
 
 interface NodePaletteItem {
@@ -249,7 +251,7 @@ const nodePaletteItems: NodePaletteItem[] = [
   }
 ];
 
-export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
+export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderProps) {
   const navigate = useNavigate();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -267,6 +269,46 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
   // Auto-save timer
   const autoSaveTimer = useRef<number | null>(null);
   const lastSavedState = useRef<string>('');
+
+  // Load existing workflow data when editing
+  useEffect(() => {
+    const loadWorkflow = async () => {
+      if (workflowId) {
+        try {
+          console.log('Loading workflow for editing:', workflowId);
+          const workflow = await workflowApi.loadWorkflow(workflowId);
+          
+          if (workflow) {
+            setWorkflowName(workflow.name || '');
+            setWorkflowDescription(workflow.description || '');
+            
+            if (workflow.nodes) {
+              setNodes(workflow.nodes);
+            }
+            
+            if (workflow.edges) {
+              setEdges(workflow.edges);
+            }
+            
+            // Set initial saved state to prevent immediate auto-save
+            lastSavedState.current = JSON.stringify({ 
+              nodes: workflow.nodes || [], 
+              edges: workflow.edges || [], 
+              workflowName: workflow.name || '', 
+              workflowDescription: workflow.description || '' 
+            });
+            
+            setHasUnsavedChanges(false);
+            console.log('Workflow loaded successfully:', workflow);
+          }
+        } catch (error) {
+          console.error('Failed to load workflow:', error);
+        }
+      }
+    };
+
+    loadWorkflow();
+  }, [workflowId, setNodes, setEdges]);
 
   // Track changes to nodes and edges
   useEffect(() => {
@@ -300,7 +342,7 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
     
     try {
       const workflow = {
-        id: `workflow_${Date.now()}`,
+        id: workflowId || `workflow_${Date.now()}`, // Use workflowId if editing, otherwise generate new ID
         name: workflowName || `Untitled Workflow ${new Date().toLocaleTimeString()}`,
         description: workflowDescription,
         nodes,
@@ -320,7 +362,7 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [nodes, edges, workflowName, workflowDescription, hasUnsavedChanges, onSave]);
+  }, [nodes, edges, workflowName, workflowDescription, hasUnsavedChanges, onSave, workflowId]);
 
   const handleClose = () => {
     if (hasUnsavedChanges && !autoSaveEnabled) {
@@ -422,13 +464,14 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
 
   const handleSaveConfirm = async () => {
     const workflow = {
-      id: `workflow_${Date.now()}`,
+      id: workflowId || `workflow_${Date.now()}`, // Use workflowId if editing, otherwise generate new ID
       name: workflowName,
       description: workflowDescription,
       nodes,
       edges,
       isActive: false,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       tags: [],
     };
 
@@ -441,8 +484,11 @@ export default function WorkflowBuilder({ onSave }: WorkflowBuilderProps) {
     }
 
     setSaveDialogOpen(false);
-    setWorkflowName('');
-    setWorkflowDescription('');
+    // Don't reset name and description when editing existing workflow
+    if (!workflowId) {
+      setWorkflowName('');
+      setWorkflowDescription('');
+    }
   };
 
   const createTestWorkflow = () => {
