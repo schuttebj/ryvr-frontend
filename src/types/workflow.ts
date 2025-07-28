@@ -9,12 +9,13 @@ export enum WorkflowNodeType {
   
   // AI Tools (OpenAI Integration)
   AI_OPENAI_TASK = 'ai_openai_task',
-  AI_CONTENT_GENERATE = 'ai_content_generate',
   AI_CONTENT_SEO = 'ai_content_seo', 
-  AI_CONTENT_ANALYZE = 'ai_content_analyze',
   AI_KEYWORDS_GENERATE = 'ai_keywords_generate',
   AI_ADS_GENERATE = 'ai_ads_generate',
   AI_EMAIL_SEQUENCE = 'ai_email_sequence',
+  
+  // Content Extraction
+  CONTENT_EXTRACT = 'content_extract',
   
   // SEO Tools (DataForSEO Integration)
   // SERP Analysis

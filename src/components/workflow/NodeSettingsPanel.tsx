@@ -30,6 +30,7 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
+import DataMappingSelector from './DataMappingSelector';
 
 interface Integration {
   id: string;
@@ -317,14 +318,12 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           </Select>
         </FormControl>
         
-        <TextField
-          fullWidth
-          label="Custom Input Mapping"
+        <DataMappingSelector
           value={formData.config?.customInputMapping || ''}
-          onChange={(e) => handleConfigChange('customInputMapping', e.target.value)}
-          sx={{ mb: 2 }}
-          helperText="Advanced: Enter specific node mapping (e.g., 'node_id.property')"
-          placeholder="e.g., serp_node_1.results"
+          onChange={(value) => handleConfigChange('customInputMapping', value)}
+          placeholder="serp_results.results[0].items[*].url"
+          helperText="Advanced: Enter specific node mapping with JSON path support"
+          label="Custom Input Mapping"
         />
       </AccordionDetails>
     </Accordion>
@@ -637,292 +636,96 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           </Box>
         );
 
-      case WorkflowNodeType.AI_CONTENT_ANALYZE:
-        const openaiIntegrations = getIntegrationsByType('openai');
-        
+      case WorkflowNodeType.CONTENT_EXTRACT:        
         return (
           <Box sx={{ mt: 2 }}>
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
-              AI Analysis Settings
+              Content Extraction Settings
             </Typography>
             
-            {/* Integration Selection */}
+            {/* Input Mapping */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              OpenAI Integration
+              URL Sources
             </Typography>
             
-            {openaiIntegrations.length > 0 ? (
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Select Integration</InputLabel>
-                <Select
-                  value={formData.config?.integrationId || ''}
-                  label="Select Integration"
-                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 200, zIndex: 10001 }
-                    }
-                  }}
-                >
-                  {openaiIntegrations.map(integration => (
-                    <MenuItem key={integration.id} value={integration.id}>
-                      {integration.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            ) : (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                No OpenAI integrations found. 
-                <Link href="/integrations" sx={{ ml: 1 }}>
-                  <Button size="small" startIcon={<AddIcon />}>
-                    Add Integration
-                  </Button>
-                </Link>
-              </Alert>
-            )}
+            <DataMappingSelector
+              value={formData.config?.inputMapping || ''}
+              onChange={(value) => handleConfigChange('inputMapping', value)}
+              placeholder="serp_results.results[0].items[*].url"
+              helperText="JSON path to extract URLs from previous nodes (supports arrays with *)"
+              label="Input Mapping (URLs)"
+            />
             
-            {/* Model Configuration Override */}
+            {/* Extraction Configuration */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Model Configuration (Optional Override)
+              Extraction Options
             </Typography>
             
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Model Override</InputLabel>
+              <InputLabel>Extraction Type</InputLabel>
               <Select
-                value={formData.config?.modelOverride || ''}
-                label="Model Override"
-                onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
+                value={formData.config?.extractionType || 'full_text'}
+                label="Extraction Type"
+                onChange={(e) => handleConfigChange('extractionType', e.target.value)}
                 MenuProps={selectMenuProps}
               >
-                <MenuItem value="">Use integration default</MenuItem>
-                <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
-                <MenuItem value="gpt-4o">GPT-4o</MenuItem>
-                <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
-                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+                <MenuItem value="full_text">Full Text Content</MenuItem>
+                <MenuItem value="title_only">Title Only</MenuItem>
+                <MenuItem value="meta_data">Meta Data</MenuItem>
+                <MenuItem value="headings">Headings (H1-H6)</MenuItem>
+                <MenuItem value="custom_selector">Custom CSS Selector</MenuItem>
               </Select>
             </FormControl>
+            
+            {formData.config?.extractionType === 'custom_selector' && (
+              <TextField
+                fullWidth
+                label="CSS Selector"
+                value={formData.config?.cssSelector || ''}
+                onChange={(e) => handleConfigChange('cssSelector', e.target.value)}
+                sx={{ mb: 2 }}
+                placeholder="article, .content, #main-text"
+                helperText="CSS selector to target specific content"
+              />
+            )}
             
             <TextField
               fullWidth
               type="number"
-              label="Temperature Override"
-              value={formData.config?.temperatureOverride || ''}
-              onChange={(e) => handleConfigChange('temperatureOverride', e.target.value ? parseFloat(e.target.value) : '')}
+              label="Max Content Length"
+              value={formData.config?.maxLength || 5000}
+              onChange={(e) => handleConfigChange('maxLength', parseInt(e.target.value))}
               sx={{ mb: 2 }}
-              inputProps={{ min: 0, max: 2, step: 0.1 }}
-              helperText="Leave empty to use integration default"
+              inputProps={{ min: 100, max: 50000 }}
+              helperText="Maximum characters per page (100-50000)"
             />
-            
-            {/* Custom Prompt */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Analysis Prompt
-            </Typography>
-            
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="System Prompt"
-              value={formData.config?.systemPrompt || ''}
-              onChange={(e) => handleConfigChange('systemPrompt', e.target.value)}
-              placeholder="You are a helpful AI assistant that analyzes content..."
-              sx={{ mb: 2 }}
-              helperText="Define the AI's role and behavior"
-            />
-            
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="User Prompt Template"
-              value={formData.config?.userPrompt || ''}
-              onChange={(e) => handleConfigChange('userPrompt', e.target.value)}
-              placeholder="Analyze the following content: {input_content}"
-              sx={{ mb: 2 }}
-              helperText="Use {variable_name} for dynamic content from previous nodes"
-            />
-            
-            {/* JSON Response Configuration */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Response Format
-            </Typography>
             
             <FormControlLabel
               control={
                 <Switch
-                  checked={formData.config?.jsonResponse || false}
-                  onChange={(e) => handleConfigChange('jsonResponse', e.target.checked)}
+                  checked={formData.config?.removeHtml || true}
+                  onChange={(e) => handleConfigChange('removeHtml', e.target.checked)}
                 />
               }
-              label="Return response as JSON"
+              label="Remove HTML tags"
               sx={{ mb: 2 }}
             />
-            
-            {formData.config?.jsonResponse && (
-              <TextField
-                fullWidth
-                multiline
-                rows={6}
-                label="JSON Schema"
-                value={formData.config?.jsonSchema || ''}
-                onChange={(e) => handleConfigChange('jsonSchema', e.target.value)}
-                placeholder={`{
-  "analysis": {
-    "sentiment": "positive|negative|neutral",
-    "keywords": ["keyword1", "keyword2"],
-    "summary": "Brief summary here",
-    "score": 0.85
-  }
-}`}
-                sx={{ mb: 2 }}
-                helperText="Define the expected JSON structure for the AI response"
-              />
-            )}
-            
-            <TextField
-              fullWidth
-              label="Output Variable Name"
-              value={formData.config?.outputVariable || 'ai_analysis'}
-              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
-              sx={{ mb: 2 }}
-              helperText="Name for this node's output (used in next nodes)"
-            />
-          </Box>
-        );
-
-      case WorkflowNodeType.AI_CONTENT_GENERATE:
-        const openaiGenIntegrations = getIntegrationsByType('openai');
-        
-        return (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 2 }}>
-              AI Content Generation Settings
-            </Typography>
-            
-            {/* Integration Selection */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              OpenAI Integration
-            </Typography>
-            
-            {openaiGenIntegrations.length > 0 ? (
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Select Integration</InputLabel>
-                <Select
-                  value={formData.config?.integrationId || ''}
-                  label="Select Integration"
-                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 200, zIndex: 10001 }
-                    }
-                  }}
-                >
-                  {openaiGenIntegrations.map(integration => (
-                    <MenuItem key={integration.id} value={integration.id}>
-                      {integration.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            ) : (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                No OpenAI integrations found. 
-                <Link href="/integrations" sx={{ ml: 1 }}>
-                  <Button size="small" startIcon={<AddIcon />}>
-                    Add Integration
-                  </Button>
-                </Link>
-              </Alert>
-            )}
-            
-            {/* Content Generation Configuration */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Content Configuration
-            </Typography>
-            
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              label="Generation Prompt"
-              value={formData.config?.prompt || ''}
-              onChange={(e) => handleConfigChange('prompt', e.target.value)}
-              placeholder="Generate a summary based on: {ai_analysis}"
-              sx={{ mb: 2 }}
-              helperText="Use {variable_name} to reference data from previous nodes"
-            />
-            
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Content Type</InputLabel>
-              <Select
-                value={formData.config?.contentType || 'summary'}
-                label="Content Type"
-                onChange={(e) => handleConfigChange('contentType', e.target.value)}
-                MenuProps={{
-                  PaperProps: {
-                    style: { maxHeight: 200, zIndex: 10001 }
-                  }
-                }}
-              >
-                <MenuItem value="summary">Summary</MenuItem>
-                <MenuItem value="article">Article</MenuItem>
-                <MenuItem value="social_post">Social Media Post</MenuItem>
-                <MenuItem value="email">Email Content</MenuItem>
-                <MenuItem value="meta_description">Meta Description</MenuItem>
-                <MenuItem value="custom">Custom</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <TextField
-              fullWidth
-              label="Tone"
-              value={formData.config?.tone || 'professional'}
-              onChange={(e) => handleConfigChange('tone', e.target.value)}
-              sx={{ mb: 2 }}
-              helperText="e.g., professional, casual, friendly, technical"
-            />
-            
-            {/* JSON Response Configuration */}
-            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
-              Response Format
-            </Typography>
             
             <FormControlLabel
               control={
                 <Switch
-                  checked={formData.config?.jsonResponse || false}
-                  onChange={(e) => handleConfigChange('jsonResponse', e.target.checked)}
+                  checked={formData.config?.batchProcess || true}
+                  onChange={(e) => handleConfigChange('batchProcess', e.target.checked)}
                 />
               }
-              label="Return response as JSON"
+              label="Process multiple URLs (batch mode)"
               sx={{ mb: 2 }}
             />
-            
-            {formData.config?.jsonResponse && (
-              <TextField
-                fullWidth
-                multiline
-                rows={4}
-                label="JSON Schema"
-                value={formData.config?.jsonSchema || ''}
-                onChange={(e) => handleConfigChange('jsonSchema', e.target.value)}
-                placeholder={`{
-  "content": "Generated content here",
-  "metadata": {
-    "word_count": 150,
-    "tone": "professional"
-  }
-}`}
-                sx={{ mb: 2 }}
-                helperText="Define the expected JSON structure"
-              />
-            )}
             
             <TextField
               fullWidth
               label="Output Variable Name"
-              value={formData.config?.outputVariable || 'generated_content'}
+              value={formData.config?.outputVariable || 'extracted_content'}
               onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
               sx={{ mb: 2 }}
               helperText="Name for this node's output (used in next nodes)"

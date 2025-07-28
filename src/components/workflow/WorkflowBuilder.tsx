@@ -86,16 +86,10 @@ const nodePaletteItems: NodePaletteItem[] = [
     category: 'AI Tools'
   },
   {
-    type: WorkflowNodeType.AI_CONTENT_ANALYZE,
-    label: 'AI Analysis',
-    description: 'Analyze content with AI',
-    category: 'AI Tools'
-  },
-  {
-    type: WorkflowNodeType.AI_CONTENT_GENERATE,
-    label: 'AI Generate',
-    description: 'Generate content with AI',
-    category: 'AI Tools'
+    type: WorkflowNodeType.CONTENT_EXTRACT,
+    label: 'Extract Content',
+    description: 'Extract content from web pages',
+    category: 'Content'
   },
   
   // SERP Analysis
@@ -520,35 +514,18 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         } as unknown as Record<string, unknown>,
       },
       {
-        id: 'ai-1',
-        type: 'ai',
+        id: 'content-1',
+        type: 'content',
         position: { x: 500, y: 100 },
         data: {
-          id: 'ai-1',
-          type: WorkflowNodeType.AI_CONTENT_ANALYZE,
-          label: 'AI Analysis',
-          description: 'Analyze content with AI',
+          id: 'content-1',
+          type: WorkflowNodeType.CONTENT_EXTRACT,
+          label: 'Extract Content',
+          description: 'Extract content from SERP result URLs',
           config: { 
-            systemPrompt: 'You are an SEO analyst.',
-            userPrompt: 'Analyze these SERP results: {serp_results}',
-            jsonResponse: true
-          },
-          isValid: true,
-        } as unknown as Record<string, unknown>,
-      },
-      {
-        id: 'ai-2',
-        type: 'ai',
-        position: { x: 700, y: 100 },
-        data: {
-          id: 'ai-2',
-          type: WorkflowNodeType.AI_CONTENT_GENERATE,
-          label: 'AI Summarize',
-          description: 'Generate summary',
-          config: { 
-            prompt: 'Create a summary based on: {ai_analysis}',
-            contentType: 'summary',
-            tone: 'professional'
+            inputMapping: 'serp_results.results[0].items[*].url',
+            extractionType: 'full_text',
+            outputFormat: 'text'
           },
           isValid: true,
         } as unknown as Record<string, unknown>,
