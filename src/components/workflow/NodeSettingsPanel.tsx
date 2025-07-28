@@ -866,7 +866,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           multiline
           rows={2}
           label="Description"
-          value={formData.description}
+          value={formData.description || ''}
           onChange={(value) => setFormData((prev: WorkflowNodeData) => ({ ...prev, description: value }))}
           sx={{ mb: 2 }}
           helperText="Node description. Click the variable icon to insert data from previous nodes."

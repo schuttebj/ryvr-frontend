@@ -11,13 +11,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   TextField,
   Alert,
-  Divider,
   IconButton,
   Tooltip,
   Paper,
@@ -49,7 +44,6 @@ export default function VariableSelector({
   const [selectedPath, setSelectedPath] = useState('');
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState(4);
-  const [generatedVariable, setGeneratedVariable] = useState('');
 
   // Sample data for demonstration if none provided
   const sampleData = {
@@ -115,7 +109,6 @@ export default function VariableSelector({
         break;
     }
     
-    setGeneratedVariable(variable);
     return variable;
   };
 
@@ -222,7 +215,7 @@ export default function VariableSelector({
       
       for (const part of pathParts) {
         if (current && typeof current === 'object') {
-          current = current[part];
+          current = (current as any)[part];
         }
       }
       
