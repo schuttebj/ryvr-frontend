@@ -64,6 +64,26 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [testing, setTesting] = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
 
+  // Shared MenuProps configuration for all select dropdowns
+  const selectMenuProps = {
+    PaperProps: {
+      style: { 
+        maxHeight: 200, 
+        zIndex: 10002,
+        position: 'fixed' as const
+      }
+    },
+    disablePortal: false,
+    anchorOrigin: {
+      vertical: 'bottom' as const,
+      horizontal: 'left' as const,
+    },
+    transformOrigin: {
+      vertical: 'top' as const,
+      horizontal: 'left' as const,
+    }
+  };
+
   // Load integrations on mount
   useEffect(() => {
     loadIntegrations();
@@ -80,7 +100,35 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     try {
       const saved = localStorage.getItem('integrations');
       if (saved) {
-        setIntegrations(JSON.parse(saved));
+        const loadedIntegrations = JSON.parse(saved);
+        console.log('Loaded integrations:', loadedIntegrations);
+        setIntegrations(loadedIntegrations);
+      } else {
+        console.log('No integrations found in localStorage');
+        // Create sample integrations for testing if none exist
+        const sampleIntegrations = [
+          {
+            id: 'sample-openai',
+            name: 'Sample OpenAI',
+            type: 'openai',
+            status: 'connected',
+            config: { apiKey: 'sk-sample...' },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          {
+            id: 'sample-dataforseo',
+            name: 'Sample DataForSEO',
+            type: 'dataforseo',
+            status: 'connected',
+            config: { login: 'sample', password: 'sample' },
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        ];
+        setIntegrations(sampleIntegrations);
+        localStorage.setItem('integrations', JSON.stringify(sampleIntegrations));
+        console.log('Created sample integrations for testing');
       }
     } catch (error) {
       console.error('Failed to load integrations:', error);
@@ -229,11 +277,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.triggerType || 'manual'}
                 label="Trigger Type"
                 onChange={(e) => handleConfigChange('triggerType', e.target.value)}
-                MenuProps={{
-                  PaperProps: {
-                    style: { maxHeight: 200, zIndex: 10001 }
-                  }
-                }}
+                MenuProps={selectMenuProps}
               >
                 <MenuItem value="manual">Manual Start</MenuItem>
                 <MenuItem value="webhook">Webhook URL</MenuItem>
@@ -287,11 +331,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   value={formData.config?.integrationId || ''}
                   label="Select Integration"
                   onChange={(e) => handleConfigChange('integrationId', e.target.value)}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 200, zIndex: 10001 }
-                    }
-                  }}
+                  MenuProps={selectMenuProps}
                 >
                   {dataforSeoIntegrations.map(integration => (
                     <MenuItem key={integration.id} value={integration.id}>
