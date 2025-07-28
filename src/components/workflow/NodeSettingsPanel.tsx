@@ -37,6 +37,9 @@ interface Integration {
   type: 'openai' | 'dataforseo' | 'custom';
   status: 'connected' | 'disconnected' | 'error';
   config: Record<string, any>;
+  lastTested?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface NodeSettingsPanelProps {
@@ -106,12 +109,12 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       } else {
         console.log('No integrations found in localStorage');
         // Create sample integrations for testing if none exist
-        const sampleIntegrations = [
+        const sampleIntegrations: Integration[] = [
           {
             id: 'sample-openai',
             name: 'Sample OpenAI',
-            type: 'openai',
-            status: 'connected',
+            type: 'openai' as const,
+            status: 'connected' as const,
             config: { apiKey: 'sk-sample...' },
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
@@ -119,8 +122,8 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           {
             id: 'sample-dataforseo',
             name: 'Sample DataForSEO',
-            type: 'dataforseo',
-            status: 'connected',
+            type: 'dataforseo' as const,
+            status: 'connected' as const,
             config: { login: 'sample', password: 'sample' },
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

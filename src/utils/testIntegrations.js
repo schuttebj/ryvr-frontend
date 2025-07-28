@@ -22,6 +22,7 @@ const testIntegrations = () => {
           temperature: 0.7,
           maxTokens: 1000
         },
+        lastTested: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -35,6 +36,7 @@ const testIntegrations = () => {
           password: 'test-pass',
           useSandbox: true
         },
+        lastTested: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
