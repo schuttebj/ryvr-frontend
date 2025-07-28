@@ -71,12 +71,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const selectMenuProps = {
     PaperProps: {
       style: { 
-        maxHeight: 200, 
-        zIndex: 10002,
-        position: 'fixed' as const
+        maxHeight: 300, 
+        zIndex: 10002
       }
     },
-    disablePortal: false,
+    disablePortal: true,
     anchorOrigin: {
       vertical: 'bottom' as const,
       horizontal: 'left' as const,
@@ -89,8 +88,19 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
 
   // Load integrations on mount
   useEffect(() => {
+    console.log('NodeSettingsPanel: Loading integrations...');
     loadIntegrations();
+    console.log('NodeSettingsPanel: integrations state after load:', integrations);
   }, []);
+
+  // Debug effect to track integrations state changes
+  useEffect(() => {
+    console.log('NodeSettingsPanel: integrations state changed:', integrations);
+    console.log('NodeSettingsPanel: integrations length:', integrations.length);
+    integrations.forEach((integration, index) => {
+      console.log(`Integration ${index}:`, integration);
+    });
+  }, [integrations]);
 
   // Update form data when node changes
   useEffect(() => {
@@ -101,7 +111,10 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
 
   const loadIntegrations = () => {
     try {
+      console.log('loadIntegrations: Starting to load...');
       const saved = localStorage.getItem('integrations');
+      console.log('loadIntegrations: localStorage data:', saved);
+      
       if (saved) {
         const loadedIntegrations = JSON.parse(saved);
         console.log('Loaded integrations:', loadedIntegrations);
@@ -116,6 +129,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             type: 'openai' as const,
             status: 'connected' as const,
             config: { apiKey: 'sk-sample...' },
+            lastTested: new Date().toISOString(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },
@@ -125,21 +139,49 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             type: 'dataforseo' as const,
             status: 'connected' as const,
             config: { login: 'sample', password: 'sample' },
+            lastTested: new Date().toISOString(),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           }
         ];
+        console.log('Creating sample integrations:', sampleIntegrations);
         setIntegrations(sampleIntegrations);
         localStorage.setItem('integrations', JSON.stringify(sampleIntegrations));
         console.log('Created sample integrations for testing');
       }
     } catch (error) {
       console.error('Failed to load integrations:', error);
+      // Fallback: create sample integrations anyway
+      const fallbackIntegrations: Integration[] = [
+        {
+          id: 'fallback-openai',
+          name: 'Fallback OpenAI',
+          type: 'openai' as const,
+          status: 'connected' as const,
+          config: { apiKey: 'sk-fallback...' },
+          lastTested: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: 'fallback-dataforseo',
+          name: 'Fallback DataForSEO',
+          type: 'dataforseo' as const,
+          status: 'connected' as const,
+          config: { login: 'fallback', password: 'fallback' },
+          lastTested: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+      ];
+      setIntegrations(fallbackIntegrations);
     }
   };
 
   const getIntegrationsByType = (type: 'openai' | 'dataforseo') => {
-    return integrations.filter(i => i.type === type && i.status === 'connected');
+    const filtered = integrations.filter(i => i.type === type && i.status === 'connected');
+    console.log(`getIntegrationsByType(${type}): found ${filtered.length} integrations:`, filtered);
+    return filtered;
   };
 
   if (!node) return null;
@@ -239,11 +281,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             value={formData.config?.inputMapping || ''}
             label="Map Input Data"
             onChange={(e) => handleConfigChange('inputMapping', e.target.value)}
-            MenuProps={{
-              PaperProps: {
-                style: { maxHeight: 200, zIndex: 10001 }
-              }
-            }}
+            MenuProps={selectMenuProps}
           >
             <MenuItem value="">No mapping (use all available data)</MenuItem>
             <MenuItem value="previous_node">Previous node output</MenuItem>
@@ -374,11 +412,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.locationCode || 2840}
                 label="Location"
                 onChange={(e) => handleConfigChange('locationCode', e.target.value)}
-                MenuProps={{
-                  PaperProps: {
-                    style: { maxHeight: 200, zIndex: 10001 }
-                  }
-                }}
+                MenuProps={selectMenuProps}
               >
                 <MenuItem value={2840}>United States</MenuItem>
                 <MenuItem value={2826}>United Kingdom</MenuItem>
@@ -395,11 +429,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.languageCode || 'en'}
                 label="Language"
                 onChange={(e) => handleConfigChange('languageCode', e.target.value)}
-                MenuProps={{
-                  PaperProps: {
-                    style: { maxHeight: 200, zIndex: 10001 }
-                  }
-                }}
+                MenuProps={selectMenuProps}
               >
                 <MenuItem value="en">English</MenuItem>
                 <MenuItem value="es">Spanish</MenuItem>
@@ -453,11 +483,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   value={formData.config?.integrationId || ''}
                   label="Select Integration"
                   onChange={(e) => handleConfigChange('integrationId', e.target.value)}
-                  MenuProps={{
-                    PaperProps: {
-                      style: { maxHeight: 200, zIndex: 10001 }
-                    }
-                  }}
+                  MenuProps={selectMenuProps}
                 >
                   {openaiTaskIntegrations.map(integration => (
                     <MenuItem key={integration.id} value={integration.id}>
@@ -517,11 +543,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.modelOverride || ''}
                 label="Model Override"
                 onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
-                MenuProps={{
-                  PaperProps: {
-                    style: { maxHeight: 200, zIndex: 10001 }
-                  }
-                }}
+                MenuProps={selectMenuProps}
               >
                 <MenuItem value="">Use integration default</MenuItem>
                 <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
@@ -645,11 +667,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 value={formData.config?.modelOverride || ''}
                 label="Model Override"
                 onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
-                MenuProps={{
-                  PaperProps: {
-                    style: { maxHeight: 200, zIndex: 10001 }
-                  }
-                }}
+                MenuProps={selectMenuProps}
               >
                 <MenuItem value="">Use integration default</MenuItem>
                 <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
