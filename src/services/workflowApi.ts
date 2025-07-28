@@ -83,13 +83,16 @@ const processVariables = (text: string, workflowData: Record<string, any>): stri
       // Resolve the data path
       let value = resolveVariablePath(path.trim(), workflowData);
       
-      // If value is undefined or null, check if we're in test mode
+      // If value is undefined or null, show debug info
       if (value === undefined || value === null) {
         console.log(`Variable ${path.trim()} resolved to:`, value);
         console.log('Available data keys:', Object.keys(workflowData));
+        console.log('Full workflow data:', JSON.stringify(workflowData, null, 2));
         // In production, we might want to keep the variable or show a placeholder
         return `[${path.trim()}: not found]`;
       }
+      
+      console.log(`Variable ${path.trim()} resolved successfully to:`, value);
       
       // Apply formatting
       if (format) {
@@ -133,14 +136,15 @@ const resolveVariablePath = (path: string, workflowData: Record<string, any>): a
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i];
       
-      if (part.includes('[*]')) {
+              if (part.includes('[*]')) {
         const arrayKey = part.replace('[*]', '');
         if (current[arrayKey] && Array.isArray(current[arrayKey])) {
           const remainingPath = parts.slice(i + 1).join('.');
           if (remainingPath) {
+            // For each item in the array, resolve the remaining path
             return current[arrayKey].map((item: any) => {
-              return resolveVariablePath(remainingPath, { temp: item }).temp || item;
-            });
+              return resolveVariablePath(remainingPath, item);
+            }).filter(val => val !== undefined);
           } else {
             return current[arrayKey];
           }
@@ -184,10 +188,14 @@ const resolveVariablePath = (path: string, workflowData: Record<string, any>): a
 };
 
 const applyVariableFormat = (value: any, format: string): string => {
+  console.log(`Applying format '${format}' to value:`, value);
+  
   switch (format.toLowerCase()) {
     case 'list':
       if (Array.isArray(value)) {
-        return value.join(', ');
+        const result = value.join(', ');
+        console.log(`List format result:`, result);
+        return result;
       }
       return String(value || '');
       
