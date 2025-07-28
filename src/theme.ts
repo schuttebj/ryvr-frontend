@@ -161,6 +161,56 @@ export const theme = createTheme({
         },
       },
     },
+    // Fix z-index issues for dropdowns that appear over high z-index panels
+    MuiMenu: {
+      styleOverrides: {
+        root: {
+          zIndex: 10100, // Higher than NodeSettingsPanel (10000)
+        },
+        paper: {
+          zIndex: 10100,
+        },
+      },
+    },
+    MuiPopover: {
+      styleOverrides: {
+        root: {
+          zIndex: 10100,
+        },
+        paper: {
+          zIndex: 10100,
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          '& .MuiMenu-root': {
+            zIndex: 10100,
+          },
+        },
+      },
+    },
+    MuiModal: {
+      styleOverrides: {
+        root: {
+          zIndex: 10050, // Slightly lower than menus but higher than panels
+        },
+      },
+    },
+  },
+  // Override default z-index values
+  zIndex: {
+    mobileStepper: 1000,
+    fab: 1050,
+    speedDial: 1050,
+    appBar: 1100,
+    drawer: 1200,
+    modal: 1300,
+    snackbar: 1400,
+    tooltip: 1500,
+    // Custom high z-index for our dropdowns
+    menu: 10100, // Custom property for our use
   },
 });
 

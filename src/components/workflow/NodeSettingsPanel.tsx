@@ -72,10 +72,18 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     PaperProps: {
       style: { 
         maxHeight: 300, 
-        zIndex: 10002
+        zIndex: 10100, // Much higher than NodeSettingsPanel (10000)
+        position: 'absolute' as const
+      },
+      sx: {
+        zIndex: 10100, // Material-UI also respects sx zIndex
+        '& .MuiMenuItem-root': {
+          zIndex: 10100
+        }
       }
     },
-    disablePortal: true,
+    // Use portal to render dropdown outside the panel's DOM tree
+    disablePortal: false,
     anchorOrigin: {
       vertical: 'bottom' as const,
       horizontal: 'left' as const,
@@ -83,6 +91,24 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     transformOrigin: {
       vertical: 'top' as const,
       horizontal: 'left' as const,
+    },
+    // Additional props to ensure proper z-index handling
+    MenuListProps: {
+      sx: {
+        zIndex: 10100,
+        position: 'relative',
+        '& .MuiMenuItem-root': {
+          zIndex: 10100
+        }
+      }
+    },
+    // Force high z-index for the container
+    slotProps: {
+      paper: {
+        sx: {
+          zIndex: 10100
+        }
+      }
     }
   };
 
