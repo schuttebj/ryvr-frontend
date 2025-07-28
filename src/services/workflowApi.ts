@@ -623,8 +623,27 @@ export const workflowApi = {
             'https://sandbox.dataforseo.com' : 
             'https://api.dataforseo.com';
           
-          if (!finalConfig.login || !finalConfig.password) {
-            // Return mock data matching real DataForSEO API structure
+          // Check if we should use real API or realistic mock data
+          const useRealAPI = finalConfig.login && 
+                            finalConfig.password && 
+                            finalConfig.login !== 'test-user' && 
+                            finalConfig.password !== 'test-pass';
+          
+          if (!useRealAPI) {
+            // Return realistic mock data that simulates real SERP results
+            const realSites = [
+              { domain: 'wikipedia.org', title: `${keyword} - Wikipedia`, desc: `Learn about ${keyword} from the world's largest encyclopedia. Comprehensive information, references, and detailed explanations.` },
+              { domain: 'youtube.com', title: `${keyword} Videos - YouTube`, desc: `Watch videos about ${keyword}. Find tutorials, reviews, and expert content from creators around the world.` },
+              { domain: 'reddit.com', title: `r/${keyword} - Reddit`, desc: `Join the ${keyword} community on Reddit. Discussions, tips, and user experiences shared by real people.` },
+              { domain: 'medium.com', title: `Ultimate Guide to ${keyword} | Medium`, desc: `Expert insights and best practices for ${keyword}. In-depth articles written by industry professionals.` },
+              { domain: 'hubspot.com', title: `${keyword} Strategy Guide - HubSpot`, desc: `Complete ${keyword} guide with actionable strategies, tools, and templates to help you succeed.` },
+              { domain: 'moz.com', title: `${keyword} Best Practices - Moz`, desc: `Learn ${keyword} from SEO experts. Data-driven strategies and proven techniques for better results.` },
+              { domain: 'searchenginejournal.com', title: `${keyword} Trends 2024 - Search Engine Journal`, desc: `Latest ${keyword} trends, news, and insights from industry leaders and search marketing experts.` },
+              { domain: 'semrush.com', title: `${keyword} Tools & Analytics - Semrush`, desc: `Professional ${keyword} tools and analytics. Competitive research, keyword tracking, and market insights.` },
+              { domain: 'ahrefs.com', title: `${keyword} Research Tool - Ahrefs`, desc: `Advanced ${keyword} analysis with comprehensive data. Backlink research, keyword tracking, and competitor analysis.` },
+              { domain: 'backlinko.com', title: `${keyword} Case Study - Backlinko`, desc: `Real-world ${keyword} case studies with detailed results. Learn from successful campaigns and strategies.` }
+            ];
+            
             result = [
               {
                 keyword: keyword,
@@ -637,39 +656,45 @@ export const workflowApi = {
                 spell: null,
                 refinement_chips: null,
                 item_types: ["organic", "people_also_ask", "related_searches"],
-                se_results_count: Math.floor(Math.random() * 10000000) + 1000000,
+                se_results_count: Math.floor(Math.random() * 50000000) + 5000000,
                 items_count: maxResults,
-                items: Array.from({ length: maxResults }, (_, i) => ({
-                  type: 'organic',
-                  rank_group: i + 1,
-                  rank_absolute: i + 1,
-                  position: 'left',
-                  xpath: `/html/body/div[6]/div/div[10]/div/div/div[2]/div/div/div[${i + 2}]/div/div/span/a`,
-                  domain: `example${i + 1}.com`,
-                  title: `Sample Result ${i + 1} for ${keyword}`,
-                  description: `This is a sample SERP result description for testing purposes. Result #${i + 1} contains relevant information about ${keyword}.`,
-                  url: `https://example${i + 1}.com/page-about-${keyword.replace(/\s+/g, '-').toLowerCase()}`,
-                  breadcrumb: `example${i + 1}.com › ${keyword.replace(/\s+/g, '-').toLowerCase()}`,
-                  is_featured_snippet: i === 0,
-                  is_malicious: false,
-                  is_web_story: false,
-                  amp_version: false,
-                  rating: i < 3 ? {
-                    rating_type: "Max5",
-                    value: (4.1 + Math.random() * 0.8).toFixed(1),
-                    votes_count: Math.floor(Math.random() * 500) + 50,
-                    rating_max: 5
-                  } : null,
-                  ...(finalConfig.includeMetrics && {
-                    metrics: {
-                      organic_etv: Math.random() * 1000,
-                      organic_count: Math.floor(Math.random() * 50),
-                      paid_etv: Math.random() * 500
-                    }
-                  })
-                }))
+                items: Array.from({ length: Math.min(maxResults, realSites.length) }, (_, i) => {
+                  const site = realSites[i];
+                  return {
+                    type: 'organic',
+                    rank_group: i + 1,
+                    rank_absolute: i + 1,
+                    position: 'left',
+                    xpath: `/html/body/div[6]/div/div[10]/div/div/div[2]/div/div/div[${i + 2}]/div/div/span/a`,
+                    domain: site.domain,
+                    title: site.title,
+                    description: site.desc,
+                    url: `https://${site.domain}/${keyword.replace(/\s+/g, '-').toLowerCase()}`,
+                    breadcrumb: `${site.domain} › ${keyword.replace(/\s+/g, '-').toLowerCase()}`,
+                    is_featured_snippet: i === 0,
+                    is_malicious: false,
+                    is_web_story: false,
+                    amp_version: false,
+                    rating: i < 3 ? {
+                      rating_type: "Max5",
+                      value: (4.1 + Math.random() * 0.8).toFixed(1),
+                      votes_count: Math.floor(Math.random() * 500) + 50,
+                      rating_max: 5
+                    } : null,
+                    ...(finalConfig.includeMetrics && {
+                      metrics: {
+                        organic_etv: Math.random() * 1000,
+                        organic_count: Math.floor(Math.random() * 50),
+                        paid_etv: Math.random() * 500
+                      }
+                    })
+                  };
+                })
               }
             ];
+            
+            console.log(`🎭 Using realistic mock SERP data for keyword: ${keyword}`);
+            console.log(`📊 Generated ${result[0].items.length} realistic results`);
           } else {
             // Make actual API call to DataForSEO
             const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
@@ -680,6 +705,9 @@ export const workflowApi = {
               keyword: keyword,
               ...(maxResults && { depth: maxResults })
             };
+            
+            console.log(`🔗 Making real DataForSEO API call for keyword: ${keyword}`);
+            console.log(`📍 Using ${finalConfig.useSandbox ? 'sandbox' : 'live'} environment`);
             
             const response = await fetch(`${baseUrl}/v3/serp/google/organic/live/advanced`, {
               method: 'POST',
@@ -696,6 +724,7 @@ export const workflowApi = {
             
             const data = await response.json();
             result = data.tasks?.[0]?.result || data;
+            console.log(`✅ Real DataForSEO API response received with ${result?.[0]?.items?.length || 0} results`);
           }
           break;
           
