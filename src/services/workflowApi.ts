@@ -505,6 +505,23 @@ export const workflowApi = {
       }
       
       switch (nodeType) {
+        // Trigger nodes - start workflow execution
+        case 'trigger':
+        case WorkflowNodeType.TRIGGER:
+          result = {
+            success: true,
+            message: 'Workflow trigger activated',
+            timestamp: new Date().toISOString(),
+            triggerType: finalConfig.triggerType || 'manual',
+            data: {
+              triggered: true,
+              timestamp: new Date().toISOString(),
+              triggerType: finalConfig.triggerType || 'manual',
+              triggerConfig: finalConfig
+            }
+          };
+          break;
+
         // OpenAI unified task
         case 'ai_openai_task':
         case WorkflowNodeType.AI_OPENAI_TASK:
@@ -1117,39 +1134,95 @@ export const workflowApi = {
     // Sort nodes by execution order (following edges from trigger)
     const sortedNodes = workflowApi.getSortedNodesForExecution(workflow);
     
-    for (const node of sortedNodes) {
+    // Enhanced execution tracking
+    const executionFlow = [];
+    
+    for (let i = 0; i < sortedNodes.length; i++) {
+      const node = sortedNodes[i];
+      const stepIndex = i + 1;
+      
       try {
-        console.log(`Validating node: ${node.id} (${node.data.type})`);
+        console.log(`Validating node ${stepIndex}/${sortedNodes.length}: ${node.id} (${node.data.type})`);
+        
+        const stepResult = {
+          stepIndex,
+          nodeId: node.id,
+          nodeLabel: node.data.label,
+          nodeType: node.data.type,
+          inputData: { ...currentData },
+          outputData: null as any,
+          executionTime: 0,
+          status: 'pending' as 'pending' | 'success' | 'error',
+          errors: [] as string[],
+          dataMapping: {
+            inputMapping: node.data.config?.inputMapping || '',
+            customInputMapping: node.data.config?.customInputMapping || '',
+            outputVariable: node.data.config?.outputVariable || `${node.data.type}_result`,
+            mappedData: null as any
+          }
+        };
         
         // Check node configuration
         const nodeValidation = workflowApi.validateNodeConfiguration(node);
         if (!nodeValidation.isValid) {
+          stepResult.status = 'error';
+          stepResult.errors = nodeValidation.errors;
           validation.errors.push(`Node "${node.data.label}": ${nodeValidation.errors.join(', ')}`);
           validation.isValid = false;
           validation.nodeResults[node.id] = { status: 'error', errors: nodeValidation.errors };
+          executionFlow.push(stepResult);
           continue;
         }
 
-        // Test node execution
-        const result = await workflowApi.testNode(node.data.type, {
+        // Process input mapping for this step
+        let mappedInputData = { ...currentData };
+        const mapping = node.data.config?.customInputMapping || node.data.config?.inputMapping;
+        if (mapping && currentData) {
+          try {
+            // Simple path resolution for demo
+            const pathParts = mapping.split('.');
+            let mappedValue = currentData;
+            for (const part of pathParts) {
+              if (mappedValue && typeof mappedValue === 'object') {
+                mappedValue = (mappedValue as any)[part];
+              }
+            }
+                         stepResult.dataMapping.mappedData = mappedValue;
+             (mappedInputData as any).mapped_input = mappedValue;
+          } catch (error) {
+            console.warn('Failed to process input mapping:', error);
+          }
+        }
+
+        // Test node execution with timing
+        const startTime = performance.now();
+        const result = await workflowApi.executeNode(node.data.type, {
           ...node.data.config,
           inputMapping: node.data.config?.inputMapping,
           customInputMapping: node.data.config?.customInputMapping
-        });
+        }, mappedInputData);
+        const endTime = performance.now();
+        
+        stepResult.executionTime = Math.round(endTime - startTime);
+        stepResult.outputData = result.data;
 
         if (result.success) {
+          stepResult.status = 'success';
           validation.nodeResults[node.id] = { 
             status: 'success', 
             data: result.data,
-            message: 'Node test passed'
+            message: 'Node test passed',
+            executionTime: stepResult.executionTime
           };
           
           // Update current data for next node
           if (result.data) {
-            const outputVariable = node.data.config?.outputVariable || `${node.data.type}_result`;
+            const outputVariable = stepResult.dataMapping.outputVariable;
             (currentData as any)[outputVariable] = result.data;
           }
         } else {
+          stepResult.status = 'error';
+          stepResult.errors = [result.error || 'Unknown error'];
           validation.errors.push(`Node "${node.data.label}" test failed: ${result.error}`);
           validation.isValid = false;
           validation.nodeResults[node.id] = { 
@@ -1158,6 +1231,8 @@ export const workflowApi = {
             message: 'Node test failed'
           };
         }
+        
+        executionFlow.push(stepResult);
 
       } catch (error: any) {
         const errorMsg = `Node "${node.data.label}" validation error: ${error.message}`;
@@ -1168,8 +1243,29 @@ export const workflowApi = {
           errors: [error.message],
           message: 'Validation exception'
         };
+        
+        executionFlow.push({
+          stepIndex: i + 1,
+          nodeId: node.id,
+          nodeLabel: node.data.label,
+          nodeType: node.data.type,
+          inputData: { ...currentData },
+          outputData: null,
+          executionTime: 0,
+          status: 'error',
+          errors: [error.message],
+          dataMapping: {
+            inputMapping: '',
+            customInputMapping: '',
+            outputVariable: '',
+            mappedData: null
+          }
+        });
       }
     }
+    
+    // Add execution flow to validation result
+    (validation as any).executionFlow = executionFlow;
 
     // Set overall status
     if (!validation.isValid) {

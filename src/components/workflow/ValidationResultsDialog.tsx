@@ -163,14 +163,161 @@ export default function ValidationResultsDialog({
           </Accordion>
         )}
 
-        {/* Node Results */}
+        {/* Detailed Execution Flow */}
+        {validationResult.executionFlow && validationResult.executionFlow.length > 0 && (
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <InfoIcon color="info" />
+                <Typography variant="subtitle1">
+                  Workflow Execution Flow ({validationResult.executionFlow.length} steps)
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {validationResult.executionFlow.map((step: any, index: number) => (
+                  <Box 
+                    key={step.nodeId}
+                    sx={{ 
+                      border: 1, 
+                      borderColor: 'divider', 
+                      borderRadius: 2, 
+                      p: 2,
+                      bgcolor: step.status === 'success' ? 'success.50' : (step.status === 'error' ? 'error.50' : 'grey.50'),
+                      position: 'relative'
+                    }}
+                  >
+                    {/* Step Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                      <Chip 
+                        label={`Step ${step.stepIndex}`} 
+                        size="small" 
+                        color="primary" 
+                        variant="outlined"
+                      />
+                      {getStatusIcon(step.status)}
+                      <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                        {step.nodeLabel}
+                      </Typography>
+                      <Chip 
+                        label={step.nodeType} 
+                        size="small" 
+                        variant="outlined"
+                      />
+                      {step.executionTime > 0 && (
+                        <Chip 
+                          label={`${step.executionTime}ms`} 
+                          size="small" 
+                          color="info"
+                        />
+                      )}
+                    </Box>
+
+                    {/* Error Messages */}
+                    {step.errors && step.errors.length > 0 && (
+                      <Alert severity="error" sx={{ mb: 2 }}>
+                        <Typography variant="body2">
+                          {step.errors.join(', ')}
+                        </Typography>
+                      </Alert>
+                    )}
+
+                    {/* Data Flow */}
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: 2, alignItems: 'center' }}>
+                      {/* Input Data */}
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'primary.main' }}>
+                          📥 Input Data
+                        </Typography>
+                        <Box sx={{ bgcolor: 'grey.100', p: 1, borderRadius: 1, fontSize: '0.75rem', fontFamily: 'monospace', maxHeight: 150, overflow: 'auto' }}>
+                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                            {JSON.stringify(step.inputData, null, 2)}
+                          </pre>
+                        </Box>
+                        
+                        {/* Data Mapping Info */}
+                        {(step.dataMapping.inputMapping || step.dataMapping.customInputMapping) && (
+                          <Box sx={{ mt: 1, p: 1, bgcolor: 'info.50', borderRadius: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                              🔄 Data Mapping:
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block', fontFamily: 'monospace' }}>
+                              {step.dataMapping.inputMapping || step.dataMapping.customInputMapping}
+                            </Typography>
+                            {step.dataMapping.mappedData && (
+                              <Box sx={{ mt: 0.5, fontSize: '0.7rem', fontFamily: 'monospace' }}>
+                                <Typography variant="caption" sx={{ fontWeight: 'bold' }}>Mapped Value:</Typography>
+                                <pre style={{ margin: 0 }}>
+                                  {JSON.stringify(step.dataMapping.mappedData, null, 1)}
+                                </pre>
+                              </Box>
+                            )}
+                          </Box>
+                        )}
+                      </Box>
+
+                      {/* Arrow */}
+                      <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="h4" color="primary">
+                          →
+                        </Typography>
+                      </Box>
+
+                      {/* Output Data */}
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold', color: 'success.main' }}>
+                          📤 Output Data
+                        </Typography>
+                        <Box sx={{ bgcolor: 'grey.100', p: 1, borderRadius: 1, fontSize: '0.75rem', fontFamily: 'monospace', maxHeight: 150, overflow: 'auto' }}>
+                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                            {step.outputData ? JSON.stringify(step.outputData, null, 2) : 'No output data'}
+                          </pre>
+                        </Box>
+                        
+                        {/* Output Variable */}
+                        {step.dataMapping.outputVariable && (
+                          <Box sx={{ mt: 1, p: 1, bgcolor: 'success.50', borderRadius: 1 }}>
+                            <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                              📋 Stored as: 
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                              {step.dataMapping.outputVariable}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+
+                    {/* Connection Arrow to Next Step */}
+                    {index < validationResult.executionFlow.length - 1 && (
+                      <Box sx={{ 
+                        position: 'absolute', 
+                        bottom: -20, 
+                        left: '50%', 
+                        transform: 'translateX(-50%)',
+                        zIndex: 1
+                      }}>
+                        <Typography variant="h5" color="primary">
+                          ↓
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        )}
+
+        {/* Node Results Summary */}
         {Object.keys(validationResult.nodeResults).length > 0 && (
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <InfoIcon color="info" />
                 <Typography variant="subtitle1">
-                  Node Test Results ({Object.keys(validationResult.nodeResults).length})
+                  Quick Node Summary ({Object.keys(validationResult.nodeResults).length})
                 </Typography>
               </Box>
             </AccordionSummary>
@@ -201,6 +348,13 @@ export default function ValidationResultsDialog({
                             label={result.status} 
                             color={result.status === 'success' ? 'success' : 'error'}
                           />
+                          {result.executionTime && (
+                            <Chip 
+                              size="small" 
+                              label={`${result.executionTime}ms`} 
+                              color="info"
+                            />
+                          )}
                         </Box>
                       }
                       secondary={
