@@ -13,6 +13,8 @@ import {
   IconButton,
   Tooltip,
   Snackbar,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -21,6 +23,9 @@ import {
   FullscreenExit as FullscreenExitIcon,
   Close as CloseIcon,
   Warning as WarningIcon,
+  CheckCircle as CheckCircleIcon,
+  PlayArrow as PlayArrowIcon,
+  Stop as StopIcon,
 } from '@mui/icons-material';
 import {
   ReactFlow,
@@ -41,6 +46,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import NodeSettingsPanel from './NodeSettingsPanel';
+import ValidationResultsDialog from './ValidationResultsDialog';
 import BaseNode from './BaseNode';
 import { workflowApi } from '../../services/workflowApi';
 
@@ -259,6 +265,11 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [validating, setValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
+  const [activating, setActivating] = useState(false);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [workflowActive, setWorkflowActive] = useState(false);
   
   // Auto-save timer
   const autoSaveTimer = useRef<number | null>(null);
@@ -275,6 +286,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
           if (workflow) {
             setWorkflowName(workflow.name || '');
             setWorkflowDescription(workflow.description || '');
+            setWorkflowActive(workflow.isActive || false);
             
             if (workflow.nodes) {
               setNodes(workflow.nodes);
@@ -453,7 +465,13 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   };
 
   const handleSaveWorkflow = () => {
-    setSaveDialogOpen(true);
+    // If editing existing workflow (workflowId exists), save directly
+    if (workflowId) {
+      handleSaveConfirm();
+    } else {
+      // For new workflows, open dialog to get name/description
+      setSaveDialogOpen(true);
+    }
   };
 
   const handleSaveConfirm = async () => {
@@ -482,6 +500,107 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     if (!workflowId) {
       setWorkflowName('');
       setWorkflowDescription('');
+    }
+  };
+
+  const handleValidateWorkflow = async () => {
+    setValidating(true);
+    setValidationResult(null);
+    
+    try {
+      const workflow = {
+        id: workflowId || 'temp',
+        name: workflowName || 'Untitled Workflow',
+        description: workflowDescription || '',
+        nodes,
+        edges,
+        isActive: false,
+      };
+
+      const { workflowApi } = await import('../../services/workflowApi');
+      const validation = await workflowApi.validateWorkflow(workflow);
+      
+      setValidationResult(validation);
+      setShowValidationDialog(true);
+      
+      if (validation.isValid) {
+        setSnackbarMessage(`✅ Workflow validation passed ${validation.warnings.length > 0 ? 'with warnings' : 'successfully'}!`);
+      } else {
+        setSnackbarMessage(`❌ Workflow validation failed with ${validation.errors.length} error(s)`);
+      }
+      setSnackbarOpen(true);
+      
+    } catch (error: any) {
+      console.error('Validation failed:', error);
+      setSnackbarMessage(`❌ Validation failed: ${error.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handleActivateWorkflow = async () => {
+    if (!workflowId) {
+      setSnackbarMessage('Please save the workflow before activating');
+      setSnackbarOpen(true);
+      return;
+    }
+
+    setActivating(true);
+    
+    try {
+      const { workflowApi } = await import('../../services/workflowApi');
+      const result = await workflowApi.activateWorkflow(workflowId);
+      
+      if (result.success) {
+        setSnackbarMessage('🚀 Workflow activated successfully!');
+        setValidationResult(result.validation);
+        setWorkflowActive(true);
+        // Trigger a refresh of workflow status
+        if (onSave) {
+          await onSave(result.workflow);
+        }
+      } else {
+        setSnackbarMessage(`❌ Failed to activate: ${result.error}`);
+      }
+      setSnackbarOpen(true);
+      
+    } catch (error: any) {
+      console.error('Activation failed:', error);
+      setSnackbarMessage(`❌ Activation failed: ${error.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setActivating(false);
+    }
+  };
+
+  const handleDeactivateWorkflow = async () => {
+    if (!workflowId) return;
+
+    setActivating(true);
+    
+    try {
+      const { workflowApi } = await import('../../services/workflowApi');
+      const result = await workflowApi.deactivateWorkflow(workflowId);
+      
+      if (result.success) {
+        setSnackbarMessage('⏸️ Workflow deactivated');
+        setWorkflowActive(false);
+        // Trigger a refresh of workflow status
+        if (onSave) {
+          await onSave(result.workflow);
+        }
+      } else {
+        setSnackbarMessage(`❌ Failed to deactivate: ${result.error}`);
+      }
+      setSnackbarOpen(true);
+      
+    } catch (error: any) {
+      console.error('Deactivation failed:', error);
+      setSnackbarMessage(`❌ Deactivation failed: ${error.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setActivating(false);
     }
   };
 
@@ -597,6 +716,32 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
               >
                 {hasUnsavedChanges ? 'Save Changes' : 'Save Workflow'}
               </Button>
+              
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={validating ? <CircularProgress size={16} /> : <CheckCircleIcon />}
+                onClick={handleValidateWorkflow}
+                disabled={validating || nodes.length === 0}
+                color="info"
+                sx={{ mb: 1 }}
+              >
+                {validating ? 'Validating...' : 'Validate Workflow'}
+              </Button>
+              
+              {workflowId && (
+                <Button
+                  fullWidth
+                  variant={workflowActive ? "contained" : "outlined"}
+                  startIcon={activating ? <CircularProgress size={16} /> : (workflowActive ? <StopIcon /> : <PlayArrowIcon />)}
+                  onClick={workflowActive ? handleDeactivateWorkflow : handleActivateWorkflow}
+                  disabled={activating || !workflowId}
+                  color={workflowActive ? "success" : "primary"}
+                  sx={{ mb: 1 }}
+                >
+                  {activating ? 'Processing...' : (workflowActive ? 'Deactivate' : 'Activate Workflow')}
+                </Button>
+              )}
             </Box>
 
             <Divider sx={{ mb: 2 }} />
@@ -803,6 +948,14 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
         message={snackbarMessage}
+      />
+
+      {/* Validation Results Dialog */}
+      <ValidationResultsDialog
+        open={showValidationDialog}
+        onClose={() => setShowValidationDialog(false)}
+        validationResult={validationResult}
+        onActivate={workflowId ? handleActivateWorkflow : undefined}
       />
     </ReactFlowProvider>
   );

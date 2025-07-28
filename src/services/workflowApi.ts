@@ -83,6 +83,14 @@ const processVariables = (text: string, workflowData: Record<string, any>): stri
       // Resolve the data path
       let value = resolveVariablePath(path.trim(), workflowData);
       
+      // If value is undefined or null, check if we're in test mode
+      if (value === undefined || value === null) {
+        console.log(`Variable ${path.trim()} resolved to:`, value);
+        console.log('Available data keys:', Object.keys(workflowData));
+        // In production, we might want to keep the variable or show a placeholder
+        return `[${path.trim()}: not found]`;
+      }
+      
       // Apply formatting
       if (format) {
         value = applyVariableFormat(value, format.trim());
@@ -91,7 +99,7 @@ const processVariables = (text: string, workflowData: Record<string, any>): stri
       return String(value || '');
     } catch (error) {
       console.warn('Failed to process variable:', match, error);
-      return match; // Return original if processing fails
+      return `[${variableExpression}: error]`; // Show what failed for debugging
     }
   });
 };
@@ -508,8 +516,15 @@ export const workflowApi = {
           const taskUserPrompt = finalConfig.userPrompt || finalConfig.prompt || 'Please help with the following task.';
           
           // Process variables in prompts (supports both {{variable}} and {variable} syntax)
+          console.log('Processing variables with input data:', JSON.stringify(inputData, null, 2));
+          console.log('Original system prompt:', taskSystemPrompt);
+          console.log('Original user prompt:', taskUserPrompt);
+          
           let processedTaskSystemPrompt = processVariables(taskSystemPrompt, inputData);
           let processedTaskUserPrompt = processVariables(taskUserPrompt, inputData);
+          
+          console.log('Processed system prompt:', processedTaskSystemPrompt);
+          console.log('Processed user prompt:', processedTaskUserPrompt);
           
           // Legacy support: Replace simple template variables
           Object.keys(inputData).forEach(key => {
@@ -865,7 +880,41 @@ export const workflowApi = {
 
   // Test a node configuration
   testNode: async (nodeType: string, config: any) => {
-    return workflowApi.executeNode(nodeType, config, {});
+    // Provide sample data for testing so variables can be processed
+    const sampleInputData = {
+      // Sample SERP results
+      serp_results: {
+        results: [{
+          keyword: "test keyword",
+          total_count: 3,
+          items: [
+            { rank_absolute: 1, url: "https://example1.com", title: "Sample Result 1", description: "Sample description 1" },
+            { rank_absolute: 2, url: "https://example2.com", title: "Sample Result 2", description: "Sample description 2" },
+            { rank_absolute: 3, url: "https://example3.com", title: "Sample Result 3", description: "Sample description 3" }
+          ]
+        }]
+      },
+      // Sample extracted content
+      extracted_content: [
+        { url: "https://example1.com", content: "Sample extracted content from first page...", title: "Sample Title 1", length: 1500 },
+        { url: "https://example2.com", content: "Sample extracted content from second page...", title: "Sample Title 2", length: 1800 },
+        { url: "https://example3.com", content: "Sample extracted content from third page...", title: "Sample Title 3", length: 1200 }
+      ],
+      // Sample AI results
+      ai_result: {
+        content: "Sample AI generated content from previous analysis...",
+        model: "gpt-4o-mini",
+        usage: { prompt_tokens: 150, completion_tokens: 75 }
+      },
+      // Sample previous node data
+      previous_node: {
+        output: "Sample output from previous node",
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    console.log('Testing node with sample data:', sampleInputData);
+    return workflowApi.executeNode(nodeType, config, sampleInputData);
   },
 
   // Execute entire workflow
@@ -973,6 +1022,336 @@ export const workflowApi = {
         workflowId: workflow.id,
         executedAt: new Date().toISOString(),
       };
+    }
+  },
+
+  // Validate entire workflow before activation
+  validateWorkflow: async (workflow: any) => {
+    console.log('Validating workflow:', workflow.name);
+    
+    const validation = {
+      isValid: true,
+      errors: [] as string[],
+      warnings: [] as string[],
+      nodeResults: {} as Record<string, any>,
+      overallStatus: 'valid' as 'valid' | 'error' | 'warning'
+    };
+
+    // Check basic workflow structure
+    if (!workflow.nodes || workflow.nodes.length === 0) {
+      validation.errors.push('Workflow must contain at least one node');
+      validation.isValid = false;
+    }
+
+    if (!workflow.edges || workflow.edges.length === 0) {
+      if (workflow.nodes.length > 1) {
+        validation.errors.push('Workflow with multiple nodes must have connecting edges');
+        validation.isValid = false;
+      }
+    }
+
+    // Find trigger nodes
+    const triggerNodes = workflow.nodes.filter((node: any) => 
+      node.data.type === 'trigger' || node.data.type === 'TRIGGER'
+    );
+    
+    if (triggerNodes.length === 0) {
+      validation.errors.push('Workflow must have a trigger node to start execution');
+      validation.isValid = false;
+    }
+
+    if (triggerNodes.length > 1) {
+      validation.warnings.push('Multiple trigger nodes found - only the first will be used');
+    }
+
+    // Validate node connectivity
+    const nodeIds = new Set(workflow.nodes.map((node: any) => node.id));
+    const connectedNodes = new Set();
+    
+    // Add trigger nodes as starting points
+    triggerNodes.forEach((node: any) => connectedNodes.add(node.id));
+    
+    // Follow edges to find all connected nodes
+    workflow.edges.forEach((edge: any) => {
+      if (connectedNodes.has(edge.source)) {
+        connectedNodes.add(edge.target);
+      }
+    });
+
+    // Check for orphaned nodes
+    const orphanedNodes = workflow.nodes.filter((node: any) => 
+      !connectedNodes.has(node.id) && node.data.type !== 'trigger' && node.data.type !== 'TRIGGER'
+    );
+    
+    if (orphanedNodes.length > 0) {
+      validation.warnings.push(`${orphanedNodes.length} node(s) are not connected to the workflow: ${orphanedNodes.map((n: any) => n.data.label).join(', ')}`);
+    }
+
+    // Test each node with sample data
+    let currentData = {
+      // Rich sample data for testing
+      serp_results: {
+        results: [{
+          keyword: "test keyword",
+          total_count: 5,
+          items: [
+            { rank_absolute: 1, url: "https://example1.com", title: "Test Result 1", description: "Test description 1" },
+            { rank_absolute: 2, url: "https://example2.com", title: "Test Result 2", description: "Test description 2" },
+            { rank_absolute: 3, url: "https://example3.com", title: "Test Result 3", description: "Test description 3" },
+            { rank_absolute: 4, url: "https://example4.com", title: "Test Result 4", description: "Test description 4" },
+            { rank_absolute: 5, url: "https://example5.com", title: "Test Result 5", description: "Test description 5" }
+          ]
+        }]
+      },
+      extracted_content: [
+        { url: "https://example1.com", content: "Sample content from page 1...", title: "Page 1 Title", length: 1200 },
+        { url: "https://example2.com", content: "Sample content from page 2...", title: "Page 2 Title", length: 1400 },
+        { url: "https://example3.com", content: "Sample content from page 3...", title: "Page 3 Title", length: 1100 }
+      ],
+      ai_result: {
+        content: "Sample AI analysis result...",
+        model: "gpt-4o-mini",
+        usage: { prompt_tokens: 120, completion_tokens: 80 }
+      }
+    };
+
+    // Sort nodes by execution order (following edges from trigger)
+    const sortedNodes = workflowApi.getSortedNodesForExecution(workflow);
+    
+    for (const node of sortedNodes) {
+      try {
+        console.log(`Validating node: ${node.id} (${node.data.type})`);
+        
+        // Check node configuration
+        const nodeValidation = workflowApi.validateNodeConfiguration(node);
+        if (!nodeValidation.isValid) {
+          validation.errors.push(`Node "${node.data.label}": ${nodeValidation.errors.join(', ')}`);
+          validation.isValid = false;
+          validation.nodeResults[node.id] = { status: 'error', errors: nodeValidation.errors };
+          continue;
+        }
+
+        // Test node execution
+        const result = await workflowApi.testNode(node.data.type, {
+          ...node.data.config,
+          inputMapping: node.data.config?.inputMapping,
+          customInputMapping: node.data.config?.customInputMapping
+        });
+
+        if (result.success) {
+          validation.nodeResults[node.id] = { 
+            status: 'success', 
+            data: result.data,
+            message: 'Node test passed'
+          };
+          
+          // Update current data for next node
+          if (result.data) {
+            const outputVariable = node.data.config?.outputVariable || `${node.data.type}_result`;
+            (currentData as any)[outputVariable] = result.data;
+          }
+        } else {
+          validation.errors.push(`Node "${node.data.label}" test failed: ${result.error}`);
+          validation.isValid = false;
+          validation.nodeResults[node.id] = { 
+            status: 'error', 
+            errors: [result.error],
+            message: 'Node test failed'
+          };
+        }
+
+      } catch (error: any) {
+        const errorMsg = `Node "${node.data.label}" validation error: ${error.message}`;
+        validation.errors.push(errorMsg);
+        validation.isValid = false;
+        validation.nodeResults[node.id] = { 
+          status: 'error', 
+          errors: [error.message],
+          message: 'Validation exception'
+        };
+      }
+    }
+
+    // Set overall status
+    if (!validation.isValid) {
+      validation.overallStatus = 'error';
+    } else if (validation.warnings.length > 0) {
+      validation.overallStatus = 'warning';
+    }
+
+    console.log('Workflow validation completed:', validation);
+    return validation;
+  },
+
+  // Helper: Get nodes sorted for execution
+  getSortedNodesForExecution: (workflow: any) => {
+    const nodes = [...workflow.nodes];
+    const edges = workflow.edges || [];
+    
+    // Find trigger node(s)
+    const triggers = nodes.filter(node => 
+      node.data.type === 'trigger' || node.data.type === 'TRIGGER'
+    );
+    
+    if (triggers.length === 0) {
+      // No trigger, sort by position
+      return nodes.sort((a, b) => a.position.y - b.position.y);
+    }
+
+    // Build adjacency list
+    const adjacencyList: Record<string, string[]> = {};
+    edges.forEach((edge: any) => {
+      if (!adjacencyList[edge.source]) {
+        adjacencyList[edge.source] = [];
+      }
+      adjacencyList[edge.source].push(edge.target);
+    });
+
+    // Breadth-first traversal starting from trigger
+    const sortedNodes = [];
+    const visited = new Set();
+    const queue = [...triggers];
+
+    while (queue.length > 0) {
+      const currentNode = queue.shift();
+      if (!currentNode || visited.has(currentNode.id)) continue;
+
+      visited.add(currentNode.id);
+      sortedNodes.push(currentNode);
+
+      // Add connected nodes to queue
+      const connectedNodeIds = adjacencyList[currentNode.id] || [];
+      const connectedNodes = connectedNodeIds
+        .map(id => nodes.find(node => node.id === id))
+        .filter(node => node && !visited.has(node.id));
+      
+      queue.push(...connectedNodes);
+    }
+
+    // Add any unconnected nodes at the end
+    const unconnectedNodes = nodes.filter(node => !visited.has(node.id));
+    sortedNodes.push(...unconnectedNodes);
+
+    return sortedNodes;
+  },
+
+  // Helper: Validate individual node configuration
+  validateNodeConfiguration: (node: any) => {
+    const validation = { isValid: true, errors: [] as string[] };
+    const config = node.data.config || {};
+
+    switch (node.data.type) {
+      case 'ai_openai_task':
+      case 'AI_OPENAI_TASK':
+        if (!config.integrationId && !config.apiKey) {
+          validation.errors.push('OpenAI integration or API key is required');
+          validation.isValid = false;
+        }
+        if (!config.userPrompt && !config.prompt) {
+          validation.errors.push('User prompt is required');
+          validation.isValid = false;
+        }
+        break;
+
+      case 'seo_serp_analyze':
+      case 'SEO_SERP_ANALYZE':
+        if (!config.integrationId && !config.login) {
+          validation.errors.push('DataForSEO integration is required');
+          validation.isValid = false;
+        }
+        if (!config.keyword) {
+          validation.errors.push('Target keyword is required');
+          validation.isValid = false;
+        }
+        break;
+
+      case 'content_extract':
+      case 'CONTENT_EXTRACT':
+        if (!config.inputMapping) {
+          validation.errors.push('Input mapping (URL source) is required');
+          validation.isValid = false;
+        }
+        break;
+
+      case 'email':
+      case 'EMAIL':
+        if (!config.toEmail) {
+          validation.errors.push('Recipient email is required');
+          validation.isValid = false;
+        }
+        if (!config.subject) {
+          validation.errors.push('Email subject is required');
+          validation.isValid = false;
+        }
+        break;
+
+      case 'webhook':
+      case 'WEBHOOK':
+        if (!config.url) {
+          validation.errors.push('Webhook URL is required');
+          validation.isValid = false;
+        }
+        break;
+    }
+
+    return validation;
+  },
+
+  // Activate workflow (with validation)
+  activateWorkflow: async (workflowId: string) => {
+    try {
+      // Load workflow
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const workflow = workflows.find((w: any) => w.id === workflowId);
+      
+      if (!workflow) {
+        throw new Error('Workflow not found');
+      }
+
+      // Validate before activation
+      const validation = await workflowApi.validateWorkflow(workflow);
+      
+      if (!validation.isValid) {
+        throw new Error(`Cannot activate workflow with errors: ${validation.errors.join(', ')}`);
+      }
+
+      // Update workflow status
+      workflow.isActive = true;
+      workflow.updatedAt = new Date().toISOString();
+      workflow.lastValidated = new Date().toISOString();
+      workflow.validationResult = validation;
+
+      // Save updated workflow
+      const workflowIndex = workflows.findIndex((w: any) => w.id === workflowId);
+      workflows[workflowIndex] = workflow;
+      localStorage.setItem('workflows', JSON.stringify(workflows));
+
+      return { success: true, workflow, validation };
+    } catch (error: any) {
+      console.error('Failed to activate workflow:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Deactivate workflow
+  deactivateWorkflow: async (workflowId: string) => {
+    try {
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const workflowIndex = workflows.findIndex((w: any) => w.id === workflowId);
+      
+      if (workflowIndex === -1) {
+        throw new Error('Workflow not found');
+      }
+
+      workflows[workflowIndex].isActive = false;
+      workflows[workflowIndex].updatedAt = new Date().toISOString();
+      
+      localStorage.setItem('workflows', JSON.stringify(workflows));
+
+      return { success: true, workflow: workflows[workflowIndex] };
+    } catch (error: any) {
+      console.error('Failed to deactivate workflow:', error);
+      return { success: false, error: error.message };
     }
   },
 }; 

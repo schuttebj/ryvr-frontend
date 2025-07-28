@@ -144,30 +144,16 @@ export default function WorkflowsPage() {
     // TODO: Implement actual execute functionality
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return '#4caf50';
-      case 'paused':
-        return '#ff9800';
-      case 'error':
-        return '#f44336';
-      default:
-        return '#9e9e9e';
-    }
+  const getStatusColor = (isActive: boolean) => {
+    return isActive ? '#4caf50' : '#ff9800';
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircleIcon />;
-      case 'paused':
-        return <PauseIcon />;
-      case 'error':
-        return <ErrorIcon />;
-      default:
-        return <EditIcon />;
-    }
+  const getStatusIcon = (isActive: boolean) => {
+    return isActive ? <CheckCircleIcon /> : <EditIcon />;
+  };
+
+  const getStatusLabel = (isActive: boolean) => {
+    return isActive ? 'Active' : 'Draft';
   };
 
   if (showBuilder) {
@@ -221,16 +207,16 @@ export default function WorkflowsPage() {
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <Chip
-                    icon={getStatusIcon(workflow.status)}
-                    label={workflow.status.charAt(0).toUpperCase() + workflow.status.slice(1)}
+                    icon={getStatusIcon(workflow.isActive)}
+                    label={getStatusLabel(workflow.isActive)}
                     size="small"
                     sx={{
-                      bgcolor: `${getStatusColor(workflow.status)}20`,
-                      color: getStatusColor(workflow.status),
+                      bgcolor: `${getStatusColor(workflow.isActive)}20`,
+                      color: getStatusColor(workflow.isActive),
                     }}
                   />
                   <Typography variant="caption" color="text.secondary">
-                    {workflow.nodeCount} nodes
+                    {workflow.nodes?.length || 0} nodes
                   </Typography>
                 </Box>
 
@@ -250,7 +236,7 @@ export default function WorkflowsPage() {
                   >
                     Edit
                   </Button>
-                  {workflow.status === 'active' && (
+                  {workflow.isActive && (
                     <Button
                       startIcon={<PlayIcon />}
                       onClick={() => handleWorkflowExecute(workflow.id)}
