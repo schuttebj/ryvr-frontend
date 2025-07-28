@@ -20,8 +20,6 @@ import {
   Delete as DeleteIcon,
   AccountTree as WorkflowIcon,
   CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Pause as PauseIcon,
 } from '@mui/icons-material';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
 import { workflowApi } from '../services/workflowApi';
@@ -30,8 +28,8 @@ interface WorkflowSummary {
   id: string;
   name: string;
   description: string;
-  status: 'active' | 'paused' | 'draft' | 'error';
-  nodeCount: number;
+  isActive: boolean;
+  nodes?: any[];
   lastExecuted?: string;
   tags?: string[];
   executionCount?: number;
@@ -61,8 +59,8 @@ export default function WorkflowsPage() {
           id: w.id,
           name: w.name,
           description: w.description,
-          status: w.isActive ? 'active' : 'draft',
-          nodeCount: w.nodes?.length || 0,
+          isActive: w.isActive || false,
+          nodes: w.nodes || [],
           successRate: 0,
           createdAt: w.createdAt,
           tags: w.tags || [],
@@ -91,8 +89,8 @@ export default function WorkflowsPage() {
           id: workflow.id,
           name: workflow.name,
           description: workflow.description,
-          status: 'draft',
-          nodeCount: workflow.nodes?.length || 0,
+          isActive: workflow.isActive || false,
+          nodes: workflow.nodes || [],
           successRate: 0,
           createdAt: workflow.createdAt || new Date().toISOString(),
           tags: workflow.tags || [],

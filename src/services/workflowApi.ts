@@ -1065,7 +1065,6 @@ export const workflowApi = {
     }
 
     // Validate node connectivity
-    const nodeIds = new Set(workflow.nodes.map((node: any) => node.id));
     const connectedNodes = new Set();
     
     // Add trigger nodes as starting points
