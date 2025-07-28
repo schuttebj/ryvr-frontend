@@ -31,6 +31,7 @@ import {
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import DataMappingSelector from './DataMappingSelector';
+import VariableTextField from './VariableTextField';
 
 interface Integration {
   id: string;
@@ -67,6 +68,33 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
+  
+  // Sample available data for variable selector (in real app, this would come from workflow execution state)
+  const availableData = {
+    // Sample SERP results
+    serp_results: {
+      results: [{
+        keyword: "sample keyword",
+        total_count: 10,
+        items: [
+          { rank_absolute: 1, url: "https://example1.com", title: "Sample Result 1", description: "Sample description 1" },
+          { rank_absolute: 2, url: "https://example2.com", title: "Sample Result 2", description: "Sample description 2" },
+          { rank_absolute: 3, url: "https://example3.com", title: "Sample Result 3", description: "Sample description 3" }
+        ]
+      }]
+    },
+    // Sample extracted content
+    extracted_content: [
+      { url: "https://example1.com", content: "Sample extracted content...", title: "Sample Title 1", length: 1500 },
+      { url: "https://example2.com", content: "More sample content...", title: "Sample Title 2", length: 1800 }
+    ],
+    // Sample AI results
+    ai_result: {
+      content: "Sample AI generated content...",
+      model: "gpt-4o-mini",
+      usage: { prompt_tokens: 100, completion_tokens: 50 }
+    }
+  };
 
   // Shared MenuProps configuration for all select dropdowns
   const selectMenuProps = {
@@ -353,13 +381,14 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             </FormControl>
             
             {formData.config?.triggerType === 'webhook' && (
-              <TextField
+              <VariableTextField
                 fullWidth
                 label="Webhook URL"
                 value={formData.config?.webhookUrl || ''}
-                onChange={(e) => handleConfigChange('webhookUrl', e.target.value)}
+                onChange={(value) => handleConfigChange('webhookUrl', value)}
                 sx={{ mb: 2 }}
-                helperText="URL that will trigger this workflow"
+                helperText="URL that will trigger this workflow. Can use variables for dynamic URLs."
+                availableData={availableData}
               />
             )}
             
@@ -422,13 +451,14 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               Search Configuration
             </Typography>
             
-            <TextField
+            <VariableTextField
               fullWidth
               label="Target Keyword"
               value={formData.config?.keyword || ''}
-              onChange={(e) => handleConfigChange('keyword', e.target.value)}
+              onChange={(value) => handleConfigChange('keyword', value)}
               sx={{ mb: 2 }}
-              helperText="Keyword to analyze SERP results for"
+              helperText="Keyword to analyze SERP results for. Click the variable icon to use data from previous nodes."
+              availableData={availableData}
             />
             
             <FormControl fullWidth sx={{ mb: 2 }}>
@@ -533,28 +563,30 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               Task Configuration
             </Typography>
             
-            <TextField
+            <VariableTextField
               fullWidth
               multiline
               rows={3}
               label="System Prompt"
               value={formData.config?.systemPrompt || ''}
-              onChange={(e) => handleConfigChange('systemPrompt', e.target.value)}
+              onChange={(value) => handleConfigChange('systemPrompt', value)}
               sx={{ mb: 2 }}
-              helperText="Define the AI's role and behavior"
+              helperText="Define the AI's role and behavior. Click the variable icon to insert data from previous nodes."
               placeholder="You are a helpful AI assistant that..."
+              availableData={availableData}
             />
             
-            <TextField
+            <VariableTextField
               fullWidth
               multiline
               rows={4}
               label="User Prompt"
               value={formData.config?.userPrompt || ''}
-              onChange={(e) => handleConfigChange('userPrompt', e.target.value)}
+              onChange={(value) => handleConfigChange('userPrompt', value)}
               sx={{ mb: 2 }}
-              helperText="Main task description. Use {variable_name} for dynamic data"
-              placeholder="Analyze the following data: {input_data}"
+              helperText="Main task description. Click the variable icon to insert data from previous nodes."
+              placeholder="Analyze the following data: {{serp_results.results[0].items[*].url|list}}"
+              availableData={availableData}
             />
             
             {/* Advanced Settings */}
@@ -612,16 +644,17 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             />
             
             {formData.config?.jsonResponse && (
-              <TextField
+              <VariableTextField
                 fullWidth
                 multiline
                 rows={3}
                 label="JSON Schema"
                 value={formData.config?.jsonSchema || ''}
-                onChange={(e) => handleConfigChange('jsonSchema', e.target.value)}
+                onChange={(value) => handleConfigChange('jsonSchema', value)}
                 sx={{ mb: 2 }}
-                helperText="Optional: Define expected JSON structure"
+                helperText="Optional: Define expected JSON structure. Can use variables for dynamic schemas."
                 placeholder='{"result": "string", "confidence": "number"}'
+                availableData={availableData}
               />
             )}
             
@@ -678,14 +711,15 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             </FormControl>
             
             {formData.config?.extractionType === 'custom_selector' && (
-              <TextField
+              <VariableTextField
                 fullWidth
                 label="CSS Selector"
                 value={formData.config?.cssSelector || ''}
-                onChange={(e) => handleConfigChange('cssSelector', e.target.value)}
+                onChange={(value) => handleConfigChange('cssSelector', value)}
                 sx={{ mb: 2 }}
                 placeholder="article, .content, #main-text"
-                helperText="CSS selector to target specific content"
+                helperText="CSS selector to target specific content. Click the variable icon to use dynamic selectors."
+                availableData={availableData}
               />
             )}
             
@@ -739,31 +773,37 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <Typography variant="subtitle2" sx={{ mb: 2 }}>
               Email Settings
             </Typography>
-            <TextField
+            <VariableTextField
               fullWidth
               label="To Email"
               value={formData.config?.toEmail || ''}
-              onChange={(e) => handleConfigChange('toEmail', e.target.value)}
+              onChange={(value) => handleConfigChange('toEmail', value)}
               sx={{ mb: 2 }}
               type="email"
+              helperText="Email address or use variables from previous nodes"
+              availableData={availableData}
             />
             
-            <TextField
+            <VariableTextField
               fullWidth
               label="Subject"
               value={formData.config?.subject || ''}
-              onChange={(e) => handleConfigChange('subject', e.target.value)}
+              onChange={(value) => handleConfigChange('subject', value)}
               sx={{ mb: 2 }}
+              helperText="Email subject line. Click the variable icon to insert data from previous nodes."
+              availableData={availableData}
             />
             
-            <TextField
+            <VariableTextField
               fullWidth
               multiline
               rows={4}
               label="Email Body"
               value={formData.config?.body || ''}
-              onChange={(e) => handleConfigChange('body', e.target.value)}
-              placeholder="Email content or use data from previous nodes"
+              onChange={(value) => handleConfigChange('body', value)}
+              placeholder="Email content. Use {{variable_name}} to insert data from previous nodes."
+              helperText="Email content. Click the variable icon to insert data from previous nodes."
+              availableData={availableData}
             />
           </Box>
         );
@@ -811,22 +851,26 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       {/* Content */}
       <Box sx={{ flex: 1, overflow: 'auto', p: 3 }}>
         {/* Basic Settings */}
-        <TextField
+        <VariableTextField
           fullWidth
           label="Node Label"
           value={formData.label}
-          onChange={(e) => setFormData((prev: WorkflowNodeData) => ({ ...prev, label: e.target.value }))}
+          onChange={(value) => setFormData((prev: WorkflowNodeData) => ({ ...prev, label: value }))}
           sx={{ mb: 2 }}
+          helperText="Node display name. Can use variables for dynamic labels."
+          availableData={availableData}
         />
 
-        <TextField
+        <VariableTextField
           fullWidth
           multiline
           rows={2}
           label="Description"
           value={formData.description}
-          onChange={(e) => setFormData((prev: WorkflowNodeData) => ({ ...prev, description: e.target.value }))}
+          onChange={(value) => setFormData((prev: WorkflowNodeData) => ({ ...prev, description: value }))}
           sx={{ mb: 2 }}
+          helperText="Node description. Click the variable icon to insert data from previous nodes."
+          availableData={availableData}
         />
 
         {/* Node-specific settings */}

@@ -68,6 +68,147 @@ export const dataforSeoApi = {
   },
 };
 
+// Variable processing helper
+const processVariables = (text: string, workflowData: Record<string, any>): string => {
+  if (!text) return text;
+  
+  // Match variables in format {{node_id.path|format}} or {{node_id.path}}
+  const variableRegex = /\{\{([^}]+)\}\}/g;
+  
+  return text.replace(variableRegex, (match, variableExpression) => {
+    try {
+      // Split format if exists (e.g., "serp_results.items[*].url|list")
+      const [path, format] = variableExpression.split('|');
+      
+      // Resolve the data path
+      let value = resolveVariablePath(path.trim(), workflowData);
+      
+      // Apply formatting
+      if (format) {
+        value = applyVariableFormat(value, format.trim());
+      }
+      
+      return String(value || '');
+    } catch (error) {
+      console.warn('Failed to process variable:', match, error);
+      return match; // Return original if processing fails
+    }
+  });
+};
+
+const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
+  // Handle range syntax: items[0-4] -> items[0], items[1], items[2], items[3], items[4]
+  if (path.includes('[') && path.includes('-') && path.includes(']')) {
+    const rangeMatch = path.match(/(.+)\[(\d+)-(\d+)\](.*)/);
+    if (rangeMatch) {
+      const [, beforeRange, startStr, endStr, afterRange] = rangeMatch;
+      const start = parseInt(startStr);
+      const end = parseInt(endStr);
+      
+      const results = [];
+      for (let i = start; i <= end; i++) {
+        const itemPath = `${beforeRange}[${i}]${afterRange}`;
+        const itemValue = resolveVariablePath(itemPath, workflowData);
+        if (itemValue !== undefined) {
+          results.push(itemValue);
+        }
+      }
+      return results;
+    }
+  }
+  
+  // Handle wildcard syntax: items[*] -> all items
+  if (path.includes('[*]')) {
+    const parts = path.split('.');
+    let current = workflowData;
+    
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      
+      if (part.includes('[*]')) {
+        const arrayKey = part.replace('[*]', '');
+        if (current[arrayKey] && Array.isArray(current[arrayKey])) {
+          const remainingPath = parts.slice(i + 1).join('.');
+          if (remainingPath) {
+            return current[arrayKey].map((item: any) => {
+              return resolveVariablePath(remainingPath, { temp: item }).temp || item;
+            });
+          } else {
+            return current[arrayKey];
+          }
+        }
+        return undefined;
+      } else if (part.includes('[') && part.includes(']')) {
+        const match = part.match(/(\w+)\[(\d+)\]/);
+        if (match) {
+          const [, arrayKey, index] = match;
+          current = current[arrayKey]?.[parseInt(index)];
+        }
+      } else {
+        current = current[part];
+      }
+      
+      if (current === undefined) break;
+    }
+    
+    return current;
+  }
+  
+  // Regular path resolution
+  const parts = path.split('.');
+  let current = workflowData;
+  
+  for (const part of parts) {
+    if (part.includes('[') && part.includes(']')) {
+      const match = part.match(/(\w+)\[(\d+)\]/);
+      if (match) {
+        const [, arrayKey, index] = match;
+        current = current[arrayKey]?.[parseInt(index)];
+      }
+    } else {
+      current = current[part];
+    }
+    
+    if (current === undefined) break;
+  }
+  
+  return current;
+};
+
+const applyVariableFormat = (value: any, format: string): string => {
+  switch (format.toLowerCase()) {
+    case 'list':
+      if (Array.isArray(value)) {
+        return value.join(', ');
+      }
+      return String(value || '');
+      
+    case 'json':
+      return JSON.stringify(value, null, 2);
+      
+    case 'count':
+      if (Array.isArray(value)) {
+        return String(value.length);
+      }
+      return '1';
+      
+    case 'first':
+      if (Array.isArray(value) && value.length > 0) {
+        return String(value[0]);
+      }
+      return String(value || '');
+      
+    case 'last':
+      if (Array.isArray(value) && value.length > 0) {
+        return String(value[value.length - 1]);
+      }
+      return String(value || '');
+      
+    default:
+      return String(value || '');
+  }
+};
+
 // Helper functions for realistic content generation
 const generateRealisticTitle = (domain: string, index: number): string => {
   const titles = {
@@ -366,9 +507,11 @@ export const workflowApi = {
           const taskSystemPrompt = finalConfig.systemPrompt || 'You are a helpful AI assistant.';
           const taskUserPrompt = finalConfig.userPrompt || finalConfig.prompt || 'Please help with the following task.';
           
-          // Replace template variables in prompts
-          let processedTaskSystemPrompt = taskSystemPrompt;
-          let processedTaskUserPrompt = taskUserPrompt;
+          // Process variables in prompts (supports both {{variable}} and {variable} syntax)
+          let processedTaskSystemPrompt = processVariables(taskSystemPrompt, inputData);
+          let processedTaskUserPrompt = processVariables(taskUserPrompt, inputData);
+          
+          // Legacy support: Replace simple template variables
           Object.keys(inputData).forEach(key => {
             const regex = new RegExp(`{${key}}`, 'g');
             processedTaskSystemPrompt = processedTaskSystemPrompt.replace(regex, inputData[key]);
