@@ -199,19 +199,6 @@ export const theme = createTheme({
       },
     },
   },
-  // Override default z-index values
-  zIndex: {
-    mobileStepper: 1000,
-    fab: 1050,
-    speedDial: 1050,
-    appBar: 1100,
-    drawer: 1200,
-    modal: 1300,
-    snackbar: 1400,
-    tooltip: 1500,
-    // Custom high z-index for our dropdowns
-    menu: 10100, // Custom property for our use
-  },
 });
 
 export default theme; 
