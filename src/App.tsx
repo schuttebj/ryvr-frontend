@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
 import WorkflowsPage from './pages/WorkflowsPage';
+import { WorkflowRunsPage } from './pages/WorkflowRunsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FlowTestPage from './pages/FlowTestPage';
@@ -46,6 +47,7 @@ function AppRoutes() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/clients" element={<ClientsPage />} />
                 <Route path="/workflows" element={<WorkflowsPage />} />
+                <Route path="/runs" element={<WorkflowRunsPage />} />
                 <Route path="/integrations" element={<IntegrationsPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/flow-test" element={<FlowTestPage />} />

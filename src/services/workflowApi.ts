@@ -624,36 +624,52 @@ export const workflowApi = {
             'https://api.dataforseo.com';
           
           if (!finalConfig.login || !finalConfig.password) {
-            // Return mock data if no credentials provided
-            result = {
-              results: [
-                {
-                  keyword: keyword,
-                  location_code: locationCode,
-                  language_code: languageCode,
-                  total_count: 10,
-                  items: Array.from({ length: maxResults }, (_, i) => ({
-                    type: 'organic',
-                    rank_group: i + 1,
-                    rank_absolute: i + 1,
-                    position: 'left',
-                    xpath: `/html/body/div[${i + 1}]`,
-                    domain: `example${i + 1}.com`,
-                    title: `Sample Result ${i + 1} for ${keyword}`,
-                    description: `This is a sample SERP result description for testing purposes. Result #${i + 1}`,
-                    url: `https://example${i + 1}.com/page`,
-                    is_featured_snippet: i === 0,
-                    ...(finalConfig.includeMetrics && {
-                      metrics: {
-                        organic_etv: Math.random() * 1000,
-                        organic_count: Math.floor(Math.random() * 50),
-                        paid_etv: Math.random() * 500
-                      }
-                    })
-                  }))
-                }
-              ]
-            };
+            // Return mock data matching real DataForSEO API structure
+            result = [
+              {
+                keyword: keyword,
+                type: "organic",
+                se_domain: "google.com",
+                location_code: locationCode,
+                language_code: languageCode,
+                check_url: `https://www.google.com/search?q=${encodeURIComponent(keyword)}&num=${maxResults}`,
+                datetime: new Date().toISOString(),
+                spell: null,
+                refinement_chips: null,
+                item_types: ["organic", "people_also_ask", "related_searches"],
+                se_results_count: Math.floor(Math.random() * 10000000) + 1000000,
+                items_count: maxResults,
+                items: Array.from({ length: maxResults }, (_, i) => ({
+                  type: 'organic',
+                  rank_group: i + 1,
+                  rank_absolute: i + 1,
+                  position: 'left',
+                  xpath: `/html/body/div[6]/div/div[10]/div/div/div[2]/div/div/div[${i + 2}]/div/div/span/a`,
+                  domain: `example${i + 1}.com`,
+                  title: `Sample Result ${i + 1} for ${keyword}`,
+                  description: `This is a sample SERP result description for testing purposes. Result #${i + 1} contains relevant information about ${keyword}.`,
+                  url: `https://example${i + 1}.com/page-about-${keyword.replace(/\s+/g, '-').toLowerCase()}`,
+                  breadcrumb: `example${i + 1}.com › ${keyword.replace(/\s+/g, '-').toLowerCase()}`,
+                  is_featured_snippet: i === 0,
+                  is_malicious: false,
+                  is_web_story: false,
+                  amp_version: false,
+                  rating: i < 3 ? {
+                    rating_type: "Max5",
+                    value: (4.1 + Math.random() * 0.8).toFixed(1),
+                    votes_count: Math.floor(Math.random() * 500) + 50,
+                    rating_max: 5
+                  } : null,
+                  ...(finalConfig.includeMetrics && {
+                    metrics: {
+                      organic_etv: Math.random() * 1000,
+                      organic_count: Math.floor(Math.random() * 50),
+                      paid_etv: Math.random() * 500
+                    }
+                  })
+                }))
+              }
+            ];
           } else {
             // Make actual API call to DataForSEO
             const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
