@@ -83,11 +83,11 @@ const generateRealisticTitle = (domain: string, index: number): string => {
 
 const generateRealisticDescription = (domain: string, index: number): string => {
   const descriptions = [
-    'Comprehensive guide covering industry best practices, expert insights, and actionable strategies.',
-    'In-depth analysis of current market trends, challenges, and opportunities in the industry.',
-    'Professional insights and practical tips from industry experts and thought leaders.',
-    'Detailed overview of essential concepts, tools, and methodologies for success.',
-    'Expert analysis and recommendations for optimal results and performance improvement.'
+    `Comprehensive guide from ${domain} covering industry best practices, expert insights, and actionable strategies.`,
+    `In-depth analysis from ${domain} of current market trends, challenges, and opportunities in the industry.`,
+    `Professional insights and practical tips from ${domain} industry experts and thought leaders.`,
+    `Detailed overview from ${domain} of essential concepts, tools, and methodologies for success.`,
+    `Expert analysis and recommendations from ${domain} for optimal results and performance improvement.`
   ];
   
   return descriptions[index % descriptions.length];
@@ -525,7 +525,7 @@ export const workflowApi = {
                     let value = item;
                     if (remainingPath) {
                       const subParts = remainingPath.split('.');
-                      subParts.forEach(subPart => {
+                      subParts.forEach((subPart: string) => {
                         value = value?.[subPart];
                       });
                     }
@@ -570,7 +570,6 @@ export const workflowApi = {
                const domain = new URL(url).hostname;
                let content = '';
                let title = '';
-               let description = '';
                
                // Generate realistic content based on extraction type
                switch (finalConfig.extractionType) {
