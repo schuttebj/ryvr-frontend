@@ -24,7 +24,6 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Fab,
   Tooltip,
   Grid,
   Paper,
@@ -35,7 +34,6 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
   ExpandMore as ExpandMoreIcon,
-  Add as AddIcon,
   Schedule as ScheduleIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
@@ -74,7 +72,6 @@ export const WorkflowRunsPage: React.FC = () => {
   const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [showRunDetails, setShowRunDetails] = useState(false);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadWorkflows();
@@ -108,7 +105,6 @@ export const WorkflowRunsPage: React.FC = () => {
 
   const executeWorkflow = async (workflowId: string) => {
     setRunningWorkflows(prev => new Set([...prev, workflowId]));
-    setLoading(true);
 
     try {
       const workflow = workflows.find(w => w.id === workflowId);
@@ -176,7 +172,6 @@ export const WorkflowRunsPage: React.FC = () => {
         updated.delete(workflowId);
         return updated;
       });
-      setLoading(false);
     }
   };
 
