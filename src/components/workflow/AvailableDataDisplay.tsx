@@ -12,7 +12,6 @@ import {
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
-  DataObject as DataIcon,
   Schedule as TimeIcon,
   CheckCircle as SuccessIcon,
 } from '@mui/icons-material';

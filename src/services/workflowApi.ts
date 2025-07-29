@@ -12,7 +12,8 @@ const generateExecutionId = (): string => {
   return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Helper function to create standardized node response (temporarily unused)
+// Helper function to create standardized node response (temporarily unused during refactoring)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const createStandardResponse = (
   nodeId: string,
   nodeType: WorkflowNodeType,

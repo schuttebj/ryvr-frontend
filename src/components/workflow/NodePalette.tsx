@@ -78,7 +78,7 @@ const nodePaletteItems: NodePaletteItem[] = [
 
   // AI Tools
   {
-    type: WorkflowNodeType.AI_ANALYSIS,
+    type: WorkflowNodeType.AI_OPENAI_TASK,
     label: 'AI Analysis',
     description: 'Analyze content with AI',
     icon: 'AIIcon',
@@ -86,9 +86,9 @@ const nodePaletteItems: NodePaletteItem[] = [
     color: '#9c27b0',
   },
   {
-    type: WorkflowNodeType.CONTENT_GENERATION,
-    label: 'Content Generation',
-    description: 'Generate content using AI',
+    type: WorkflowNodeType.CONTENT_EXTRACT,
+    label: 'Content Extraction',
+    description: 'Extract content from web pages',
     icon: 'AIIcon',
     category: NodeCategory.AI_TOOLS,
     color: '#9c27b0',
@@ -96,17 +96,17 @@ const nodePaletteItems: NodePaletteItem[] = [
 
   // SEO Tools
   {
-    type: WorkflowNodeType.SEO_AUDIT,
-    label: 'SEO Audit',
-    description: 'Analyze website SEO',
+    type: WorkflowNodeType.SEO_SERP_ANALYZE,
+    label: 'SERP Analysis',
+    description: 'Analyze search engine results',
     icon: 'SEOIcon',
     category: NodeCategory.SEO_TOOLS,
     color: '#4caf50',
   },
   {
-    type: WorkflowNodeType.KEYWORD_RESEARCH,
-    label: 'Keyword Research',
-    description: 'Research keywords',
+    type: WorkflowNodeType.SEO_KEYWORDS_VOLUME,
+    label: 'Keyword Volume',
+    description: 'Get keyword search volume',
     icon: 'SEOIcon',
     category: NodeCategory.SEO_TOOLS,
     color: '#4caf50',
@@ -122,14 +122,14 @@ const nodePaletteItems: NodePaletteItem[] = [
     color: '#ff5722',
   },
 
-  // Marketing
+  // Actions
   {
-    type: WorkflowNodeType.SOCIAL_MEDIA_POST,
-    label: 'Social Media Post',
-    description: 'Post to social media',
-    icon: 'ShareIcon',
-    category: NodeCategory.MARKETING,
-    color: '#e91e63',
+    type: WorkflowNodeType.EMAIL,
+    label: 'Email Notification',
+    description: 'Send email notifications',
+    icon: 'EmailIcon',
+    category: NodeCategory.ACTIONS,
+    color: '#2196f3',
   },
 ];
 
