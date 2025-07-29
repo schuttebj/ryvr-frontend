@@ -22,11 +22,11 @@ const getActionIcon = (type: WorkflowNodeType) => {
       return <EmailIcon />;
     case WorkflowNodeType.WEBHOOK:
       return <HttpIcon />;
-    case WorkflowNodeType.AI_ANALYSIS:
-    case WorkflowNodeType.CONTENT_GENERATION:
+    case WorkflowNodeType.AI_OPENAI_TASK:
+    case WorkflowNodeType.CONTENT_EXTRACT:
       return <AIIcon />;
-    case WorkflowNodeType.SEO_AUDIT:
-    case WorkflowNodeType.KEYWORD_RESEARCH:
+    case WorkflowNodeType.SEO_SERP_ANALYZE:
+    case WorkflowNodeType.SEO_KEYWORDS_VOLUME:
       return <SEOIcon />;
     default:
       return <SettingsIcon />;
@@ -39,11 +39,11 @@ const getActionColor = (type: WorkflowNodeType) => {
       return '#2196f3';
     case WorkflowNodeType.WEBHOOK:
       return '#ff9800';
-    case WorkflowNodeType.AI_ANALYSIS:
-    case WorkflowNodeType.CONTENT_GENERATION:
+    case WorkflowNodeType.AI_OPENAI_TASK:
+    case WorkflowNodeType.CONTENT_EXTRACT:
       return '#9c27b0';
-    case WorkflowNodeType.SEO_AUDIT:
-    case WorkflowNodeType.KEYWORD_RESEARCH:
+    case WorkflowNodeType.SEO_SERP_ANALYZE:
+    case WorkflowNodeType.SEO_KEYWORDS_VOLUME:
       return '#4caf50';
     default:
       return '#5f5fff';
@@ -56,13 +56,13 @@ const getActionStatus = (type: WorkflowNodeType) => {
       return '📧 Ready to send email';
     case WorkflowNodeType.WEBHOOK:
       return '🔗 Ready for API call';
-    case WorkflowNodeType.AI_ANALYSIS:
+    case WorkflowNodeType.AI_OPENAI_TASK:
       return '🤖 AI analysis configured';
-    case WorkflowNodeType.CONTENT_GENERATION:
-      return '✨ Content generation ready';
-    case WorkflowNodeType.SEO_AUDIT:
-      return '🔍 SEO audit prepared';
-    case WorkflowNodeType.KEYWORD_RESEARCH:
+    case WorkflowNodeType.CONTENT_EXTRACT:
+      return '✨ Content extraction ready';
+    case WorkflowNodeType.SEO_SERP_ANALYZE:
+      return '🔍 SERP analysis prepared';
+    case WorkflowNodeType.SEO_KEYWORDS_VOLUME:
       return '🎯 Keyword research ready';
     default:
       return '⚙️ Action configured';
