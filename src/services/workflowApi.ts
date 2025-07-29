@@ -1,21 +1,178 @@
-import axios from 'axios';
-import { WorkflowNodeType } from '../types/workflow';
+// Using fetch instead of axios for better compatibility
+import { WorkflowNodeType, StandardNodeResponse, AvailableDataNode, DataStructureItem } from '../types/workflow';
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
+// Global storage for workflow execution data (in real app, this would be in a state management solution)
+let globalWorkflowData: Record<string, StandardNodeResponse> = {};
+
+// Helper function to generate unique execution ID
+const generateExecutionId = (): string => {
+  return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// Helper function to create standardized node response
+const createStandardResponse = (
+  nodeId: string,
+  nodeType: WorkflowNodeType,
+  startTime: number,
+  rawApiResponse: any,
+  inputData?: any,
+  apiMetadata?: any
+): StandardNodeResponse => {
+  const executionTime = Math.round(performance.now() - startTime);
+  
+  return {
+    executionId: generateExecutionId(),
+    nodeId,
+    nodeType,
+    status: 'success',
+    executedAt: new Date().toISOString(),
+    executionTime,
+    data: {
+      processed: rawApiResponse, // Will be transformed based on node type
+      raw: rawApiResponse,
+      summary: extractSummaryFromResponse(rawApiResponse, nodeType)
+    },
+    inputData,
+    apiMetadata
+  };
+};
+
+// Helper function to extract key summary data from API responses
+const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType): Record<string, any> => {
+  const summary: Record<string, any> = {};
+  
+  switch (nodeType) {
+    case WorkflowNodeType.SEO_SERP_ANALYZE:
+    case WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC:
+      if (rawResponse?.tasks?.[0]?.result?.[0]) {
+        const result = rawResponse.tasks[0].result[0];
+        summary.keyword = result.keyword;
+        summary.total_count = result.items_count || result.items?.length || 0;
+        summary.se_results_count = result.se_results_count;
+        summary.top_urls = result.items?.slice(0, 3).map((item: any) => item.url).filter(Boolean) || [];
+        summary.top_domains = result.items?.slice(0, 3).map((item: any) => item.domain).filter(Boolean) || [];
+      }
+      break;
+      
+    case WorkflowNodeType.CONTENT_EXTRACT:
+      if (Array.isArray(rawResponse)) {
+        summary.total_pages = rawResponse.length;
+        summary.total_content_length = rawResponse.reduce((sum: number, item: any) => sum + (item.content?.length || 0), 0);
+        summary.extracted_urls = rawResponse.map((item: any) => item.url).filter(Boolean);
+      }
+      break;
+      
+    case WorkflowNodeType.AI_OPENAI_TASK:
+      if (rawResponse?.choices?.[0]?.message?.content) {
+        summary.content_length = rawResponse.choices[0].message.content.length;
+        summary.model = rawResponse.model;
+        summary.usage = rawResponse.usage;
+      }
+      break;
+      
+    default:
+      // Generic summary extraction
+      if (typeof rawResponse === 'object' && rawResponse !== null) {
+        if (rawResponse.tasks?.length > 0) {
+          summary.tasks_count = rawResponse.tasks.length;
+        }
+        if (rawResponse.results?.length > 0) {
+          summary.results_count = rawResponse.results.length;
+        }
+      }
+  }
+  
+  return summary;
+};
+
+// Helper function to analyze data structure for UI
+const analyzeDataStructure = (data: any, path: string = '', level: number = 0): DataStructureItem[] => {
+  if (level > 4) return []; // Prevent infinite recursion
+  
+  const items: DataStructureItem[] = [];
+  
+  if (Array.isArray(data)) {
+    items.push({
+      path: path + '[*]',
+      label: `All items (${data.length})`,
+      type: 'array',
+      isArray: true,
+      arrayItemType: data.length > 0 ? typeof data[0] : 'unknown',
+      sampleValue: data.length > 0 ? data[0] : null,
+      children: data.length > 0 && typeof data[0] === 'object' ? analyzeDataStructure(data[0], path + '[0]', level + 1) : []
+    });
+    
+    if (data.length > 0) {
+      items.push({
+        path: path + '[0]',
+        label: 'First item',
+        type: typeof data[0] as any,
+        sampleValue: typeof data[0] === 'object' ? null : data[0],
+        children: typeof data[0] === 'object' ? analyzeDataStructure(data[0], path + '[0]', level + 1) : []
+      });
+    }
+  } else if (typeof data === 'object' && data !== null) {
+    Object.entries(data).forEach(([key, value]) => {
+      const newPath = path ? `${path}.${key}` : key;
+      const type = Array.isArray(value) ? 'array' : typeof value as any;
+      
+      items.push({
+        path: newPath,
+        label: key,
+        type,
+        isArray: Array.isArray(value),
+        sampleValue: typeof value === 'object' ? null : value,
+        children: typeof value === 'object' ? analyzeDataStructure(value, newPath, level + 1) : []
+      });
+    });
+  } else {
+    items.push({
+      path,
+      label: 'Value',
+      type: typeof data as any,
+      sampleValue: data
+    });
+  }
+  
+  return items;
+};
+
+// Function to get available data from executed nodes
+export const getAvailableDataNodes = (): AvailableDataNode[] => {
+  return Object.values(globalWorkflowData)
+    .filter(response => response.status === 'success')
+    .map(response => ({
+      nodeId: response.nodeId,
+      nodeLabel: response.nodeId, // In real app, would get from node metadata
+      nodeType: response.nodeType,
+      executedAt: response.executedAt,
+      status: response.status as 'success', // Safe cast since we filtered for success
+      dataStructure: analyzeDataStructure(response.data.processed)
+    }));
+};
+
+// Function to clear workflow data (for development reset)
+export const clearWorkflowData = () => {
+  globalWorkflowData = {};
+  console.log('🧹 Workflow data cleared');
+};
+
+// Note: axios instance commented out temporarily - will be restored after main changes
 // Create axios instance with auth
-const api = axios.create({
-  baseURL: API_BASE_URL,
-});
+// const api = axios.create({
+//   baseURL: API_BASE_URL,
+// });
 
 // Add auth token to requests
-api.interceptors.request.use((config: any) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// api.interceptors.request.use((config: any) => {
+//   const token = localStorage.getItem('token');
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+//   return config;
+// });
 
 // DataForSEO API calls
 export const dataforSeoApi = {
@@ -492,8 +649,14 @@ export const workflowApi = {
   },
 
   // Execute a single node with input data
-  executeNode: async (nodeType: string, config: any, inputData: any = {}) => {
+  executeNode: async (nodeType: string, config: any, inputData: any = {}, nodeId?: string) => {
     try {
+      const startTime = performance.now();
+      const executionNodeId = nodeId || `${nodeType}_${Date.now()}`;
+      
+      console.log(`🚀 Executing node: ${executionNodeId} (${nodeType})`);
+      console.log(`📥 Input data:`, inputData);
+      console.log(`⚙️ Config:`, config);
       let result;
       let finalConfig = config;
       
@@ -618,97 +781,31 @@ export const workflowApi = {
           const languageCode = finalConfig.languageCode || 'en';
           const maxResults = finalConfig.maxResults || 10;
           
+          // Validate DataForSEO credentials
+          if (!finalConfig.login || !finalConfig.password) {
+            throw new Error('DataForSEO credentials are required. Please configure a DataForSEO integration with valid login and password.');
+          }
+          
           // Use sandbox or live API based on configuration
           const baseUrl = finalConfig.useSandbox !== false ? 
             'https://sandbox.dataforseo.com' : 
             'https://api.dataforseo.com';
           
-          // Check if we should use real API or realistic mock data
-          const useRealAPI = finalConfig.login && 
-                            finalConfig.password && 
-                            finalConfig.login !== 'test-user' && 
-                            finalConfig.password !== 'test-pass';
+          console.log(`🔗 Making DataForSEO API call for keyword: ${keyword}`);
+          console.log(`📍 Using ${finalConfig.useSandbox ? 'sandbox' : 'live'} environment`);
+          console.log(`🌍 Location: ${locationCode}, Language: ${languageCode}, Max Results: ${maxResults}`);
           
-          if (!useRealAPI) {
-            // Return realistic mock data that simulates real SERP results
-            const realSites = [
-              { domain: 'wikipedia.org', title: `${keyword} - Wikipedia`, desc: `Learn about ${keyword} from the world's largest encyclopedia. Comprehensive information, references, and detailed explanations.` },
-              { domain: 'youtube.com', title: `${keyword} Videos - YouTube`, desc: `Watch videos about ${keyword}. Find tutorials, reviews, and expert content from creators around the world.` },
-              { domain: 'reddit.com', title: `r/${keyword} - Reddit`, desc: `Join the ${keyword} community on Reddit. Discussions, tips, and user experiences shared by real people.` },
-              { domain: 'medium.com', title: `Ultimate Guide to ${keyword} | Medium`, desc: `Expert insights and best practices for ${keyword}. In-depth articles written by industry professionals.` },
-              { domain: 'hubspot.com', title: `${keyword} Strategy Guide - HubSpot`, desc: `Complete ${keyword} guide with actionable strategies, tools, and templates to help you succeed.` },
-              { domain: 'moz.com', title: `${keyword} Best Practices - Moz`, desc: `Learn ${keyword} from SEO experts. Data-driven strategies and proven techniques for better results.` },
-              { domain: 'searchenginejournal.com', title: `${keyword} Trends 2024 - Search Engine Journal`, desc: `Latest ${keyword} trends, news, and insights from industry leaders and search marketing experts.` },
-              { domain: 'semrush.com', title: `${keyword} Tools & Analytics - Semrush`, desc: `Professional ${keyword} tools and analytics. Competitive research, keyword tracking, and market insights.` },
-              { domain: 'ahrefs.com', title: `${keyword} Research Tool - Ahrefs`, desc: `Advanced ${keyword} analysis with comprehensive data. Backlink research, keyword tracking, and competitor analysis.` },
-              { domain: 'backlinko.com', title: `${keyword} Case Study - Backlinko`, desc: `Real-world ${keyword} case studies with detailed results. Learn from successful campaigns and strategies.` }
-            ];
-            
-            result = [
-              {
-                keyword: keyword,
-                type: "organic",
-                se_domain: "google.com",
-                location_code: locationCode,
-                language_code: languageCode,
-                check_url: `https://www.google.com/search?q=${encodeURIComponent(keyword)}&num=${maxResults}`,
-                datetime: new Date().toISOString(),
-                spell: null,
-                refinement_chips: null,
-                item_types: ["organic", "people_also_ask", "related_searches"],
-                se_results_count: Math.floor(Math.random() * 50000000) + 5000000,
-                items_count: maxResults,
-                items: Array.from({ length: Math.min(maxResults, realSites.length) }, (_, i) => {
-                  const site = realSites[i];
-                  return {
-                    type: 'organic',
-                    rank_group: i + 1,
-                    rank_absolute: i + 1,
-                    position: 'left',
-                    xpath: `/html/body/div[6]/div/div[10]/div/div/div[2]/div/div/div[${i + 2}]/div/div/span/a`,
-                    domain: site.domain,
-                    title: site.title,
-                    description: site.desc,
-                    url: `https://${site.domain}/${keyword.replace(/\s+/g, '-').toLowerCase()}`,
-                    breadcrumb: `${site.domain} › ${keyword.replace(/\s+/g, '-').toLowerCase()}`,
-                    is_featured_snippet: i === 0,
-                    is_malicious: false,
-                    is_web_story: false,
-                    amp_version: false,
-                    rating: i < 3 ? {
-                      rating_type: "Max5",
-                      value: (4.1 + Math.random() * 0.8).toFixed(1),
-                      votes_count: Math.floor(Math.random() * 500) + 50,
-                      rating_max: 5
-                    } : null,
-                    ...(finalConfig.includeMetrics && {
-                      metrics: {
-                        organic_etv: Math.random() * 1000,
-                        organic_count: Math.floor(Math.random() * 50),
-                        paid_etv: Math.random() * 500
-                      }
-                    })
-                  };
-                })
-              }
-            ];
-            
-            console.log(`🎭 Using realistic mock SERP data for keyword: ${keyword}`);
-            console.log(`📊 Generated ${result[0].items.length} realistic results`);
-          } else {
-            // Make actual API call to DataForSEO
-            const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
-            
-            const requestData = {
-              language_code: languageCode,
-              location_code: locationCode,
-              keyword: keyword,
-              ...(maxResults && { depth: maxResults })
-            };
-            
-            console.log(`🔗 Making real DataForSEO API call for keyword: ${keyword}`);
-            console.log(`📍 Using ${finalConfig.useSandbox ? 'sandbox' : 'live'} environment`);
-            
+          // Make API call to DataForSEO
+          const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
+          
+          const requestData = {
+            language_code: languageCode,
+            location_code: locationCode,
+            keyword: keyword,
+            ...(maxResults && { depth: maxResults })
+          };
+          
+          try {
             const response = await fetch(`${baseUrl}/v3/serp/google/organic/live/advanced`, {
               method: 'POST',
               headers: {
@@ -719,12 +816,55 @@ export const workflowApi = {
             });
             
             if (!response.ok) {
-              throw new Error(`DataForSEO API error: ${response.status} ${response.statusText}`);
+              const errorText = await response.text();
+              throw new Error(`DataForSEO API error: ${response.status} ${response.statusText} - ${errorText}`);
             }
             
-            const data = await response.json();
-            result = data.tasks?.[0]?.result || data;
-            console.log(`✅ Real DataForSEO API response received with ${result?.[0]?.items?.length || 0} results`);
+            const apiResponse = await response.json();
+            console.log(`✅ DataForSEO API response received:`, apiResponse);
+            
+            // Validate API response structure
+            if (!apiResponse.tasks || !apiResponse.tasks[0] || !apiResponse.tasks[0].result) {
+              throw new Error('Invalid DataForSEO API response structure');
+            }
+            
+            const taskResult = apiResponse.tasks[0].result[0]; // First result from the array
+            
+            if (!taskResult) {
+              throw new Error('No SERP results returned from DataForSEO API');
+            }
+            
+            // Map DataForSEO response to expected structure for variable system
+            // This matches the format: serp_results.results[0].items[*].url
+            result = {
+              results: [
+                {
+                  keyword: taskResult.keyword,
+                  type: taskResult.type,
+                  se_domain: taskResult.se_domain,
+                  location_code: taskResult.location_code,
+                  language_code: taskResult.language_code,
+                  check_url: taskResult.check_url,
+                  datetime: taskResult.datetime,
+                  total_count: taskResult.items_count || taskResult.items?.length || 0,
+                  se_results_count: taskResult.se_results_count,
+                  items: taskResult.items || []
+                }
+              ],
+              // Also include raw API response for advanced users
+              raw_api_response: apiResponse
+            };
+            
+            console.log(`📊 Mapped SERP data structure:`);
+            console.log(`   - Keyword: ${result.results[0].keyword}`);
+            console.log(`   - Total Items: ${result.results[0].total_count}`);
+            console.log(`   - SE Results Count: ${result.results[0].se_results_count}`);
+            console.log(`   - Items Array Length: ${result.results[0].items.length}`);
+            console.log(`   - Sample URLs: ${result.results[0].items.slice(0, 3).map((item: any) => item.url).filter(Boolean).join(', ')}`);
+            
+          } catch (error: any) {
+            console.error('❌ DataForSEO API call failed:', error);
+            throw new Error(`DataForSEO API call failed: ${error.message}`);
           }
           break;
           
@@ -1158,29 +1298,101 @@ export const workflowApi = {
 
     // Test each node with sample data
     let currentData = {
-      // Rich sample data for testing
+      // Rich sample data for testing - matches real DataForSEO API structure
       serp_results: {
         results: [{
           keyword: "test keyword",
-          total_count: 5,
+          type: "organic",
+          se_domain: "google.com",
+          location_code: 2840,
+          language_code: "en",
+          check_url: "https://www.google.com/search?q=test+keyword&num=10",
+          datetime: new Date().toISOString(),
+          total_count: 10,
+          se_results_count: 1250000000,
           items: [
-            { rank_absolute: 1, url: "https://example1.com", title: "Test Result 1", description: "Test description 1" },
-            { rank_absolute: 2, url: "https://example2.com", title: "Test Result 2", description: "Test description 2" },
-            { rank_absolute: 3, url: "https://example3.com", title: "Test Result 3", description: "Test description 3" },
-            { rank_absolute: 4, url: "https://example4.com", title: "Test Result 4", description: "Test description 4" },
-            { rank_absolute: 5, url: "https://example5.com", title: "Test Result 5", description: "Test description 5" }
+            { 
+              type: "organic",
+              rank_absolute: 1, 
+              rank_group: 1,
+              position: "left",
+              url: "https://wikipedia.org/wiki/Test_keyword", 
+              title: "Test keyword - Wikipedia", 
+              description: "Learn about test keyword from the world's largest encyclopedia.",
+              domain: "wikipedia.org",
+              breadcrumb: "wikipedia.org › wiki › test_keyword"
+            },
+            { 
+              type: "organic",
+              rank_absolute: 2, 
+              rank_group: 2,
+              position: "left",
+              url: "https://youtube.com/results?search_query=test+keyword", 
+              title: "Test keyword Videos - YouTube", 
+              description: "Watch videos about test keyword. Find tutorials and expert content.",
+              domain: "youtube.com",
+              breadcrumb: "youtube.com › results"
+            },
+            { 
+              type: "organic",
+              rank_absolute: 3, 
+              rank_group: 3,
+              position: "left",
+              url: "https://reddit.com/r/testkeyword", 
+              title: "r/testkeyword - Reddit", 
+              description: "Join the test keyword community on Reddit. Discussions and tips.",
+              domain: "reddit.com",
+              breadcrumb: "reddit.com › r › testkeyword"
+            },
+            { 
+              type: "organic",
+              rank_absolute: 4, 
+              rank_group: 4,
+              position: "left",
+              url: "https://medium.com/topic/test-keyword", 
+              title: "Test keyword Articles - Medium", 
+              description: "Expert insights about test keyword from industry professionals.",
+              domain: "medium.com",
+              breadcrumb: "medium.com › topic › test-keyword"
+            },
+            { 
+              type: "organic",
+              rank_absolute: 5, 
+              rank_group: 5,
+              position: "left",
+              url: "https://hubspot.com/test-keyword-guide", 
+              title: "Test keyword Strategy Guide - HubSpot", 
+              description: "Complete guide with actionable strategies for test keyword.",
+              domain: "hubspot.com",
+              breadcrumb: "hubspot.com › test-keyword-guide"
+            }
           ]
         }]
       },
       extracted_content: [
-        { url: "https://example1.com", content: "Sample content from page 1...", title: "Page 1 Title", length: 1200 },
-        { url: "https://example2.com", content: "Sample content from page 2...", title: "Page 2 Title", length: 1400 },
-        { url: "https://example3.com", content: "Sample content from page 3...", title: "Page 3 Title", length: 1100 }
+        { 
+          url: "https://wikipedia.org/wiki/Test_keyword", 
+          content: "Sample content extracted from Wikipedia about test keyword. This is comprehensive information with detailed explanations and references...", 
+          title: "Test keyword - Wikipedia", 
+          length: 2500 
+        },
+        { 
+          url: "https://youtube.com/results?search_query=test+keyword", 
+          content: "Video descriptions and metadata about test keyword tutorials and expert content from YouTube creators...", 
+          title: "Test keyword Videos - YouTube", 
+          length: 1800 
+        },
+        { 
+          url: "https://reddit.com/r/testkeyword", 
+          content: "Community discussions about test keyword with real user experiences, tips, and advice from Reddit users...", 
+          title: "r/testkeyword - Reddit", 
+          length: 1200 
+        }
       ],
       ai_result: {
-        content: "Sample AI analysis result...",
+        content: "Based on the analysis of test keyword data, here are the key insights...",
         model: "gpt-4o-mini",
-        usage: { prompt_tokens: 120, completion_tokens: 80 }
+        usage: { prompt_tokens: 150, completion_tokens: 95 }
       }
     };
 

@@ -55,33 +55,83 @@ export enum WorkflowNodeType {
   // On-Page Analysis
   SEO_ONPAGE_SUMMARY = 'seo_onpage_summary',
   SEO_ONPAGE_PAGES = 'seo_onpage_pages',
-  SEO_ONPAGE_RESOURCES = 'seo_onpage_resources',
-  SEO_ONPAGE_DUPLICATE_CONTENT = 'seo_onpage_duplicate_content',
   SEO_ONPAGE_LIGHTHOUSE = 'seo_onpage_lighthouse',
   
   // Content Analysis
   SEO_CONTENT_ANALYSIS = 'seo_content_analysis',
-  SEO_CONTENT_SUMMARY = 'seo_content_summary',
   SEO_CONTENT_SENTIMENT = 'seo_content_sentiment',
+}
+
+// Standardized Node Response Interface
+export interface StandardNodeResponse {
+  // Execution metadata
+  executionId: string;
+  nodeId: string;
+  nodeType: WorkflowNodeType;
+  status: 'success' | 'error' | 'pending';
+  executedAt: string;
+  executionTime: number; // in ms
   
-  // Business Data  
-  SEO_BUSINESS_LISTINGS = 'seo_business_listings',
-  SEO_BUSINESS_REVIEWS = 'seo_business_reviews',
+  // Data payload
+  data: {
+    // Processed/transformed data for easy consumption
+    processed: any;
+    // Raw API response (original format)
+    raw: any;
+    // Extracted key fields for quick access
+    summary: Record<string, any>;
+  };
   
-  // Domain Analytics
-  SEO_DOMAIN_WHOIS = 'seo_domain_whois',
-  SEO_DOMAIN_TECHNOLOGIES = 'seo_domain_technologies',
+  // Error information
+  error?: {
+    message: string;
+    code?: string;
+    details?: any;
+  };
   
-  // Legacy (for backward compatibility)
-  SEO_COMPETITORS = 'seo_competitors',
-  SEO_CONTENT_ANALYZE = 'seo_content_analyze',
+  // Input data that was used for this execution
+  inputData?: any;
   
-  // Legacy (for backward compatibility)
-  AI_ANALYSIS = 'ai_analysis',
-  SEO_AUDIT = 'seo_audit',
-  KEYWORD_RESEARCH = 'keyword_research',
-  SOCIAL_MEDIA_POST = 'social_media_post',
-  CONTENT_GENERATION = 'content_generation',
+  // Metadata about the API call
+  apiMetadata?: {
+    provider: string; // 'DataForSEO', 'OpenAI', etc.
+    endpoint: string;
+    creditsUsed?: number;
+    requestId?: string;
+  };
+}
+
+// Enhanced data mapping interface
+export interface DataMappingConfig {
+  // Source node ID
+  sourceNodeId: string;
+  // JSON path to the data (supports arrays with [*], specific indices [0], deep paths)
+  jsonPath: string;
+  // Optional transformation function
+  transform?: 'array_to_string' | 'extract_urls' | 'first_item' | 'count' | 'join_with_comma';
+  // Fallback value if path doesn't exist
+  fallback?: any;
+}
+
+// Available data structure for UI
+export interface AvailableDataNode {
+  nodeId: string;
+  nodeLabel: string;
+  nodeType: WorkflowNodeType;
+  executedAt: string;
+  status: 'success' | 'error';
+  dataStructure: DataStructureItem[];
+}
+
+export interface DataStructureItem {
+  path: string;
+  label: string;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  sampleValue?: any;
+  description?: string;
+  isArray?: boolean;
+  arrayItemType?: string;
+  children?: DataStructureItem[];
 }
 
 // Base node data structure

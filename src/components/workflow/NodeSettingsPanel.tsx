@@ -32,6 +32,7 @@ import {
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import DataMappingSelector from './DataMappingSelector';
 import VariableTextField from './VariableTextField';
+import AvailableDataDisplay from './AvailableDataDisplay';
 
 interface Integration {
   id: string;
@@ -68,6 +69,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [availableNodes, setAvailableNodes] = useState<any[]>([]);
   
   // Sample available data for variable selector (in real app, this would come from workflow execution state)
   const availableData = {
@@ -300,6 +302,33 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     }));
   };
 
+  // Load available data nodes on component mount
+  useEffect(() => {
+    const loadAvailableNodes = async () => {
+      try {
+        const { getAvailableDataNodes } = await import('../../services/workflowApi');
+        const nodes = getAvailableDataNodes();
+        setAvailableNodes(nodes);
+      } catch (error) {
+        console.error('Failed to load available data nodes:', error);
+      }
+    };
+    
+    loadAvailableNodes();
+  }, []);
+
+  // Handle clearing workflow data for development
+  const handleClearWorkflowData = async () => {
+    try {
+      const { clearWorkflowData } = await import('../../services/workflowApi');
+      clearWorkflowData();
+      setAvailableNodes([]);
+      console.log('Workflow data cleared');
+    } catch (error) {
+      console.error('Failed to clear workflow data:', error);
+    }
+  };
+
   const renderDataMappingSection = () => (
     <Accordion defaultExpanded={false} sx={{ mt: 2 }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -314,19 +343,22 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         </Typography>
         
         {/* Available data from previous nodes */}
-        <Box sx={{ mb: 2 }}>
+        <AvailableDataDisplay availableNodes={availableNodes} />
+        
+        {/* Development reset button */}
+        <Box sx={{ mb: 2, p: 1, bgcolor: 'warning.light', borderRadius: 1 }}>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Available Data Sources:
+            Development Tools:
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', mb: 1 }}>
-            Use format: node_id.property or just node_id for full output
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            <Chip size="small" label="{node_id}.results" color="primary" variant="outlined" />
-            <Chip size="small" label="{node_id}.keyword" color="primary" variant="outlined" />
-            <Chip size="small" label="{node_id}.analysis" color="primary" variant="outlined" />
-            <Chip size="small" label="{node_id}" color="secondary" variant="outlined" />
-          </Box>
+          <Button 
+            size="small" 
+            variant="outlined" 
+            color="warning"
+            onClick={handleClearWorkflowData}
+            sx={{ fontSize: '0.75rem' }}
+          >
+            Clear Workflow Data
+          </Button>
         </Box>
 
         {/* Input mapping */}

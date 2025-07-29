@@ -24,20 +24,22 @@ const initializeTestData = () => {
       },
       {
         id: 'test-dataforseo-1',
-        name: 'Test DataForSEO Integration',
+        name: 'DataForSEO Integration',
         type: 'dataforseo',
         status: 'connected',
         config: { 
-          // 🔧 REPLACE WITH YOUR REAL DATAFORSEO CREDENTIALS:
-          // Get credentials from: https://app.dataforseo.com/api-dashboard
-          login: 'test-user',        // ❌ Replace with your DataForSEO email
-          password: 'test-pass',     // ❌ Replace with your DataForSEO API password
-          useSandbox: true           // ✅ Use sandbox for testing, set to false for live data
+          // 🚨 REQUIRED: Real DataForSEO credentials needed - no mock data available
+          // Get your credentials from: https://app.dataforseo.com/api-dashboard
+          login: 'your-dataforseo-email@domain.com',     // ✅ Your DataForSEO account email
+          password: 'your-dataforseo-api-password',      // ✅ Your DataForSEO API password  
+          useSandbox: true                               // ✅ true = sandbox (free), false = live (paid)
           
-          // 📝 Example with real credentials:
-          // login: 'your-email@company.com',
-          // password: 'your-api-password-here', 
-          // useSandbox: false  // for real live data
+          // 📝 To set up real credentials:
+          // 1. Sign up at https://dataforseo.com/
+          // 2. Go to API Dashboard: https://app.dataforseo.com/api-dashboard  
+          // 3. Copy your email and API password
+          // 4. Replace the values above
+          // 5. Set useSandbox: true for testing (free), false for live data (costs credits)
         },
         lastTested: new Date().toISOString(),
         createdAt: new Date().toISOString(),
