@@ -1171,12 +1171,22 @@ export const workflowApi = {
             const apiUrl = `${backendUrl}/api/v1/seo/serp/analyze?${params}`;
             console.log(`🔗 Attempting API call to: ${apiUrl}`);
             
+            // Get authentication token from localStorage
+            const token = localStorage.getItem('ryvr_token');
+            const headers: Record<string, string> = {
+              'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+              console.log(`🔐 Using authentication token for API request`);
+            } else {
+              console.warn(`⚠️ No authentication token found - API call may fail`);
+            }
+            
             const response = await fetch(apiUrl, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                // Note: Authentication would be handled by the backend
-              }
+              headers
             });
             
             if (!response.ok) {

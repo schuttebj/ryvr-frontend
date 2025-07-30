@@ -31,22 +31,46 @@ export default function LoginPage() {
     setError('');
 
     try {
-      // TODO: Replace with actual API call
-      const mockResponse = {
-        access_token: 'mock-jwt-token',
-        user: {
-          id: 1,
-          email: 'admin@ryvr.com',
-          username: formData.username,
-          full_name: 'RYVR Admin',
-          is_admin: true,
+      // Step 1: Login to get access token
+      const backendUrl = 'https://ryvr-backend.onrender.com';
+      const loginResponse = await fetch(`${backendUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      };
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+        }),
+      });
 
-      login(mockResponse.access_token, mockResponse.user);
+      if (!loginResponse.ok) {
+        throw new Error('Invalid username or password');
+      }
+
+      const loginData = await loginResponse.json();
+      
+      // Step 2: Get user data using the token
+      const userResponse = await fetch(`${backendUrl}/api/v1/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${loginData.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to get user information');
+      }
+
+      const userData = await userResponse.json();
+
+      // Step 3: Login with token and user data
+      login(loginData.access_token, userData);
       navigate('/dashboard');
-    } catch (err) {
-      setError('Invalid username or password');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Invalid username or password');
     } finally {
       setLoading(false);
     }
@@ -146,6 +170,9 @@ export default function LoginPage() {
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Typography variant="body2" color="text.secondary">
               Demo credentials: admin / password
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              (Default admin user from backend)
             </Typography>
           </Box>
         </Paper>
