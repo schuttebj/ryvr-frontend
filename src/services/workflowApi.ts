@@ -12,8 +12,8 @@ const generateExecutionId = (): string => {
   return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Helper function to create standardized node response (temporarily unused during refactoring)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Helper function to create standardized node response (commented out temporarily during refactoring)
+/*
 const createStandardResponse = (
   nodeId: string,
   nodeType: WorkflowNodeType,
@@ -40,6 +40,7 @@ const createStandardResponse = (
     apiMetadata
   };
 };
+*/
 
 // Helper function to extract key summary data from API responses
 const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType): Record<string, any> => {
