@@ -7,10 +7,12 @@ import { WorkflowNodeType, StandardNodeResponse, AvailableDataNode, DataStructur
 // Global storage for workflow execution data (in real app, this would be in a state management solution)
 let globalWorkflowData: Record<string, StandardNodeResponse> = {};
 
-// Helper function to generate unique execution ID
+// Helper function to generate unique execution ID (commented out temporarily during refactoring)
+/*
 const generateExecutionId = (): string => {
   return `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
+*/
 
 // Helper function to create standardized node response (commented out temporarily during refactoring)
 /*
@@ -42,7 +44,8 @@ const createStandardResponse = (
 };
 */
 
-// Helper function to extract key summary data from API responses
+// Helper function to extract key summary data from API responses (commented out temporarily during refactoring)
+/*
 const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType): Record<string, any> => {
   const summary: Record<string, any> = {};
   
@@ -89,6 +92,7 @@ const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType
   
   return summary;
 };
+*/
 
 // Helper function to analyze data structure for UI
 const analyzeDataStructure = (data: any, path: string = '', level: number = 0): DataStructureItem[] => {
