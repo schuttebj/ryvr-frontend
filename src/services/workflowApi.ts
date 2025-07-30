@@ -1162,12 +1162,11 @@ export const workflowApi = {
             console.log('🔍 SERP API Request params:', Object.fromEntries(params));
             
             // Try backend API first, fallback to mock data if not available
-            // Configuration priority:
-            // 1. VITE_API_BASE_URL environment variable
-            // 2. Development default (http://localhost:8000)
-            // 3. Relative URL (same domain as frontend)
-            const backendUrl = import.meta.env.VITE_API_BASE_URL || 
-              (import.meta.env.DEV ? 'http://localhost:8000' : '');
+            // Production backend URL
+            const backendUrl = 'https://ryvr-backend.onrender.com';
+            
+            // For local development, uncomment this line:
+            // const backendUrl = 'http://localhost:8000';
             
             const apiUrl = `${backendUrl}/api/v1/seo/serp/analyze?${params}`;
             console.log(`🔗 Attempting API call to: ${apiUrl}`);
