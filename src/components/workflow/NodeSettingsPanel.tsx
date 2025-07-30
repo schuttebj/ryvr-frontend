@@ -32,7 +32,7 @@ import {
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import DataMappingSelector from './DataMappingSelector';
 import VariableTextField from './VariableTextField';
-import AvailableDataDisplay from './AvailableDataDisplay';
+// AvailableDataDisplay removed - using variable selector instead
 
 interface Integration {
   id: string;
@@ -69,7 +69,6 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
-  const [availableNodes, setAvailableNodes] = useState<any[]>([]);
   
   // Real data will be loaded from executed nodes - no more hardcoded samples
 
@@ -278,26 +277,13 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   };
 
   // Load available data nodes on component mount
-  useEffect(() => {
-    const loadAvailableNodes = async () => {
-      try {
-        const { getAvailableDataNodes } = await import('../../services/workflowApi');
-        const nodes = getAvailableDataNodes();
-        setAvailableNodes(nodes);
-      } catch (error) {
-        console.error('Failed to load available data nodes:', error);
-      }
-    };
-    
-    loadAvailableNodes();
-  }, []);
+  // Available nodes data is now loaded directly in VariableSelector when needed
 
   // Handle clearing workflow data for development
   const handleClearWorkflowData = async () => {
     try {
       const { clearWorkflowData } = await import('../../services/workflowApi');
       clearWorkflowData();
-      setAvailableNodes([]);
       console.log('Workflow data cleared');
     } catch (error) {
       console.error('Failed to clear workflow data:', error);
@@ -307,10 +293,8 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   // Handle populating test data for development
   const handlePopulateTestData = async () => {
     try {
-      const { populateTestWorkflowData, getAvailableDataNodes } = await import('../../services/workflowApi');
+      const { populateTestWorkflowData } = await import('../../services/workflowApi');
       populateTestWorkflowData();
-      const nodes = getAvailableDataNodes();
-      setAvailableNodes(nodes);
       console.log('Test data populated');
     } catch (error) {
       console.error('Failed to populate test data:', error);
@@ -864,7 +848,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           onChange={(value) => setFormData((prev: WorkflowNodeData) => ({ ...prev, label: value }))}
           sx={{ mb: 2 }}
           helperText="Node display name. Can use variables for dynamic labels."
-          availableData={availableData}
+          availableData={{}}
         />
 
         <VariableTextField
@@ -876,7 +860,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           onChange={(value) => setFormData((prev: WorkflowNodeData) => ({ ...prev, description: value }))}
           sx={{ mb: 2 }}
           helperText="Node description. Click the variable icon to insert data from previous nodes."
-          availableData={availableData}
+          availableData={{}}
         />
 
         {/* Node-specific settings */}

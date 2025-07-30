@@ -410,7 +410,7 @@ const processVariables = (text: string, workflowData: Record<string, any>): stri
       
       if (value === undefined || value === null) {
         console.warn(`❌ Variable ${trimmedPath} not found in workflow data`);
-        return `[${trimmedPath}: not found]`;
+        return match; // Return original if not found
       }
       
       console.log(`✅ Variable ${trimmedPath} resolved to:`, value);
@@ -423,7 +423,7 @@ const processVariables = (text: string, workflowData: Record<string, any>): stri
       return String(value || '');
     } catch (error) {
       console.warn(`❌ Failed to process variable ${variableExpression}:`, error);
-      return `[${variableExpression}: error]`;
+      return match; // Return original on error
     }
   });
 };
