@@ -997,7 +997,6 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       {/* Workflow Execution Panel */}
       <WorkflowExecutionPanel
         nodes={nodes}
-        edges={edges}
         open={showExecutionPanel}
         onClose={() => setShowExecutionPanel(false)}
       />
