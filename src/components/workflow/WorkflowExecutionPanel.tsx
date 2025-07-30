@@ -210,7 +210,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
 
     switch (nodeType) {
       case WorkflowNodeType.SEO_SERP_ANALYZE:
-        return await workflowApi.executeNode(nodeType, {
+        return await (workflowApi.executeNode as any)(nodeType, {
           keyword: config.keyword || 'Marketing',
           locationCode: config.locationCode || 2840,
           languageCode: config.languageCode || 'en',
@@ -222,14 +222,14 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
         }, {}, node.id);
 
       case WorkflowNodeType.AI_OPENAI_TASK:
-        return await workflowApi.executeNode(nodeType, {
+        return await (workflowApi.executeNode as any)(nodeType, {
           prompt: config.prompt || 'Generate content about marketing',
           model: config.model || 'gpt-3.5-turbo',
           maxTokens: config.maxTokens || 500
         }, {}, node.id);
 
       case WorkflowNodeType.DATA_FILTER:
-        return await workflowApi.executeNode(nodeType, {
+        return await (workflowApi.executeNode as any)(nodeType, {
           data: config.data || [],
           filterType: config.filterType || 'contains',
           filterValue: config.filterValue || '',
