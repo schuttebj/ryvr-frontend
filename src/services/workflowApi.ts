@@ -1167,7 +1167,7 @@ export const workflowApi = {
             // 2. Development default (http://localhost:8000)
             // 3. Relative URL (same domain as frontend)
             const backendUrl = import.meta.env.VITE_API_BASE_URL || 
-              (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '');
+              (import.meta.env.DEV ? 'http://localhost:8000' : '');
             
             const apiUrl = `${backendUrl}/api/v1/seo/serp/analyze?${params}`;
             console.log(`🔗 Attempting API call to: ${apiUrl}`);
@@ -1267,17 +1267,14 @@ export const workflowApi = {
                 total_count: mockItems.length,
                 se_results_count: 1000000,
                 items: mockItems
-              }],
-              // Mark as mock data
-              is_mock_data: true
+              }]
             };
+            
+            // Mark as mock data using type assertion
+            (result as any).is_mock_data = true;
             
             console.log(`🎭 Generated ${mockItems.length} mock SERP results for keyword: ${keyword}`);
             console.log(`ℹ️ To use real SERP data, ensure backend is running and accessible at the configured URL`);
-            
-            // Add a warning indicator for the UI
-            result.is_mock_data = true;
-            result.mock_message = 'Using mock SERP data - backend API not available';
           }
           
           // Log final result structure (works for both real and mock data)
@@ -1288,7 +1285,7 @@ export const workflowApi = {
             console.log(`   - SE Results Count: ${result.results[0].se_results_count || 'N/A'}`);
             console.log(`   - Items Array Length: ${result.results[0].items.length}`);
             console.log(`   - Sample URLs: ${result.results[0].items.slice(0, 3).map((item: any) => item.url).filter(Boolean).join(', ')}`);
-            console.log(`   - Data Source: ${result.is_mock_data ? 'Mock Data' : 'Real API'}`);
+            console.log(`   - Data Source: ${(result as any).is_mock_data ? 'Mock Data' : 'Real API'}`);
           }
           break;
           
