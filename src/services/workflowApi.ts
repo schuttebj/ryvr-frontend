@@ -1190,25 +1190,29 @@ export const workflowApi = {
             }
           }
 
-          const requestData = {
-            language_code: languageCode,
-            location_code: locationCode,
+          // Use backend API instead of direct DataForSEO calls
+          const params = new URLSearchParams({
             keyword: keyword,
-            ...(maxResults && { depth: maxResults }),
+            location_code: locationCode.toString(),
+            language_code: languageCode,
+            ...(maxResults && { depth: maxResults.toString() }),
             ...(finalConfig.device && { device: finalConfig.device }),
             ...(finalConfig.os && { os: finalConfig.os }),
             ...(finalConfig.target && { target: finalConfig.target }),
-            ...(searchParams && { search_param: searchParams })
-          };
+            ...(finalConfig.resultType && { result_type: finalConfig.resultType }),
+            ...(finalConfig.dateRange && { date_range: finalConfig.dateRange }),
+            ...(finalConfig.organicOnly && { organic_only: 'true' })
+          });
           
           try {
-            const response = await fetch(`${baseUrl}/v3/serp/google/organic/live/advanced`, {
+            console.log('🔍 SERP API Request params:', Object.fromEntries(params));
+            
+            const response = await fetch(`/api/v1/seo/serp/analyze?${params}`, {
               method: 'POST',
               headers: {
-                'Authorization': `Basic ${auth}`,
                 'Content-Type': 'application/json',
-              },
-              body: JSON.stringify([requestData])
+                // Note: Authentication would be handled by the backend
+              }
             });
             
             if (!response.ok) {
@@ -1217,39 +1221,42 @@ export const workflowApi = {
             }
             
             const apiResponse = await response.json();
-            console.log(`✅ DataForSEO API response received:`, apiResponse);
+            console.log(`✅ Backend SERP API response received:`, apiResponse);
             
-            // Validate API response structure
-            if (!apiResponse.tasks || !apiResponse.tasks[0] || !apiResponse.tasks[0].result) {
-              throw new Error('Invalid DataForSEO API response structure');
+            // Handle our backend API response format
+            if (apiResponse.success && apiResponse.data) {
+              // Use the standardized response from our backend
+              result = apiResponse.data.processed || apiResponse.data;
+            } else if (apiResponse.tasks && apiResponse.tasks[0] && apiResponse.tasks[0].result) {
+              // Fallback: Handle direct DataForSEO API response format
+              const taskResult = apiResponse.tasks[0].result[0];
+              
+              if (!taskResult) {
+                throw new Error('No SERP results returned from API');
+              }
+              
+              // Map DataForSEO response to expected structure for variable system
+              result = {
+                results: [
+                  {
+                    keyword: taskResult.keyword,
+                    type: taskResult.type,
+                    se_domain: taskResult.se_domain,
+                    location_code: taskResult.location_code,
+                    language_code: taskResult.language_code,
+                    check_url: taskResult.check_url,
+                    datetime: taskResult.datetime,
+                    total_count: taskResult.items_count || taskResult.items?.length || 0,
+                    se_results_count: taskResult.se_results_count,
+                    items: taskResult.items || []
+                  }
+                ],
+                // Also include raw API response for advanced users
+                raw_api_response: apiResponse
+              };
+            } else {
+              throw new Error('Invalid API response structure');
             }
-            
-            const taskResult = apiResponse.tasks[0].result[0]; // First result from the array
-            
-            if (!taskResult) {
-              throw new Error('No SERP results returned from DataForSEO API');
-            }
-            
-            // Map DataForSEO response to expected structure for variable system
-            // This matches the format: serp_results.results[0].items[*].url
-            result = {
-              results: [
-                {
-                  keyword: taskResult.keyword,
-                  type: taskResult.type,
-                  se_domain: taskResult.se_domain,
-                  location_code: taskResult.location_code,
-                  language_code: taskResult.language_code,
-                  check_url: taskResult.check_url,
-                  datetime: taskResult.datetime,
-                  total_count: taskResult.items_count || taskResult.items?.length || 0,
-                  se_results_count: taskResult.se_results_count,
-                  items: taskResult.items || []
-                }
-              ],
-              // Also include raw API response for advanced users
-              raw_api_response: apiResponse
-            };
             
             console.log(`📊 Mapped SERP data structure:`);
             console.log(`   - Keyword: ${result.results[0].keyword}`);
