@@ -164,6 +164,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
             inputData: node.data.config || {},
             apiMetadata: {
               provider: 'workflow_execution',
+              endpoint: '/api/v1/workflow/execute',
               creditsUsed: 0
             }
           });
@@ -218,14 +219,14 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
           organicOnly: config.organicOnly || false,
           resultType: config.resultType,
           dateRange: config.dateRange
-        });
+        }, {}, node.id);
 
       case WorkflowNodeType.AI_OPENAI_TASK:
         return await workflowApi.executeNode(nodeType, {
           prompt: config.prompt || 'Generate content about marketing',
           model: config.model || 'gpt-3.5-turbo',
           maxTokens: config.maxTokens || 500
-        });
+        }, {}, node.id);
 
       case WorkflowNodeType.DATA_FILTER:
         return await workflowApi.executeNode(nodeType, {
@@ -233,7 +234,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
           filterType: config.filterType || 'contains',
           filterValue: config.filterValue || '',
           field: config.field || 'title'
-        });
+        }, {}, node.id);
 
       default:
         // Mock execution for other node types
