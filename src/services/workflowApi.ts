@@ -747,6 +747,91 @@ const applyVariableFormat = (value: any, format: string): string => {
   }
 };
 
+// Task polling function for asynchronous DataForSEO tasks
+const pollTaskCompletion = async (taskId: string, initialResult: any): Promise<any> => {
+  const maxAttempts = 10; // 5 minutes with 30-second intervals
+  const pollInterval = 30000; // 30 seconds
+  
+  console.log(`🔄 Starting task polling for task ID: ${taskId}`);
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      // Get authentication token
+      const token = localStorage.getItem('ryvr_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      // Check task status
+      const backendUrl = 'https://ryvr-backend.onrender.com';
+      const statusUrl = `${backendUrl}/api/v1/seo/serp/status/${taskId}`;
+      
+      const statusResponse = await fetch(statusUrl, {
+        method: 'GET',
+        headers
+      });
+      
+      if (!statusResponse.ok) {
+        throw new Error(`Status check failed: ${statusResponse.status}`);
+      }
+      
+      const statusData = await statusResponse.json();
+      console.log(`📊 Task status check ${attempt}/${maxAttempts}:`, statusData.status);
+      
+      if (statusData.status === 'completed') {
+        // Task completed, get results
+        const resultsUrl = `${backendUrl}/api/v1/seo/serp/results/${taskId}`;
+        const resultsResponse = await fetch(resultsUrl, {
+          method: 'GET',
+          headers
+        });
+        
+        if (!resultsResponse.ok) {
+          throw new Error(`Results retrieval failed: ${resultsResponse.status}`);
+        }
+        
+        const resultsData = await resultsResponse.json();
+        console.log(`✅ Task completed successfully, retrieved results`);
+        
+        // Return the processed results
+        return resultsData.data || resultsData;
+      } else if (statusData.status === 'failed') {
+        throw new Error(`Task failed: ${statusData.message}`);
+      } else if (statusData.status === 'processing') {
+        // Task still processing, wait and try again
+        if (attempt < maxAttempts) {
+          console.log(`⏳ Task still processing, waiting ${pollInterval/1000}s before next check...`);
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        } else {
+          throw new Error('Task timed out after maximum attempts');
+        }
+      } else {
+        throw new Error(`Unknown task status: ${statusData.status}`);
+      }
+    } catch (error: any) {
+      console.error(`❌ Task polling error (attempt ${attempt}):`, error.message);
+      
+      if (attempt === maxAttempts) {
+        // Final attempt failed, return initial result with error
+        return {
+          ...initialResult,
+          error: error.message,
+          status: 'failed'
+        };
+      }
+      
+      // Wait before retry
+      await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+  }
+  
+  throw new Error('Task polling exceeded maximum attempts');
+};
+
 // Helper functions for realistic content generation
 const generateRealisticTitle = (domain: string, index: number): string => {
   const titles = {
@@ -1211,40 +1296,56 @@ export const workflowApi = {
             const apiResponse = await response.json();
             console.log(`✅ Backend SERP API response received:`, apiResponse);
             
-            // Handle our backend API response format
-            if (apiResponse.success && apiResponse.data) {
+            // Handle asynchronous task submission
+            if (apiResponse.status === 'submitted' && apiResponse.task_id) {
+              console.log(`📋 Task submitted with ID: ${apiResponse.task_id}`);
+              
+              // Store task ID for status checking
+              result = {
+                status: 'submitted',
+                task_id: apiResponse.task_id,
+                message: apiResponse.message,
+                input_data: apiResponse.input_data,
+                provider: apiResponse.provider,
+                task_type: apiResponse.task_type,
+                timestamp: apiResponse.timestamp
+              };
+              
+              // Start polling for task completion
+              await pollTaskCompletion(apiResponse.task_id, result);
+            } else if (apiResponse.success && apiResponse.data) {
               // Use the standardized response from our backend
               result = apiResponse.data.processed || apiResponse.data;
             } else if (apiResponse.tasks && apiResponse.tasks[0] && apiResponse.tasks[0].result) {
               // Fallback: Handle direct DataForSEO API response format
               const taskResult = apiResponse.tasks[0].result[0];
             
-            if (!taskResult) {
-                throw new Error('No SERP results returned from API');
+              if (!taskResult) {
+                  throw new Error('No SERP results returned from API');
+              }
+              
+              // Map DataForSEO response to expected structure for variable system
+              result = {
+                results: [
+                  {
+                    keyword: taskResult.keyword,
+                    type: taskResult.type,
+                    se_domain: taskResult.se_domain,
+                    location_code: taskResult.location_code,
+                    language_code: taskResult.language_code,
+                    check_url: taskResult.check_url,
+                    datetime: taskResult.datetime,
+                    total_count: taskResult.items_count || taskResult.items?.length || 0,
+                    se_results_count: taskResult.se_results_count,
+                    items: taskResult.items || []
+                  }
+                ],
+                // Also include raw API response for advanced users
+                raw_api_response: apiResponse
+              };
+            } else {
+              throw new Error('Invalid API response structure');
             }
-            
-            // Map DataForSEO response to expected structure for variable system
-            result = {
-              results: [
-                {
-                  keyword: taskResult.keyword,
-                  type: taskResult.type,
-                  se_domain: taskResult.se_domain,
-                  location_code: taskResult.location_code,
-                  language_code: taskResult.language_code,
-                  check_url: taskResult.check_url,
-                  datetime: taskResult.datetime,
-                  total_count: taskResult.items_count || taskResult.items?.length || 0,
-                  se_results_count: taskResult.se_results_count,
-                  items: taskResult.items || []
-                }
-              ],
-              // Also include raw API response for advanced users
-              raw_api_response: apiResponse
-            };
-          } else {
-            throw new Error('Invalid API response structure');
-          }
             
         } catch (error: any) {
             console.warn('⚠️ Backend API not available, using mock SERP data:', error.message);

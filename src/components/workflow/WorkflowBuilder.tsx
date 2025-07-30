@@ -24,6 +24,7 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   PlayArrow as PlayArrowIcon,
+  PlayArrow as PlayIcon,
   Stop as StopIcon,
 } from '@mui/icons-material';
 import {
@@ -46,6 +47,7 @@ import { useNavigate } from 'react-router-dom';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import NodeSettingsPanel from './NodeSettingsPanel';
 import ValidationResultsDialog from './ValidationResultsDialog';
+import WorkflowExecutionPanel from './WorkflowExecutionPanel';
 import BaseNode from './BaseNode';
 import { workflowApi } from '../../services/workflowApi';
 
@@ -269,6 +271,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [activating, setActivating] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [workflowActive, setWorkflowActive] = useState(false);
+  const [showExecutionPanel, setShowExecutionPanel] = useState(false);
   
   // Track the current workflow ID to fix autosave creating new workflows
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
@@ -741,6 +744,18 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
               <Button
                 fullWidth
                 variant="outlined"
+                startIcon={<PlayIcon />}
+                onClick={() => setShowExecutionPanel(true)}
+                disabled={nodes.length === 0}
+                color="success"
+                sx={{ mb: 1 }}
+              >
+                Test Full Flow
+              </Button>
+              
+              <Button
+                fullWidth
+                variant="outlined"
                 startIcon={validating ? <CircularProgress size={16} /> : <CheckCircleIcon />}
                 onClick={handleValidateWorkflow}
                 disabled={validating || nodes.length === 0}
@@ -977,6 +992,14 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         onClose={() => setShowValidationDialog(false)}
         validationResult={validationResult}
         onActivate={workflowId ? handleActivateWorkflow : undefined}
+      />
+
+      {/* Workflow Execution Panel */}
+      <WorkflowExecutionPanel
+        nodes={nodes}
+        edges={edges}
+        open={showExecutionPanel}
+        onClose={() => setShowExecutionPanel(false)}
       />
     </ReactFlowProvider>
   );
