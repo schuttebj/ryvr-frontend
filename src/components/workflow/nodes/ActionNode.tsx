@@ -5,7 +5,8 @@ import {
   Email as EmailIcon,
   Http as HttpIcon,
   SmartToy as AIIcon,
-  Search as SEOIcon
+  Search as SEOIcon,
+  FilterAlt as FilterAltIcon
 } from '@mui/icons-material';
 import BaseNode from '../BaseNode';
 import { WorkflowNodeData, WorkflowNodeType } from '../../../types/workflow';
@@ -25,6 +26,8 @@ const getActionIcon = (type: WorkflowNodeType) => {
     case WorkflowNodeType.AI_OPENAI_TASK:
     case WorkflowNodeType.CONTENT_EXTRACT:
       return <AIIcon />;
+    case WorkflowNodeType.DATA_FILTER:
+      return <FilterAltIcon />;
     case WorkflowNodeType.SEO_SERP_ANALYZE:
     case WorkflowNodeType.SEO_KEYWORDS_VOLUME:
       return <SEOIcon />;
@@ -42,6 +45,8 @@ const getActionColor = (type: WorkflowNodeType) => {
     case WorkflowNodeType.AI_OPENAI_TASK:
     case WorkflowNodeType.CONTENT_EXTRACT:
       return '#9c27b0';
+    case WorkflowNodeType.DATA_FILTER:
+      return '#ff5722';
     case WorkflowNodeType.SEO_SERP_ANALYZE:
     case WorkflowNodeType.SEO_KEYWORDS_VOLUME:
       return '#4caf50';
@@ -60,6 +65,8 @@ const getActionStatus = (type: WorkflowNodeType) => {
       return '🤖 AI analysis configured';
     case WorkflowNodeType.CONTENT_EXTRACT:
       return '✨ Content extraction ready';
+    case WorkflowNodeType.DATA_FILTER:
+      return '🔧 Data filter configured';
     case WorkflowNodeType.SEO_SERP_ANALYZE:
       return '🔍 SERP analysis prepared';
     case WorkflowNodeType.SEO_KEYWORDS_VOLUME:

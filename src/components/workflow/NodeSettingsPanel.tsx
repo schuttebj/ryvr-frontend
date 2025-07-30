@@ -13,6 +13,7 @@ import {
   Chip,
   Alert,
   FormControlLabel,
+  FormHelperText,
   Switch,
   Accordion,
   AccordionSummary,
@@ -501,13 +502,101 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <TextField
               fullWidth
               type="number"
-              label="Max Results"
+              label="Max Results (Depth)"
               value={formData.config?.maxResults || 10}
               onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value))}
               sx={{ mb: 2 }}
-              inputProps={{ min: 1, max: 100 }}
-              helperText="Number of SERP results to analyze (1-100)"
+              inputProps={{ min: 1, max: 700 }}
+              helperText="Number of SERP results to analyze (1-700). Note: costs increase for depth > 100"
             />
+
+            {/* Advanced Filters */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Advanced Filters
+            </Typography>
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Device Type</InputLabel>
+              <Select
+                value={formData.config?.device || 'desktop'}
+                label="Device Type"
+                onChange={(e) => handleConfigChange('device', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="desktop">Desktop</MenuItem>
+                <MenuItem value="mobile">Mobile</MenuItem>
+              </Select>
+              <FormHelperText>Choose the device type for SERP analysis</FormHelperText>
+            </FormControl>
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Operating System</InputLabel>
+              <Select
+                value={formData.config?.os || (formData.config?.device === 'mobile' ? 'android' : 'windows')}
+                label="Operating System"
+                onChange={(e) => handleConfigChange('os', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                {formData.config?.device === 'mobile' ? (
+                  <>
+                    <MenuItem value="android">Android</MenuItem>
+                    <MenuItem value="ios">iOS</MenuItem>
+                  </>
+                ) : (
+                  <>
+                    <MenuItem value="windows">Windows</MenuItem>
+                    <MenuItem value="macos">macOS</MenuItem>
+                  </>
+                )}
+              </Select>
+              <FormHelperText>Operating system affects how results are displayed</FormHelperText>
+            </FormControl>
+
+            <VariableTextField
+              fullWidth
+              label="Target Domain Filter (Optional)"
+              value={formData.config?.target || ''}
+              onChange={(value) => handleConfigChange('target', value)}
+              sx={{ mb: 2 }}
+              helperText="Filter results by domain (e.g., 'example.com' or 'example.com*' for subdomains)"
+              availableData={{}}
+            />
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Result Type Filter</InputLabel>
+              <Select
+                value={formData.config?.resultType || 'all'}
+                label="Result Type Filter"
+                onChange={(e) => handleConfigChange('resultType', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="all">All Results</MenuItem>
+                <MenuItem value="organic_only">Organic Only</MenuItem>
+                <MenuItem value="news">News Articles</MenuItem>
+                <MenuItem value="shopping">Shopping Results</MenuItem>
+                <MenuItem value="images">Image Results</MenuItem>
+                <MenuItem value="videos">Video Results</MenuItem>
+              </Select>
+              <FormHelperText>Filter results by content type</FormHelperText>
+            </FormControl>
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Date Range Filter</InputLabel>
+              <Select
+                value={formData.config?.dateRange || 'any'}
+                label="Date Range Filter"
+                onChange={(e) => handleConfigChange('dateRange', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="any">Any Time</MenuItem>
+                <MenuItem value="past_hour">Past Hour</MenuItem>
+                <MenuItem value="past_24h">Past 24 Hours</MenuItem>
+                <MenuItem value="past_week">Past Week</MenuItem>
+                <MenuItem value="past_month">Past Month</MenuItem>
+                <MenuItem value="past_year">Past Year</MenuItem>
+              </Select>
+              <FormHelperText>Filter results by publication date</FormHelperText>
+            </FormControl>
             
             <TextField
               fullWidth
@@ -763,6 +852,110 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               fullWidth
               label="Output Variable Name"
               value={formData.config?.outputVariable || 'extracted_content'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this node's output (used in next nodes)"
+            />
+          </Box>
+        );
+
+      case WorkflowNodeType.DATA_FILTER:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              Data Filter Settings
+            </Typography>
+            
+            {/* Input Data Source */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Input Data Source
+            </Typography>
+            
+            <VariableTextField
+              fullWidth
+              label="Data Source"
+              value={formData.config?.dataSource || ''}
+              onChange={(value) => handleConfigChange('dataSource', value)}
+              sx={{ mb: 2 }}
+              helperText="JSON path to the data you want to filter (e.g., serp_results.results[0].items)"
+              placeholder="serp_results.results[0].items"
+              availableData={{}}
+            />
+            
+            {/* Filter Configuration */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Filter Rules
+            </Typography>
+            
+            <VariableTextField
+              fullWidth
+              label="Property to Filter"
+              value={formData.config?.filterProperty || ''}
+              onChange={(value) => handleConfigChange('filterProperty', value)}
+              sx={{ mb: 2 }}
+              helperText="Property path to filter on (e.g., domain, title, description)"
+              placeholder="domain"
+              availableData={{}}
+            />
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Filter Operation</InputLabel>
+              <Select
+                value={formData.config?.filterOperation || 'contains'}
+                label="Filter Operation"
+                onChange={(e) => handleConfigChange('filterOperation', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="contains">Contains</MenuItem>
+                <MenuItem value="not_contains">Does Not Contain</MenuItem>
+                <MenuItem value="equals">Equals</MenuItem>
+                <MenuItem value="not_equals">Does Not Equal</MenuItem>
+                <MenuItem value="starts_with">Starts With</MenuItem>
+                <MenuItem value="ends_with">Ends With</MenuItem>
+                <MenuItem value="greater_than">Greater Than</MenuItem>
+                <MenuItem value="less_than">Less Than</MenuItem>
+                <MenuItem value="exists">Property Exists</MenuItem>
+                <MenuItem value="not_exists">Property Does Not Exist</MenuItem>
+              </Select>
+              <FormHelperText>Choose how to compare the property value</FormHelperText>
+            </FormControl>
+            
+            <VariableTextField
+              fullWidth
+              label="Filter Value"
+              value={formData.config?.filterValue || ''}
+              onChange={(value) => handleConfigChange('filterValue', value)}
+              sx={{ mb: 2 }}
+              helperText="Value to compare against (not needed for 'exists' operations)"
+              availableData={{}}
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.caseSensitive || false}
+                  onChange={(e) => handleConfigChange('caseSensitive', e.target.checked)}
+                />
+              }
+              label="Case Sensitive"
+              sx={{ mb: 2 }}
+            />
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Max Results"
+              value={formData.config?.maxResults || 0}
+              onChange={(e) => handleConfigChange('maxResults', parseInt(e.target.value))}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 0, max: 1000 }}
+              helperText="Limit filtered results (0 = no limit)"
+            />
+            
+            <TextField
+              fullWidth
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'filtered_data'}
               onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
               sx={{ mb: 2 }}
               helperText="Name for this node's output (used in next nodes)"

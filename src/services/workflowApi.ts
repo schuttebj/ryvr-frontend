@@ -1158,11 +1158,47 @@ export const workflowApi = {
           // Make API call to DataForSEO
           const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
           
+          // Build search parameters for advanced filtering
+          let searchParams = '';
+          
+          // Date range filtering
+          if (finalConfig.dateRange && finalConfig.dateRange !== 'any') {
+            const dateFilters = {
+              'past_hour': 'qdr:h',
+              'past_24h': 'qdr:d',
+              'past_week': 'qdr:w',
+              'past_month': 'qdr:m',
+              'past_year': 'qdr:y'
+            };
+            const dateFilter = dateFilters[finalConfig.dateRange as keyof typeof dateFilters];
+            if (dateFilter) {
+              searchParams += `&tbs=${dateFilter}`;
+            }
+          }
+          
+          // Result type filtering  
+          if (finalConfig.resultType && finalConfig.resultType !== 'all') {
+            const resultTypeFilters = {
+              'news': '&tbm=nws',
+              'shopping': '&tbm=shop', 
+              'images': '&tbm=isch',
+              'videos': '&tbm=vid'
+            };
+            const resultTypeFilter = resultTypeFilters[finalConfig.resultType as keyof typeof resultTypeFilters];
+            if (resultTypeFilter) {
+              searchParams += resultTypeFilter;
+            }
+          }
+
           const requestData = {
             language_code: languageCode,
             location_code: locationCode,
             keyword: keyword,
-            ...(maxResults && { depth: maxResults })
+            ...(maxResults && { depth: maxResults }),
+            ...(finalConfig.device && { device: finalConfig.device }),
+            ...(finalConfig.os && { os: finalConfig.os }),
+            ...(finalConfig.target && { target: finalConfig.target }),
+            ...(searchParams && { search_param: searchParams })
           };
           
           try {
@@ -1369,6 +1405,135 @@ export const workflowApi = {
           
           // Return single item or array based on batch processing setting
           result = finalConfig.batchProcess ? extractedContent : extractedContent[0];
+          break;
+          
+        // Data Filter
+        case 'data_filter':
+        case WorkflowNodeType.DATA_FILTER:
+          const dataSource = finalConfig.dataSource;
+          if (!dataSource) {
+            throw new Error('Data source is required for filtering');
+          }
+
+          // Extract data from input using the data source path
+          let sourceData: any = inputData;
+          const sourceParts = dataSource.split('.');
+          
+          for (const part of sourceParts) {
+            if (part.includes('[') && part.includes(']')) {
+              // Handle array access like items[0] or items[*]
+              const arrayMatch = part.match(/(\w+)\[([^\]]*)\]/);
+              if (arrayMatch) {
+                const [, arrayKey, index] = arrayMatch;
+                if (sourceData[arrayKey]) {
+                  if (index === '*') {
+                    sourceData = sourceData[arrayKey]; // Use entire array
+                  } else {
+                    sourceData = sourceData[arrayKey][parseInt(index)];
+                  }
+                }
+              }
+            } else {
+              sourceData = sourceData?.[part];
+            }
+            
+            if (sourceData === undefined) {
+              throw new Error(`Data not found at path: ${dataSource}`);
+            }
+          }
+
+          // Ensure we have an array to filter
+          if (!Array.isArray(sourceData)) {
+            throw new Error('Data source must point to an array for filtering');
+          }
+
+          // Apply filtering logic
+          const filterProperty = finalConfig.filterProperty || '';
+          const filterOperation = finalConfig.filterOperation || 'contains';
+          const filterValue = finalConfig.filterValue || '';
+          const caseSensitive = finalConfig.caseSensitive || false;
+          const maxFilterResults = finalConfig.maxResults || 0;
+
+          let filteredData = sourceData.filter((item: any) => {
+            if (!filterProperty) return true; // No filter property means no filtering
+            
+            // Get the property value to filter on
+            let itemValue = item;
+            const propertyParts = filterProperty.split('.');
+            for (const prop of propertyParts) {
+              itemValue = itemValue?.[prop];
+            }
+
+            // Handle different filter operations
+            switch (filterOperation) {
+              case 'contains':
+                return String(itemValue || '').toLowerCase().includes(
+                  caseSensitive ? filterValue : filterValue.toLowerCase()
+                );
+              
+              case 'not_contains':
+                return !String(itemValue || '').toLowerCase().includes(
+                  caseSensitive ? filterValue : filterValue.toLowerCase()
+                );
+              
+              case 'equals':
+                return caseSensitive 
+                  ? String(itemValue) === filterValue 
+                  : String(itemValue || '').toLowerCase() === filterValue.toLowerCase();
+              
+              case 'not_equals':
+                return caseSensitive 
+                  ? String(itemValue) !== filterValue 
+                  : String(itemValue || '').toLowerCase() !== filterValue.toLowerCase();
+              
+              case 'starts_with':
+                return String(itemValue || '').toLowerCase().startsWith(
+                  caseSensitive ? filterValue : filterValue.toLowerCase()
+                );
+              
+              case 'ends_with':
+                return String(itemValue || '').toLowerCase().endsWith(
+                  caseSensitive ? filterValue : filterValue.toLowerCase()
+                );
+              
+              case 'greater_than':
+                return Number(itemValue) > Number(filterValue);
+              
+              case 'less_than':
+                return Number(itemValue) < Number(filterValue);
+              
+              case 'exists':
+                return itemValue !== undefined && itemValue !== null;
+              
+              case 'not_exists':
+                return itemValue === undefined || itemValue === null;
+              
+              default:
+                return true;
+            }
+          });
+
+          // Apply max results limit if specified
+          if (maxFilterResults > 0) {
+            filteredData = filteredData.slice(0, maxFilterResults);
+          }
+
+          result = {
+            filtered_items: filteredData,
+            total_filtered: filteredData.length,
+            original_count: sourceData.length,
+            filter_applied: {
+              property: filterProperty,
+              operation: filterOperation,
+              value: filterValue,
+              case_sensitive: caseSensitive
+            }
+          };
+
+          console.log(`🔍 Data Filter applied:`);
+          console.log(`   - Original count: ${sourceData.length}`);
+          console.log(`   - Filtered count: ${filteredData.length}`);
+          console.log(`   - Filter: ${filterProperty} ${filterOperation} "${filterValue}"`);
           break;
           
         // Legacy DataForSEO nodes (keeping for backward compatibility)  

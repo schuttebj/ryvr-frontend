@@ -93,6 +93,14 @@ const nodePaletteItems: NodePaletteItem[] = [
     category: NodeCategory.AI_TOOLS,
     color: '#9c27b0',
   },
+  {
+    type: WorkflowNodeType.DATA_FILTER,
+    label: 'Data Filter',
+    description: 'Filter and process data arrays',
+    icon: 'FilterAltIcon',
+    category: NodeCategory.AI_TOOLS,
+    color: '#ff5722',
+  },
 
   // SEO Tools
   {

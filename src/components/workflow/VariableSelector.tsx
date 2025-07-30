@@ -48,6 +48,7 @@ export default function VariableSelector({
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState(4);
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Component to display individual node data
   const NodeDataDisplay = ({ nodeId }: { nodeId: string }) => {
@@ -77,7 +78,7 @@ export default function VariableSelector({
       );
     }
 
-    return renderDataTree(nodeData, nodeId);
+    return renderDataTree(nodeData, nodeId, nodeId);
   };
 
   // Load real executed node data when dialog opens
@@ -136,8 +137,36 @@ export default function VariableSelector({
     }
   };
 
-  // Render actual data tree with property names and values
-  const renderDataTree = (data: any, currentPath: string = '', level: number = 0): React.ReactNode => {
+  // Filter data based on search term
+  const filterDataBySearch = (data: any, path: string = ''): boolean => {
+    if (!searchTerm) return true;
+    
+    const searchLower = searchTerm.toLowerCase();
+    
+    // Check if current path matches search
+    if (path.toLowerCase().includes(searchLower)) return true;
+    
+    // Check if any property values match search
+    if (typeof data === 'string' && data.toLowerCase().includes(searchLower)) return true;
+    if (typeof data === 'number' && data.toString().includes(searchTerm)) return true;
+    
+    // Recursively check nested objects/arrays
+    if (typeof data === 'object' && data !== null) {
+      if (Array.isArray(data)) {
+        return data.some((item, index) => filterDataBySearch(item, `${path}[${index}]`));
+      } else {
+        return Object.entries(data).some(([key, value]) => {
+          const newPath = path ? `${path}.${key}` : key;
+          return filterDataBySearch(value, newPath);
+        });
+      }
+    }
+    
+    return false;
+  };
+
+  // Render actual data tree with property names and values (simplified display names)
+  const renderDataTree = (data: any, currentPath: string = '', nodeId: string = '', level: number = 0): React.ReactNode => {
     if (level > 8) {
       return (
         <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', ml: level * 2 }}>
@@ -153,7 +182,7 @@ export default function VariableSelector({
           <Box sx={{ mb: 1 }}>
             <Chip
               size="small"
-              label={`${currentPath}[*] (All ${data.length} items)`}
+              label={`${currentPath.replace(nodeId + '.', '')}[*] (All ${data.length} items)`}
               variant="outlined"
               color="secondary"
               sx={{ fontSize: '0.7rem', cursor: 'pointer', mr: 1 }}
@@ -172,7 +201,7 @@ export default function VariableSelector({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Chip
                     size="small"
-                    label={`${currentPath}[${index}]`}
+                    label={`${currentPath.replace(nodeId + '.', '')}[${index}]`}
                     variant="outlined"
                     color="primary"
                     onClick={(e) => {
@@ -190,7 +219,7 @@ export default function VariableSelector({
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                {renderDataTree(item, `${currentPath}[${index}]`, level + 1)}
+                {renderDataTree(item, `${currentPath}[${index}]`, nodeId, level + 1)}
               </AccordionDetails>
             </Accordion>
           ))}
@@ -216,8 +245,13 @@ export default function VariableSelector({
               if (bImportant !== -1) return 1;
               return a.localeCompare(b);
             })
+            .filter(([key, value]) => {
+              const newPath = currentPath ? `${currentPath}.${key}` : key;
+              return filterDataBySearch(value, newPath);
+            })
             .map(([key, value]) => {
               const newPath = currentPath ? `${currentPath}.${key}` : key;
+              const displayPath = newPath.replace(nodeId + '.', ''); // Remove nodeId from display
               const isObject = typeof value === 'object' && value !== null;
               const isArray = Array.isArray(value);
               
@@ -235,7 +269,7 @@ export default function VariableSelector({
                     />
                     
                     <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '0.8rem' }}>
-                      {newPath}
+                      {displayPath}
                     </Typography>
                     
                     {!isObject && (
@@ -260,7 +294,7 @@ export default function VariableSelector({
                   
                   {isObject && level < 4 && (
                     <Box sx={{ ml: 2, pl: 1, borderLeft: '1px solid', borderColor: 'divider', mt: 1 }}>
-                      {renderDataTree(value, newPath, level + 1)}
+                      {renderDataTree(value, newPath, nodeId, level + 1)}
                     </Box>
                   )}
                 </Box>
@@ -305,6 +339,28 @@ export default function VariableSelector({
             Test nodes to automatically make their data available here.
           </Typography>
         </Alert>
+
+        {/* Search Box */}
+        {hasRealData && (
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              Search Properties
+            </Typography>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Type to search property names or values..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{ mb: 2 }}
+              InputProps={{
+                startAdornment: (
+                  <Box sx={{ mr: 1, color: 'text.secondary' }}>🔍</Box>
+                ),
+              }}
+            />
+          </Box>
+        )}
 
         {/* Format Selection */}
         <Box sx={{ mb: 3 }}>

@@ -17,6 +17,9 @@ export enum WorkflowNodeType {
   // Content Extraction
   CONTENT_EXTRACT = 'content_extract',
   
+  // Data Processing & Filtering
+  DATA_FILTER = 'data_filter',
+  
   // SEO Tools (DataForSEO Integration)
   // SERP Analysis
   SEO_SERP_ANALYZE = 'seo_serp_analyze',
