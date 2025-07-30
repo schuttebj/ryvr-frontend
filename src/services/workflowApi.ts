@@ -1141,54 +1141,8 @@ export const workflowApi = {
           const languageCode = finalConfig.languageCode || 'en';
           const maxResults = finalConfig.maxResults || 10;
           
-          // Validate DataForSEO credentials
-          if (!finalConfig.login || !finalConfig.password) {
-            throw new Error('DataForSEO credentials are required. Please configure a DataForSEO integration with valid login and password.');
-          }
-          
-          // Use sandbox or live API based on configuration
-          const baseUrl = finalConfig.useSandbox !== false ? 
-            'https://sandbox.dataforseo.com' : 
-            'https://api.dataforseo.com';
-          
-          console.log(`🔗 Making DataForSEO API call for keyword: ${keyword}`);
-          console.log(`📍 Using ${finalConfig.useSandbox ? 'sandbox' : 'live'} environment`);
+          console.log(`🔗 Making SERP API call for keyword: ${keyword}`);
           console.log(`🌍 Location: ${locationCode}, Language: ${languageCode}, Max Results: ${maxResults}`);
-          
-          // Make API call to DataForSEO
-          const auth = btoa(`${finalConfig.login}:${finalConfig.password}`);
-          
-          // Build search parameters for advanced filtering
-          let searchParams = '';
-          
-          // Date range filtering
-          if (finalConfig.dateRange && finalConfig.dateRange !== 'any') {
-            const dateFilters = {
-              'past_hour': 'qdr:h',
-              'past_24h': 'qdr:d',
-              'past_week': 'qdr:w',
-              'past_month': 'qdr:m',
-              'past_year': 'qdr:y'
-            };
-            const dateFilter = dateFilters[finalConfig.dateRange as keyof typeof dateFilters];
-            if (dateFilter) {
-              searchParams += `&tbs=${dateFilter}`;
-            }
-          }
-          
-          // Result type filtering  
-          if (finalConfig.resultType && finalConfig.resultType !== 'all') {
-            const resultTypeFilters = {
-              'news': '&tbm=nws',
-              'shopping': '&tbm=shop', 
-              'images': '&tbm=isch',
-              'videos': '&tbm=vid'
-            };
-            const resultTypeFilter = resultTypeFilters[finalConfig.resultType as keyof typeof resultTypeFilters];
-            if (resultTypeFilter) {
-              searchParams += resultTypeFilter;
-            }
-          }
 
           // Use backend API instead of direct DataForSEO calls
           const params = new URLSearchParams({
