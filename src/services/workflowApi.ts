@@ -1486,6 +1486,9 @@ export const workflowApi = {
     return workflowApi.executeNode(nodeType, config, sampleInputData);
   },
 
+  // Store node result (used by node testing)
+  storeNodeResult,
+
   // Execute entire workflow
   executeWorkflow: async (workflow: any) => {
     try {
