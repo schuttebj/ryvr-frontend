@@ -16,8 +16,7 @@ import {
   IconButton,
   Tooltip,
   Paper,
-  Tabs,
-  Tab,
+
   Badge,
   Divider,
   Card,
@@ -32,7 +31,7 @@ import {
   DataObject as JsonIcon,
   Filter as FilterIcon,
   CheckCircle,
-  Schedule,
+
   Storage as RawDataIcon,
   AutoGraph as ProcessedIcon,
   Insights as SummaryIcon,
@@ -46,30 +45,7 @@ interface VariableSelectorProps {
   availableData?: Record<string, any>;
 }
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`variable-tabpanel-${index}`}
-      aria-labelledby={`variable-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ pt: 2 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 export default function VariableSelector({
   open,
@@ -81,7 +57,7 @@ export default function VariableSelector({
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState(4);
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
-  const [tabValue, setTabValue] = useState(0);
+
 
   // Load real executed node data when dialog opens
   useEffect(() => {
@@ -139,10 +115,7 @@ export default function VariableSelector({
     }
   };
 
-  // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
+
 
   // Render JSON tree recursively for comprehensive browsing
   const renderJsonTree = (data: any, currentPath: string = '', level: number = 0, maxDisplayLevel: number = 3): React.ReactNode => {

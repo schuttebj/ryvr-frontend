@@ -149,7 +149,7 @@ export interface AvailableDataNode {
 export interface DataStructureItem {
   path: string;
   label: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'info';
   sampleValue?: any;
   description?: string;
   isArray?: boolean;

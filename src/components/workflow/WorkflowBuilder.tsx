@@ -270,6 +270,9 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [workflowActive, setWorkflowActive] = useState(false);
   
+  // Track the current workflow ID to fix autosave creating new workflows
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId);
+  
   // Auto-save timer
   const autoSaveTimer = useRef<number | null>(null);
   const lastSavedState = useRef<string>('');
@@ -346,19 +349,29 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     if (!hasUnsavedChanges || (!workflowName && nodes.length === 0)) return;
     
     try {
+      // Use currentWorkflowId if available, otherwise workflowId, otherwise generate new ID
+      const workflowIdToUse = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
+      
       const workflow = {
-        id: workflowId || `workflow_${Date.now()}`, // Use workflowId if editing, otherwise generate new ID
+        id: workflowIdToUse,
         name: workflowName || `Untitled Workflow ${new Date().toLocaleTimeString()}`,
         description: workflowDescription,
         nodes,
         edges,
         isActive: false,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         tags: [],
       };
 
       if (onSave) {
         await onSave(workflow);
+        
+        // Update currentWorkflowId if this was a new workflow
+        if (!currentWorkflowId && !workflowId) {
+          setCurrentWorkflowId(workflowIdToUse);
+        }
+        
         setHasUnsavedChanges(false);
         lastSavedState.current = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
         setSnackbarMessage('Workflow auto-saved');
@@ -367,7 +380,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     } catch (error) {
       console.error('Auto-save failed:', error);
     }
-  }, [nodes, edges, workflowName, workflowDescription, hasUnsavedChanges, onSave, workflowId]);
+  }, [nodes, edges, workflowName, workflowDescription, hasUnsavedChanges, onSave, workflowId, currentWorkflowId]);
 
   const handleClose = () => {
     if (hasUnsavedChanges && !autoSaveEnabled) {
@@ -474,8 +487,11 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   };
 
   const handleSaveConfirm = async () => {
+    // Use currentWorkflowId if available, otherwise workflowId, otherwise generate new ID
+    const workflowIdToUse = currentWorkflowId || workflowId || `workflow_${Date.now()}`;
+    
     const workflow = {
-      id: workflowId || `workflow_${Date.now()}`, // Use workflowId if editing, otherwise generate new ID
+      id: workflowIdToUse,
       name: workflowName,
       description: workflowDescription,
       nodes,
@@ -488,6 +504,12 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
 
     if (onSave) {
       await onSave(workflow);
+      
+      // Update currentWorkflowId if this was a new workflow
+      if (!currentWorkflowId && !workflowId) {
+        setCurrentWorkflowId(workflowIdToUse);
+      }
+      
       setHasUnsavedChanges(false);
       lastSavedState.current = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
       setSnackbarMessage('Workflow saved successfully');
@@ -496,7 +518,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
 
     setSaveDialogOpen(false);
     // Don't reset name and description when editing existing workflow
-    if (!workflowId) {
+    if (!workflowId && !currentWorkflowId) {
       setWorkflowName('');
       setWorkflowDescription('');
     }

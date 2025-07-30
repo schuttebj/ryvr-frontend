@@ -122,9 +122,20 @@ export default function WorkflowsPage() {
     setAnchorEl(null);
   };
 
-  const handleDeleteWorkflow = (workflowId: string) => {
-    setWorkflows(workflows.filter(w => w.id !== workflowId));
-    setAnchorEl(null);
+  const handleDeleteWorkflow = async (workflowId: string) => {
+    try {
+      // Delete from backend/storage
+      await workflowApi.deleteWorkflow(workflowId);
+      
+      // Update local state
+      setWorkflows(workflows.filter(w => w.id !== workflowId));
+      setAnchorEl(null);
+      
+      console.log(`Workflow ${workflowId} deleted successfully`);
+    } catch (error) {
+      console.error('Failed to delete workflow:', error);
+      // You might want to show a toast notification here
+    }
   };
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, workflowId: string) => {
