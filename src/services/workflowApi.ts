@@ -94,47 +94,85 @@ const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType
 };
 */
 
-// Helper function to analyze data structure for UI
-const analyzeDataStructure = (data: any, path: string = '', level: number = 0): DataStructureItem[] => {
-  if (level > 4) return []; // Prevent infinite recursion
+// Enhanced function to analyze complete data structure for comprehensive JSON access
+const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 10): DataStructureItem[] => {
+  if (level > maxDepth) return []; // Prevent infinite recursion but allow deeper exploration
   
   const items: DataStructureItem[] = [];
   
   if (Array.isArray(data)) {
+    // Add array accessor for all items
     items.push({
       path: path + '[*]',
-      label: `All items (${data.length})`,
+      label: `All items (${data.length} total)`,
       type: 'array',
       isArray: true,
       arrayItemType: data.length > 0 ? typeof data[0] : 'unknown',
-      sampleValue: data.length > 0 ? data[0] : null,
-      children: data.length > 0 && typeof data[0] === 'object' ? analyzeDataStructure(data[0], path + '[0]', level + 1) : []
+      sampleValue: `Array of ${data.length} items`,
+      children: data.length > 0 && typeof data[0] === 'object' ? analyzeDataStructure(data[0], path + '[0]', level + 1, maxDepth) : []
     });
     
-    if (data.length > 0) {
+    // Add specific index accessors for first few items
+    const maxIndexes = Math.min(data.length, 5); // Show first 5 items
+    for (let i = 0; i < maxIndexes; i++) {
+      const indexPath = `${path}[${i}]`;
+      const item = data[i];
+      
       items.push({
-        path: path + '[0]',
-        label: 'First item',
-        type: typeof data[0] as any,
-        sampleValue: typeof data[0] === 'object' ? null : data[0],
-        children: typeof data[0] === 'object' ? analyzeDataStructure(data[0], path + '[0]', level + 1) : []
+        path: indexPath,
+        label: `Item ${i}`,
+        type: Array.isArray(item) ? 'array' : typeof item as any,
+        isArray: Array.isArray(item),
+        sampleValue: typeof item === 'object' ? `${Array.isArray(item) ? 'Array' : 'Object'} with ${Object.keys(item || {}).length} properties` : item,
+        children: typeof item === 'object' && item !== null ? analyzeDataStructure(item, indexPath, level + 1, maxDepth) : []
+      });
+    }
+    
+    // If array has more items, add a note
+    if (data.length > 5) {
+      items.push({
+        path: `${path}[5+]`,
+        label: `... and ${data.length - 5} more items`,
+        type: 'info',
+        sampleValue: `Use [*] to access all items or specify index like [${data.length - 1}]`
       });
     }
   } else if (typeof data === 'object' && data !== null) {
-    Object.entries(data).forEach(([key, value]) => {
+    // Sort keys for better UX - put common keys first
+    const commonKeys = ['id', 'name', 'title', 'url', 'keyword', 'content', 'status', 'type'];
+    const allKeys = Object.keys(data);
+    const sortedKeys = [
+      ...commonKeys.filter(key => allKeys.includes(key)),
+      ...allKeys.filter(key => !commonKeys.includes(key)).sort()
+    ];
+    
+    sortedKeys.forEach(key => {
+      const value = data[key];
       const newPath = path ? `${path}.${key}` : key;
       const type = Array.isArray(value) ? 'array' : typeof value as any;
+      
+      let sampleValue;
+      if (typeof value === 'object' && value !== null) {
+        if (Array.isArray(value)) {
+          sampleValue = `Array with ${value.length} items`;
+        } else {
+          sampleValue = `Object with ${Object.keys(value).length} properties`;
+        }
+      } else {
+        sampleValue = value;
+      }
       
       items.push({
         path: newPath,
         label: key,
         type,
         isArray: Array.isArray(value),
-        sampleValue: typeof value === 'object' ? null : value,
-        children: typeof value === 'object' ? analyzeDataStructure(value, newPath, level + 1) : []
+        sampleValue,
+        children: typeof value === 'object' && value !== null ? analyzeDataStructure(value, newPath, level + 1, maxDepth) : []
       });
     });
   } else {
+    // Primitive value
     items.push({
       path,
       label: 'Value',
@@ -146,7 +184,39 @@ const analyzeDataStructure = (data: any, path: string = '', level: number = 0): 
   return items;
 };
 
-// Function to get available data from executed nodes
+// Function to analyze both processed and raw data comprehensively
+const analyzeCompleteDataStructure = (nodeResponse: StandardNodeResponse): any => {
+  const structure: any = {
+    processed: {
+      label: 'Processed Data',
+      description: 'Cleaned and structured data ready for use',
+      paths: analyzeDataStructure(nodeResponse.data.processed, 'processed', 0, 15)
+    },
+    raw: {
+      label: 'Raw API Response', 
+      description: 'Complete original API response with all available data',
+      paths: analyzeDataStructure(nodeResponse.data.raw, 'raw', 0, 15)
+    },
+    summary: {
+      label: 'Summary Data',
+      description: 'Key metrics and extracted insights',
+      paths: analyzeDataStructure(nodeResponse.data.summary, 'summary', 0, 10)
+    }
+  };
+  
+  // Add metadata if available
+  if (nodeResponse.apiMetadata) {
+    structure.metadata = {
+      label: 'API Metadata',
+      description: 'Information about the API call',
+      paths: analyzeDataStructure(nodeResponse.apiMetadata, 'metadata', 0, 5)
+    };
+  }
+  
+  return structure;
+};
+
+// Function to get available data from executed nodes with comprehensive structure
 export const getAvailableDataNodes = (): AvailableDataNode[] => {
   return Object.values(globalWorkflowData)
     .filter(response => response.status === 'success')
@@ -156,7 +226,8 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
       nodeType: response.nodeType,
       executedAt: response.executedAt,
       status: response.status as 'success', // Safe cast since we filtered for success
-      dataStructure: analyzeDataStructure(response.data.processed)
+      dataStructure: analyzeDataStructure(response.data.processed), // Keep for backward compatibility
+      completeStructure: analyzeCompleteDataStructure(response) // New comprehensive structure
     }));
 };
 
@@ -224,7 +295,100 @@ export const populateTestWorkflowData = () => {
               ]
             }]
           },
-          raw: {}, // Raw API response would go here
+          raw: {
+            // Realistic DataForSEO raw API response structure
+            version: "0.1.20240101",
+            status_code: 20000,
+            status_message: "Ok.",
+            time: "0.1234 sec.",
+            cost: 0.001,
+            tasks_count: 1,
+            tasks_error: 0,
+            tasks: [{
+              id: "01041758-1535-0216-0000-08b133c49f95",
+              status_code: 20000,
+              status_message: "Ok.",
+              time: "0.0937 sec.",
+              cost: 0.001,
+              result_count: 1,
+              path: ["v3", "serp", "google", "organic", "live", "advanced"],
+              data: {
+                api: "serp",
+                function: "live",
+                se: "google",
+                se_type: "organic",
+                language_code: "en",
+                location_code: 2840,
+                keyword: "marketing strategies",
+                device: "desktop",
+                os: "windows"
+              },
+              result: [{
+                keyword: "marketing strategies",
+                type: "organic",
+                se_domain: "google.com",
+                location_code: 2840,
+                language_code: "en",
+                check_url: "https://www.google.com/search?q=marketing+strategies&num=100&hl=en&gl=us&gws_rd=cr",
+                datetime: "2024-01-15 12:34:56 +00:00",
+                spell: null,
+                refinement_chips: null,
+                item_types: ["organic", "people_also_ask", "featured_snippet"],
+                se_results_count: 1250000000,
+                items_count: 100,
+                items: [
+                  {
+                    type: "organic",
+                    rank_group: 1,
+                    rank_absolute: 1,
+                    position: "left",
+                    xpath: "/html[1]/body[1]/div[6]/div[1]/div[14]/div[1]/div[2]/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]/span[1]/a[1]",
+                    domain: "hubspot.com",
+                    title: "10 Marketing Strategies to Fuel Your Business Growth",
+                    url: "https://blog.hubspot.com/marketing/marketing-strategies",
+                    cache_url: "https://webcache.googleusercontent.com/search?q=cache:...",
+                    related_search_url: "https://www.google.com/search?gl=us&hl=en&q=related:https://blog.hubspot.com/marketing/marketing-strategies+marketing+strategies",
+                    breadcrumb: "HubSpot › Blog › Marketing",
+                    website_name: "HubSpot Blog",
+                    is_image: false,
+                    is_video: false,
+                    is_featured_snippet: false,
+                    is_malicious: false,
+                    description: "Discover 10 proven marketing strategies that can help grow your business. From content marketing to social media, learn which tactics work best.",
+                    pre_snippet: null,
+                    extended_snippet: null,
+                    amp_version: false,
+                    rating: null,
+                    highlighted: ["marketing", "strategies"],
+                    links: [
+                      {
+                        type: "sitelink",
+                        title: "Content Marketing",
+                        description: "Learn about content marketing strategies",
+                        url: "https://blog.hubspot.com/marketing/content-marketing"
+                      }
+                    ],
+                    about_this_result: {
+                      type: "search_result",
+                      url: "https://blog.hubspot.com/marketing/marketing-strategies",
+                      source: {
+                        description: "HubSpot is a leading CRM platform that provides software and support to help businesses grow better.",
+                        source_info_url: "https://blog.hubspot.com/marketing/marketing-strategies",
+                        security: "secure",
+                        icon: "https://blog.hubspot.com/favicon.ico"
+                      }
+                    },
+                    main_domain: "hubspot.com",
+                    relative_url: "/marketing/marketing-strategies",
+                    etv: 0.0012396671157330275,
+                    impressions_etv: 0.0012396671157330275,
+                    estimated_paid_traffic_cost: 0.0012396671157330275,
+                    clickstream_etv: 0.0012396671157330275
+                  }
+                ]
+              }]
+            }]
+          },
           summary: {
             keyword: "marketing strategies",
             total_count: 10,
@@ -281,7 +445,83 @@ export const populateTestWorkflowData = () => {
               extracted_at: new Date().toISOString()
             }
           ],
-          raw: [],
+          raw: {
+            // Realistic content extraction raw response
+            request_id: "content_extract_456",
+            status: "completed",
+            urls_processed: 2,
+            extraction_time: "2.85s",
+            results: [
+              {
+                url: "https://blog.hubspot.com/marketing/marketing-strategies",
+                status: "success",
+                status_code: 200,
+                headers: {
+                  "content-type": "text/html; charset=utf-8",
+                  "content-length": "45678",
+                  "last-modified": "2024-01-15T10:30:00Z"
+                },
+                html: "<html><head><title>10 Marketing Strategies to Fuel Your Business Growth</title>...",
+                text: "Marketing strategies are essential for business growth. Here are 10 proven tactics: 1. Content Marketing - Create valuable content that addresses your audience's pain points. 2. Social Media Marketing - Engage with customers on platforms where they spend time. 3. Email Marketing - Build relationships through personalized email campaigns...",
+                structured_data: {
+                  title: "10 Marketing Strategies to Fuel Your Business Growth",
+                  meta_description: "Discover 10 proven marketing strategies that can help grow your business.",
+                  meta_keywords: "marketing, strategies, business growth, digital marketing",
+                  canonical_url: "https://blog.hubspot.com/marketing/marketing-strategies",
+                  author: "HubSpot Marketing Team",
+                  published_date: "2024-01-15",
+                  word_count: 2847,
+                  reading_time: "12 minutes",
+                  language: "en",
+                  headings: {
+                    h1: ["10 Marketing Strategies to Fuel Your Business Growth"],
+                    h2: ["1. Content Marketing", "2. Social Media Marketing", "3. Email Marketing", "4. SEO Optimization"],
+                    h3: ["Content Types That Convert", "Best Platforms for Your Audience", "Email Automation Strategies"]
+                  },
+                  images: [
+                    {
+                      src: "https://blog.hubspot.com/hs-fs/hubfs/marketing-strategies-hero.jpg",
+                      alt: "Marketing strategies infographic",
+                      width: 1200,
+                      height: 800
+                    }
+                  ],
+                  links: {
+                    internal: 15,
+                    external: 8,
+                    nofollow: 3
+                  }
+                },
+                performance: {
+                  load_time: 1.25,
+                  content_extraction_time: 0.85,
+                  parsing_time: 0.35
+                }
+              },
+              {
+                url: "https://www.salesforce.com/resources/articles/digital-marketing/",
+                status: "success",
+                status_code: 200,
+                headers: {
+                  "content-type": "text/html; charset=utf-8",
+                  "content-length": "52341",
+                  "last-modified": "2024-01-14T15:45:00Z"
+                },
+                html: "<html><head><title>Digital Marketing Strategies for 2024: Complete Guide</title>...",
+                text: "Digital marketing continues to evolve rapidly. In 2024, successful businesses focus on: Personalization at scale, AI-powered customer insights, Omnichannel experiences, Data-driven decision making...",
+                structured_data: {
+                  title: "Digital Marketing Strategies for 2024: Complete Guide",
+                  meta_description: "Learn about the latest digital marketing strategies for 2024.",
+                  canonical_url: "https://www.salesforce.com/resources/articles/digital-marketing/",
+                  author: "Salesforce Marketing Cloud",
+                  published_date: "2024-01-14",
+                  word_count: 3156,
+                  reading_time: "15 minutes",
+                  language: "en"
+                }
+              }
+            ]
+          },
           summary: {
             total_pages: 2,
             total_content_length: 6003,

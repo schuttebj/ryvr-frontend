@@ -121,6 +121,29 @@ export interface AvailableDataNode {
   executedAt: string;
   status: 'success' | 'error';
   dataStructure: DataStructureItem[];
+  // Comprehensive structure including processed, raw, summary, and metadata
+  completeStructure?: {
+    processed: {
+      label: string;
+      description: string;
+      paths: any[];
+    };
+    raw: {
+      label: string;
+      description: string;
+      paths: any[];
+    };
+    summary: {
+      label: string;
+      description: string;
+      paths: any[];
+    };
+    metadata?: {
+      label: string;
+      description: string;
+      paths: any[];
+    };
+  };
 }
 
 export interface DataStructureItem {
