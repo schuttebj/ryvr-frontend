@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -25,7 +25,10 @@ import {
   List as ListIcon,
   DataObject as JsonIcon,
   Filter as FilterIcon,
+  CheckCircle as SuccessIcon,
+  Schedule as TimeIcon,
 } from '@mui/icons-material';
+import { getAvailableDataNodes } from '../../services/workflowApi';
 
 interface VariableSelectorProps {
   open: boolean;
@@ -44,27 +47,130 @@ export default function VariableSelector({
   const [selectedPath, setSelectedPath] = useState('');
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState(4);
+  const [realNodeData, setRealNodeData] = useState<any[]>([]);
 
-  // Sample data for demonstration if none provided
-  const sampleData = {
-    serp_results: {
-      results: [{
-        keyword: "marketing",
-        total_count: 10,
-        items: [
-          { rank_absolute: 1, url: "https://example1.com/page", title: "Sample Result 1", description: "Description 1" },
-          { rank_absolute: 2, url: "https://example2.com/page", title: "Sample Result 2", description: "Description 2" },
-          { rank_absolute: 3, url: "https://example3.com/page", title: "Sample Result 3", description: "Description 3" },
-        ]
-      }]
-    },
-    extracted_content: [
-      { url: "https://example1.com/page", content: "Content from page 1...", length: 1500 },
-      { url: "https://example2.com/page", content: "Content from page 2...", length: 1800 }
-    ]
+  // Load real executed node data when dialog opens
+  useEffect(() => {
+    if (open) {
+      const loadData = async () => {
+        try {
+          const { getAvailableDataNodes } = await import('../../services/workflowApi');
+          const availableNodes = getAvailableDataNodes();
+          setRealNodeData(availableNodes);
+          console.log('🔄 VariableSelector loaded real node data:', availableNodes);
+        } catch (error) {
+          console.warn('Failed to load real node data:', error);
+          setRealNodeData([]);
+        }
+      };
+      loadData();
+    }
+  }, [open]);
+
+  // Use real data if available
+  const hasRealData = realNodeData.length > 0;
+
+  // Handle inserting the variable
+  const handleInsert = () => {
+    const variable = generateVariable();
+    if (variable) {
+      onInsert(variable);
+      onClose();
+    }
   };
 
-  const displayData = Object.keys(availableData).length > 0 ? availableData : sampleData;
+  // Render available data from executed nodes
+  const renderAvailableData = () => {
+    if (!hasRealData) {
+      return (
+        <Alert severity="info">
+          <Typography variant="body2">
+            No executed nodes found. Execute nodes in your workflow first to see available data sources.
+            You can use the test data populator in node settings to create sample data for testing.
+          </Typography>
+        </Alert>
+      );
+    }
+
+    return (
+      <Box>
+        {realNodeData.map((node) => (
+          <Accordion key={node.nodeId} sx={{ mb: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <CheckCircle color="success" fontSize="small" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  {node.nodeId}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                  {node.nodeType}
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ mb: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Schedule fontSize="small" color="primary" />
+                  <Typography variant="caption" color="text.secondary">
+                    Executed: {new Date(node.executedAt).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Available Data Paths:
+                </Typography>
+                {renderDataStructure(node.dataStructure, node.nodeId)}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Box>
+    );
+  };
+
+  // Render data structure from executed nodes
+  const renderDataStructure = (items: any[], nodeId: string) => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary">
+          No data structure available for this node.
+        </Typography>
+      );
+    }
+
+    return (
+      <Box>
+        {items.map((item, index) => (
+          <Box key={`${item.path}-${index}`} sx={{ mb: 1 }}>
+            <Chip
+              size="small"
+              label={`${nodeId}.${item.path}`}
+              variant="outlined"
+              color="primary"
+              sx={{ 
+                fontSize: '0.7rem', 
+                cursor: 'pointer',
+                mr: 1,
+                mb: 1
+              }}
+              onClick={() => setSelectedPath(`${nodeId}.${item.path}`)}
+            />
+            {item.sampleValue !== null && item.sampleValue !== undefined && (
+              <Typography variant="caption" color="text.secondary" sx={{ 
+                ml: 1,
+                fontStyle: 'italic',
+                fontSize: '0.7rem'
+              }}>
+                Sample: {typeof item.sampleValue === 'object' ? JSON.stringify(item.sampleValue) : String(item.sampleValue)}
+              </Typography>
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
+  };
 
   // Generate variable based on selections
   const generateVariable = () => {
@@ -112,7 +218,100 @@ export default function VariableSelector({
     return variable;
   };
 
-  // Render clickable data tree
+  // Render executed nodes data
+  const renderExecutedNodesData = (): React.ReactNode => {
+    if (!hasRealData) {
+      return (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <Typography variant="body2">
+            No executed nodes found. Execute nodes in your workflow first to see available data sources.
+            For testing, you can populate test data using the development tools in node settings.
+          </Typography>
+        </Alert>
+      );
+    }
+
+    return (
+      <Box>
+        {realNodeData.map((node) => (
+          <Accordion key={node.nodeId} sx={{ mb: 1 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <SuccessIcon color="success" fontSize="small" />
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                  {node.nodeId}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                  {node.nodeType}
+                </Typography>
+              </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Box sx={{ mb: 1, p: 1, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <TimeIcon fontSize="small" color="primary" />
+                  <Typography variant="caption" color="text.secondary">
+                    Executed: {new Date(node.executedAt).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+              
+              <Box>
+                <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  Available Data Paths:
+                </Typography>
+                {renderDataStructure(node.dataStructure, node.nodeId)}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        ))}
+      </Box>
+    );
+  };
+
+  // Render data structure from executed nodes
+  const renderDataStructure = (items: any[], nodeId: string): React.ReactNode => {
+    if (!Array.isArray(items) || items.length === 0) {
+      return (
+        <Typography variant="body2" color="text.secondary">
+          No data structure available for this node.
+        </Typography>
+      );
+    }
+
+    return (
+      <Box>
+        {items.map((item, index) => (
+          <Box key={`${item.path}-${index}`} sx={{ mb: 1 }}>
+            <Chip
+              size="small"
+              label={`${nodeId}.${item.path}`}
+              variant="outlined"
+              color="primary"
+              sx={{ 
+                fontSize: '0.7rem', 
+                cursor: 'pointer',
+                mr: 1,
+                mb: 1
+              }}
+              onClick={() => setSelectedPath(`${nodeId}.${item.path}`)}
+            />
+            {item.sampleValue !== null && item.sampleValue !== undefined && (
+              <Typography variant="caption" color="text.secondary" sx={{ 
+                ml: 1,
+                fontStyle: 'italic',
+                fontSize: '0.7rem'
+              }}>
+                Sample: {typeof item.sampleValue === 'object' ? JSON.stringify(item.sampleValue) : String(item.sampleValue)}
+              </Typography>
+            )}
+          </Box>
+        ))}
+      </Box>
+    );
+  };
+
+  // Render clickable data tree (fallback for sample data)
   const renderDataTree = (data: any, basePath: string = '', level: number = 0): React.ReactNode => {
     if (level > 3) return null;
     
@@ -327,8 +526,8 @@ export default function VariableSelector({
             <Typography variant="subtitle2">Available Data (Click to Select)</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Paper sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: 'grey.50' }}>
-              {renderDataTree(displayData)}
+            <Paper sx={{ p: 2, maxHeight: 400, overflow: 'auto', bgcolor: 'grey.50' }}>
+              {renderAvailableData()}
             </Paper>
           </AccordionDetails>
         </Accordion>
@@ -360,7 +559,10 @@ export default function VariableSelector({
             </Typography>
             <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
               <pre style={{ margin: 0, fontSize: '0.8rem', whiteSpace: 'pre-wrap' }}>
-                {String(previewVariableOutput())}
+                {hasRealData ? 
+                  `Variable will be replaced with actual data from ${selectedPath} when workflow runs.` :
+                  'Execute workflow nodes to see real data preview'
+                }
               </pre>
             </Paper>
           </Box>

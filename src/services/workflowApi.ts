@@ -166,6 +166,151 @@ export const clearWorkflowData = () => {
   console.log('🧹 Workflow data cleared');
 };
 
+// Function to populate test data for development
+export const populateTestWorkflowData = () => {
+  try {
+    const testData = {
+      serp_analysis_1: {
+        executionId: 'exec_test_123',
+        nodeId: 'serp_analysis_1',
+        nodeType: WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC,
+        status: 'success' as const,
+        executedAt: new Date().toISOString(),
+        executionTime: 1250,
+        data: {
+          processed: {
+            results: [{
+              keyword: "marketing strategies",
+              type: "organic",
+              se_domain: "google.com",
+              location_code: 2840,
+              language_code: "en",
+              total_count: 10,
+              se_results_count: 1250000000,
+              items: [
+                {
+                  type: "organic",
+                  rank_absolute: 1,
+                  rank_group: 1,
+                  position: "left",
+                  url: "https://blog.hubspot.com/marketing/marketing-strategies",
+                  title: "10 Marketing Strategies to Fuel Your Business Growth",
+                  description: "Discover 10 proven marketing strategies that can help grow your business. From content marketing to social media, learn which tactics work best.",
+                  domain: "hubspot.com",
+                  breadcrumb: "HubSpot › Blog › Marketing"
+                },
+                {
+                  type: "organic",
+                  rank_absolute: 2,
+                  rank_group: 2,
+                  position: "left",
+                  url: "https://www.salesforce.com/resources/articles/digital-marketing/",
+                  title: "Digital Marketing Strategies for 2024: Complete Guide",
+                  description: "Learn about the latest digital marketing strategies for 2024. Includes tactics for email marketing, social media, SEO, and more.",
+                  domain: "salesforce.com",
+                  breadcrumb: "Salesforce › Resources › Articles"
+                },
+                {
+                  type: "organic",
+                  rank_absolute: 3,
+                  rank_group: 3,
+                  position: "left",
+                  url: "https://neilpatel.com/blog/marketing-strategies-that-work/",
+                  title: "7 Marketing Strategies That Actually Work in 2024",
+                  description: "Neil Patel shares 7 marketing strategies that are proven to work. Includes case studies and practical implementation tips.",
+                  domain: "neil-patel.com",
+                  breadcrumb: "Neil Patel › Blog"
+                }
+              ]
+            }]
+          },
+          raw: {}, // Raw API response would go here
+          summary: {
+            keyword: "marketing strategies",
+            total_count: 10,
+            se_results_count: 1250000000,
+            top_urls: [
+              "https://blog.hubspot.com/marketing/marketing-strategies",
+              "https://www.salesforce.com/resources/articles/digital-marketing/",
+              "https://neilpatel.com/blog/marketing-strategies-that-work/"
+            ],
+            top_domains: ["hubspot.com", "salesforce.com", "neil-patel.com"]
+          }
+        },
+        apiMetadata: {
+          provider: 'DataForSEO',
+          endpoint: '/v3/serp/google/organic/live/advanced',
+          creditsUsed: 0.001,
+          requestId: 'test-request-123'
+        }
+      },
+      content_extract_1: {
+        executionId: 'exec_test_456',
+        nodeId: 'content_extract_1',
+        nodeType: WorkflowNodeType.CONTENT_EXTRACT,
+        status: 'success' as const,
+        executedAt: new Date().toISOString(),
+        executionTime: 2850,
+        data: {
+          processed: [
+            {
+              url: "https://blog.hubspot.com/marketing/marketing-strategies",
+              title: "10 Marketing Strategies to Fuel Your Business Growth",
+              content: "Marketing strategies are essential for business growth. Here are 10 proven tactics: 1. Content Marketing - Create valuable content that addresses your audience's pain points. 2. Social Media Marketing - Engage with customers on platforms where they spend time. 3. Email Marketing - Build relationships through personalized email campaigns...",
+              word_count: 2847,
+              meta_description: "Discover 10 proven marketing strategies that can help grow your business.",
+              headings: [
+                { level: 1, text: "10 Marketing Strategies to Fuel Your Business Growth" },
+                { level: 2, text: "1. Content Marketing" },
+                { level: 2, text: "2. Social Media Marketing" },
+                { level: 2, text: "3. Email Marketing" }
+              ],
+              extracted_at: new Date().toISOString()
+            },
+            {
+              url: "https://www.salesforce.com/resources/articles/digital-marketing/",
+              title: "Digital Marketing Strategies for 2024: Complete Guide",
+              content: "Digital marketing continues to evolve rapidly. In 2024, successful businesses focus on: Personalization at scale, AI-powered customer insights, Omnichannel experiences, Data-driven decision making...",
+              word_count: 3156,
+              meta_description: "Learn about the latest digital marketing strategies for 2024.",
+              headings: [
+                { level: 1, text: "Digital Marketing Strategies for 2024" },
+                { level: 2, text: "Personalization at Scale" },
+                { level: 2, text: "AI-Powered Insights" }
+              ],
+              extracted_at: new Date().toISOString()
+            }
+          ],
+          raw: [],
+          summary: {
+            total_pages: 2,
+            total_content_length: 6003,
+            extracted_urls: [
+              "https://blog.hubspot.com/marketing/marketing-strategies",
+              "https://www.salesforce.com/resources/articles/digital-marketing/"
+            ]
+          }
+        },
+        inputData: {
+          inputMapping: "serp_analysis_1.results[0].items[*].url",
+          urls: [
+            "https://blog.hubspot.com/marketing/marketing-strategies",
+            "https://www.salesforce.com/resources/articles/digital-marketing/"
+          ]
+        }
+      }
+    };
+
+    globalWorkflowData = testData;
+    console.log('🧪 Test workflow data populated:', Object.keys(testData));
+    console.log('📊 Available data nodes:', Object.keys(testData));
+    return testData;
+  } catch (error) {
+    console.error('Failed to populate test data:', error);
+    return {};
+  }
+};
+
 // Note: axios instance commented out temporarily - will be restored after main changes
 // Create axios instance with auth
 // const api = axios.create({
@@ -244,30 +389,110 @@ export const dataforSeoApi = {
   }
 };
 
-// Variable processing helper
+// Enhanced variable processing helper for new format
 const processVariables = (text: string, workflowData: Record<string, any>): string => {
   if (!text) return text;
   
-  // Replace variables in format {node_id.property}
-  return text.replace(/\{([^}]+)\}/g, (match, path) => {
+  console.log('🔄 Processing variables in text:', text);
+  console.log('📊 Available workflow data:', Object.keys(workflowData));
+  
+  // Replace variables in format {{node_id.property}} or {{node_id.property|format}}
+  return text.replace(/\{\{([^}]+)\}\}/g, (match, variableExpression) => {
     try {
-      const pathParts = path.split('.');
-      let value = workflowData;
+      // Split format if exists (e.g., "node_id.path|list")
+      const [path, format] = variableExpression.split('|');
+      const trimmedPath = path.trim();
       
-      for (const part of pathParts) {
-        if (value && typeof value === 'object') {
-          value = value[part];
-        } else {
-          return match; // Return original if path doesn't exist
-        }
+      console.log(`🔍 Processing variable: ${trimmedPath}, format: ${format || 'none'}`);
+      
+      // Resolve the data path
+      let value = resolveVariablePath(trimmedPath, workflowData);
+      
+      if (value === undefined || value === null) {
+        console.warn(`❌ Variable ${trimmedPath} not found in workflow data`);
+        return `[${trimmedPath}: not found]`;
       }
       
-      return typeof value === 'string' ? value : JSON.stringify(value);
+      console.log(`✅ Variable ${trimmedPath} resolved to:`, value);
+      
+      // Apply formatting if specified
+      if (format) {
+        value = applyVariableFormat(value, format.trim());
+      }
+      
+      return String(value || '');
     } catch (error) {
-      console.warn(`Failed to process variable ${path}:`, error);
-      return match;
+      console.warn(`❌ Failed to process variable ${variableExpression}:`, error);
+      return `[${variableExpression}: error]`;
     }
   });
+};
+
+// Resolve variable path with support for arrays and complex paths
+const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
+  const pathParts = path.split('.');
+  let current = workflowData;
+  
+  for (const part of pathParts) {
+    if (part.includes('[') && part.includes(']')) {
+      // Handle array access like items[0] or items[*]
+      const match = part.match(/(\w+)\[([0-9*]+)\]/);
+      if (match) {
+        const [, arrayKey, index] = match;
+        if (current[arrayKey] && Array.isArray(current[arrayKey])) {
+          if (index === '*') {
+            // Return the entire array for * index
+            current = current[arrayKey];
+          } else {
+            current = current[arrayKey][parseInt(index)];
+          }
+        } else {
+          return undefined;
+        }
+      }
+    } else {
+      current = current[part];
+    }
+    
+    if (current === undefined) break;
+  }
+  
+  return current;
+};
+
+// Apply formatting to variable values
+const applyVariableFormat = (value: any, format: string): string => {
+  switch (format.toLowerCase()) {
+    case 'list':
+      if (Array.isArray(value)) {
+        return value.join(', ');
+      }
+      return String(value || '');
+      
+    case 'json':
+      return JSON.stringify(value, null, 2);
+      
+    case 'count':
+      if (Array.isArray(value)) {
+        return String(value.length);
+      }
+      return '1';
+      
+    case 'first':
+      if (Array.isArray(value) && value.length > 0) {
+        return String(value[0]);
+      }
+      return String(value || '');
+      
+    case 'last':
+      if (Array.isArray(value) && value.length > 0) {
+        return String(value[value.length - 1]);
+      }
+      return String(value || '');
+      
+    default:
+      return String(value || '');
+  }
 };
 
 // Helper functions for realistic content generation

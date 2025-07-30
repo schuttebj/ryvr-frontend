@@ -71,32 +71,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [availableNodes, setAvailableNodes] = useState<any[]>([]);
   
-  // Sample available data for variable selector (in real app, this would come from workflow execution state)
-  const availableData = {
-    // Sample SERP results
-    serp_results: {
-      results: [{
-        keyword: "sample keyword",
-        total_count: 10,
-        items: [
-          { rank_absolute: 1, url: "https://example1.com", title: "Sample Result 1", description: "Sample description 1" },
-          { rank_absolute: 2, url: "https://example2.com", title: "Sample Result 2", description: "Sample description 2" },
-          { rank_absolute: 3, url: "https://example3.com", title: "Sample Result 3", description: "Sample description 3" }
-        ]
-      }]
-    },
-    // Sample extracted content
-    extracted_content: [
-      { url: "https://example1.com", content: "Sample extracted content...", title: "Sample Title 1", length: 1500 },
-      { url: "https://example2.com", content: "More sample content...", title: "Sample Title 2", length: 1800 }
-    ],
-    // Sample AI results
-    ai_result: {
-      content: "Sample AI generated content...",
-      model: "gpt-4o-mini",
-      usage: { prompt_tokens: 100, completion_tokens: 50 }
-    }
-  };
+  // Real data will be loaded from executed nodes - no more hardcoded samples
 
   // Shared MenuProps configuration for all select dropdowns
   const selectMenuProps = {
@@ -329,6 +304,19 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     }
   };
 
+  // Handle populating test data for development
+  const handlePopulateTestData = async () => {
+    try {
+      const { populateTestWorkflowData, getAvailableDataNodes } = await import('../../services/workflowApi');
+      populateTestWorkflowData();
+      const nodes = getAvailableDataNodes();
+      setAvailableNodes(nodes);
+      console.log('Test data populated');
+    } catch (error) {
+      console.error('Failed to populate test data:', error);
+    }
+  };
+
   const renderDataMappingSection = () => (
     <Accordion defaultExpanded={false} sx={{ mt: 2 }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -342,49 +330,35 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           Map data from previous nodes in your workflow
         </Typography>
         
-        {/* Available data from previous nodes */}
-        <AvailableDataDisplay availableNodes={availableNodes} />
-        
-        {/* Development reset button */}
-        <Box sx={{ mb: 2, p: 1, bgcolor: 'warning.light', borderRadius: 1 }}>
+        {/* Development tools */}
+        <Box sx={{ mb: 2, p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
             Development Tools:
           </Typography>
-          <Button 
-            size="small" 
-            variant="outlined" 
-            color="warning"
-            onClick={handleClearWorkflowData}
-            sx={{ fontSize: '0.75rem' }}
-          >
-            Clear Workflow Data
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              color="primary"
+              onClick={handlePopulateTestData}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              Populate Test Data
+            </Button>
+            <Button 
+              size="small" 
+              variant="outlined" 
+              color="warning"
+              onClick={handleClearWorkflowData}
+              sx={{ fontSize: '0.75rem' }}
+            >
+              Clear Data
+            </Button>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontSize: '0.7rem' }}>
+            Use "Populate Test Data" to create sample executed nodes for testing variables.
+          </Typography>
         </Box>
-
-        {/* Input mapping */}
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Map Input Data</InputLabel>
-          <Select
-            value={formData.config?.inputMapping || ''}
-            label="Map Input Data"
-            onChange={(e) => handleConfigChange('inputMapping', e.target.value)}
-            MenuProps={selectMenuProps}
-          >
-            <MenuItem value="">No mapping (use all available data)</MenuItem>
-            <MenuItem value="previous_node">Previous node output</MenuItem>
-            <MenuItem value="previous_node.results">Previous node results</MenuItem>
-            <MenuItem value="previous_node.keyword">Previous node keyword</MenuItem>
-            <MenuItem value="previous_node.analysis">Previous node analysis</MenuItem>
-          </Select>
-        </FormControl>
-        
-        <DataMappingSelector
-          value={formData.config?.customInputMapping || ''}
-          onChange={(value) => handleConfigChange('customInputMapping', value)}
-          placeholder="serp_results.results[0].items[*].url"
-          helperText="Advanced: Enter specific node mapping with JSON path support"
-          label="Custom Input Mapping"
-        />
       </AccordionDetails>
     </Accordion>
   );
@@ -420,7 +394,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onChange={(value) => handleConfigChange('webhookUrl', value)}
                 sx={{ mb: 2 }}
                 helperText="URL that will trigger this workflow. Can use variables for dynamic URLs."
-                availableData={availableData}
+                availableData={{}}
               />
             )}
             
@@ -490,7 +464,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               onChange={(value) => handleConfigChange('keyword', value)}
               sx={{ mb: 2 }}
               helperText="Keyword to analyze SERP results for. Click the variable icon to use data from previous nodes."
-              availableData={availableData}
+              availableData={{}}
             />
             
             <FormControl fullWidth sx={{ mb: 2 }}>
@@ -605,7 +579,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               sx={{ mb: 2 }}
               helperText="Define the AI's role and behavior. Click the variable icon to insert data from previous nodes."
               placeholder="You are a helpful AI assistant that..."
-              availableData={availableData}
+              availableData={{}}
             />
             
             <VariableTextField
@@ -618,7 +592,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               sx={{ mb: 2 }}
               helperText="Main task description. Click the variable icon to insert data from previous nodes."
               placeholder="Analyze the following data: {{serp_results.results[0].items[*].url|list}}"
-              availableData={availableData}
+              availableData={{}}
             />
             
             {/* Advanced Settings */}
@@ -686,7 +660,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 sx={{ mb: 2 }}
                 helperText="Optional: Define expected JSON structure. Can use variables for dynamic schemas."
                 placeholder='{"result": "string", "confidence": "number"}'
-                availableData={availableData}
+                availableData={{}}
               />
             )}
             
@@ -751,7 +725,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 sx={{ mb: 2 }}
                 placeholder="article, .content, #main-text"
                 helperText="CSS selector to target specific content. Click the variable icon to use dynamic selectors."
-                availableData={availableData}
+                availableData={{}}
               />
             )}
             
@@ -813,7 +787,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               sx={{ mb: 2 }}
               type="email"
               helperText="Email address or use variables from previous nodes"
-              availableData={availableData}
+              availableData={{}}
             />
             
             <VariableTextField
@@ -823,7 +797,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               onChange={(value) => handleConfigChange('subject', value)}
               sx={{ mb: 2 }}
               helperText="Email subject line. Click the variable icon to insert data from previous nodes."
-              availableData={availableData}
+              availableData={{}}
             />
             
             <VariableTextField
@@ -835,7 +809,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               onChange={(value) => handleConfigChange('body', value)}
               placeholder="Email content. Use {{variable_name}} to insert data from previous nodes."
               helperText="Email content. Click the variable icon to insert data from previous nodes."
-              availableData={availableData}
+              availableData={{}}
             />
           </Box>
         );
