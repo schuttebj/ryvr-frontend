@@ -206,7 +206,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
     const nodeType = node.data.type;
     const config = node.data.config || {};
 
-    addLogMessage(`🔧 Executing ${nodeType} node with config:`, config);
+    addLogMessage(`🔧 Executing ${nodeType} node with config: ${JSON.stringify(config)}`);
 
     switch (nodeType) {
       case WorkflowNodeType.SEO_SERP_ANALYZE:
