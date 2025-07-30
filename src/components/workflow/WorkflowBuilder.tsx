@@ -271,7 +271,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [workflowActive, setWorkflowActive] = useState(false);
   
   // Track the current workflow ID to fix autosave creating new workflows
-  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
   
   // Auto-save timer
   const autoSaveTimer = useRef<number | null>(null);
