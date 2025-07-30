@@ -237,6 +237,18 @@ export const clearWorkflowData = () => {
   console.log('🧹 Workflow data cleared');
 };
 
+// Function to store node result (used by node testing)
+export const storeNodeResult = async (nodeId: string, response: StandardNodeResponse) => {
+  globalWorkflowData[nodeId] = response;
+  console.log(`📊 Stored node result for ${nodeId}:`, response);
+  return { success: true };
+};
+
+// Function to get stored node data for variable selector
+export const getStoredNodeData = (nodeId: string) => {
+  return globalWorkflowData[nodeId]?.data?.processed || null;
+};
+
 // Function to populate test data for development
 export const populateTestWorkflowData = () => {
   try {

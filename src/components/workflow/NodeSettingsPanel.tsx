@@ -246,11 +246,44 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       // Test the node with its current configuration
       result = await workflowApi.testNode(formData.type, testConfig);
       
+      // Store successful test results automatically for use in other nodes
+      if (result.success && result.data) {
+        const standardResponse = {
+          executionId: `test_${Date.now()}`,
+          nodeId: node.id,
+          nodeType: formData.type,
+          status: 'success' as const,
+          executedAt: new Date().toISOString(),
+          executionTime: 1000, // Mock execution time for test
+          data: {
+            processed: result.data,
+            raw: result.data, // For testing, use the same data for both
+            summary: {
+              nodeId: node.id,
+              testExecutedAt: new Date().toISOString(),
+              dataType: typeof result.data,
+              success: true
+            }
+          },
+          apiMetadata: {
+            provider: 'Test',
+            endpoint: 'test',
+            requestId: `test_${Date.now()}`
+          }
+        };
+        
+        // Store in global workflow data
+        await workflowApi.storeNodeResult(node.id, standardResponse);
+        console.log(`✅ Test result automatically stored for node ${node.id}`);
+      }
+      
       setTestResult({
         success: result.success,
         data: result.data,
         nodeType: formData.type,
-        message: result.success ? 'Node executed successfully!' : result.error,
+        message: result.success ? 
+          'Node executed successfully! Result saved for use in other nodes.' : 
+          result.error,
       });
       
     } catch (error: any) {
@@ -290,16 +323,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     }
   };
 
-  // Handle populating test data for development
-  const handlePopulateTestData = async () => {
-    try {
-      const { populateTestWorkflowData } = await import('../../services/workflowApi');
-      populateTestWorkflowData();
-      console.log('Test data populated');
-    } catch (error) {
-      console.error('Failed to populate test data:', error);
-    }
-  };
+  // Test data is now automatically populated when nodes are tested
 
   const renderDataMappingSection = () => (
     <Accordion defaultExpanded={false} sx={{ mt: 2 }}>
@@ -314,33 +338,22 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           Map data from previous nodes in your workflow
         </Typography>
         
-        {/* Development tools */}
-        <Box sx={{ mb: 2, p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
+        {/* Development tools - minimized */}
+        <Box sx={{ mb: 2, p: 1, bgcolor: 'warning.light', borderRadius: 1 }}>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Development Tools:
+            Development Reset:
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button 
-              size="small" 
-              variant="outlined" 
-              color="primary"
-              onClick={handlePopulateTestData}
-              sx={{ fontSize: '0.75rem' }}
-            >
-              Populate Test Data
-            </Button>
-            <Button 
-              size="small" 
-              variant="outlined" 
-              color="warning"
-              onClick={handleClearWorkflowData}
-              sx={{ fontSize: '0.75rem' }}
-            >
-              Clear Data
-            </Button>
-          </Box>
+          <Button 
+            size="small" 
+            variant="outlined" 
+            color="warning"
+            onClick={handleClearWorkflowData}
+            sx={{ fontSize: '0.75rem' }}
+          >
+            Clear All Node Data
+          </Button>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontSize: '0.7rem' }}>
-            Use "Populate Test Data" to create sample executed nodes for testing variables.
+            Test nodes to automatically store results for use in variables.
           </Typography>
         </Box>
       </AccordionDetails>
