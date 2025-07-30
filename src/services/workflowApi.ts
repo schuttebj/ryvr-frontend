@@ -1190,6 +1190,20 @@ export const workflowApi = {
             });
             
             if (!response.ok) {
+              // Handle authentication errors by redirecting to login
+              if (response.status === 401 || response.status === 403) {
+                console.warn(`🚫 Authentication failed (${response.status}) - redirecting to login`);
+                
+                // Clear stored authentication data
+                localStorage.removeItem('ryvr_token');
+                localStorage.removeItem('ryvr_user');
+                
+                // Redirect to login page
+                window.location.href = '/login';
+                
+                throw new Error(`Authentication failed: ${response.status}`);
+              }
+              
               console.warn(`⚠️ Backend API not available (${response.status}), using mock data`);
               throw new Error(`Backend API error: ${response.status}`);
             }

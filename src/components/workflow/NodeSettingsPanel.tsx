@@ -450,6 +450,47 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               </Alert>
             )}
             
+            {/* Client Assignment */}
+            <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
+              Client Assignment
+            </Typography>
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Client Assignment</InputLabel>
+              <Select
+                value={formData.config?.clientAssignment || 'general'}
+                label="Client Assignment"
+                onChange={(e) => handleConfigChange('clientAssignment', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="general">General (No Client)</MenuItem>
+                <MenuItem value="client_specific">Client Specific</MenuItem>
+              </Select>
+              <FormHelperText>
+                Choose whether to run this analysis for general use or assign to a specific client
+              </FormHelperText>
+            </FormControl>
+
+            {formData.config?.clientAssignment === 'client_specific' && (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Client</InputLabel>
+                <Select
+                  value={formData.config?.clientId || ''}
+                  label="Select Client"
+                  onChange={(e) => handleConfigChange('clientId', e.target.value)}
+                  MenuProps={selectMenuProps}
+                >
+                  <MenuItem value="">-- Select a Client --</MenuItem>
+                  {/* TODO: Load clients from API */}
+                  <MenuItem value="client_1">Demo Client 1</MenuItem>
+                  <MenuItem value="client_2">Demo Client 2</MenuItem>
+                </Select>
+                <FormHelperText>
+                  Select which client this analysis is for (affects billing and reporting)
+                </FormHelperText>
+              </FormControl>
+            )}
+            
             {/* Search Configuration */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
               Search Configuration

@@ -45,7 +45,13 @@ export default function LoginPage() {
       });
 
       if (!loginResponse.ok) {
-        throw new Error('Invalid username or password');
+        if (loginResponse.status === 401) {
+          throw new Error('Invalid username or password');
+        } else if (loginResponse.status === 422) {
+          throw new Error('Please check your username and password format');
+        } else {
+          throw new Error(`Login failed: ${loginResponse.status}`);
+        }
       }
 
       const loginData = await loginResponse.json();

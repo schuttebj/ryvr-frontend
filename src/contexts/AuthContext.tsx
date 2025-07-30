@@ -28,23 +28,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth state from localStorage
+  // Initialize auth state from localStorage and validate token
   useEffect(() => {
-    const savedToken = localStorage.getItem('ryvr_token');
-    const savedUser = localStorage.getItem('ryvr_user');
-    
-    if (savedToken && savedUser) {
-      try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('ryvr_token');
-        localStorage.removeItem('ryvr_user');
+    const validateToken = async () => {
+      const savedToken = localStorage.getItem('ryvr_token');
+      const savedUser = localStorage.getItem('ryvr_user');
+      
+      if (savedToken && savedUser) {
+        try {
+          // Parse user data
+          const userData = JSON.parse(savedUser);
+          
+          // Validate token by making a request to /me endpoint
+          const backendUrl = 'https://ryvr-backend.onrender.com';
+          const response = await fetch(`${backendUrl}/api/v1/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${savedToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            // Token is valid, set auth state
+            setToken(savedToken);
+            setUser(userData);
+            console.log('✅ Token validated successfully');
+          } else {
+            // Token is invalid, clear storage
+            console.warn('🚫 Token validation failed, clearing auth data');
+            localStorage.removeItem('ryvr_token');
+            localStorage.removeItem('ryvr_user');
+          }
+        } catch (error) {
+          console.error('Error validating token:', error);
+          localStorage.removeItem('ryvr_token');
+          localStorage.removeItem('ryvr_user');
+        }
       }
-    }
-    
-    setIsLoading(false);
+      
+      setIsLoading(false);
+    };
+
+    validateToken();
   }, []);
 
   const login = (newToken: string, userData: User) => {
