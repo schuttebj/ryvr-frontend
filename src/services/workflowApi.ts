@@ -783,22 +783,46 @@ const pollTaskCompletion = async (taskId: string, initialResult: any): Promise<a
       console.log(`📊 Task status check ${attempt}/${maxAttempts}:`, statusData.status);
       
       if (statusData.status === 'completed') {
-        // Task completed, get results
+        // Task completed, try to get results
         const resultsUrl = `${backendUrl}/api/v1/seo/serp/results/${taskId}`;
-        const resultsResponse = await fetch(resultsUrl, {
-          method: 'GET',
-          headers
-        });
         
-        if (!resultsResponse.ok) {
-          throw new Error(`Results retrieval failed: ${resultsResponse.status}`);
+        try {
+          const resultsResponse = await fetch(resultsUrl, {
+            method: 'GET',
+            headers
+          });
+          
+          if (!resultsResponse.ok) {
+            if (resultsResponse.status === 500) {
+              // Backend error processing results, treat as still processing
+              console.warn(`⚠️ Backend error processing results (500), treating as still processing...`);
+              if (attempt < maxAttempts) {
+                console.log(`⏳ Waiting ${pollInterval/1000}s before next check...`);
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+                continue; // Go back to status check
+              } else {
+                throw new Error(`Results processing failed after ${maxAttempts} attempts`);
+              }
+            }
+            throw new Error(`Results retrieval failed: ${resultsResponse.status}`);
+          }
+          
+          const resultsData = await resultsResponse.json();
+          console.log(`✅ Task completed successfully, retrieved results`);
+          
+          // Return the processed results
+          return resultsData.data || resultsData;
+          
+        } catch (fetchError: any) {
+          // If results fetch fails, treat as still processing
+          console.warn(`⚠️ Error fetching results: ${fetchError.message}, retrying...`);
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+            continue; // Go back to status check
+          } else {
+            throw new Error(`Results retrieval failed after ${maxAttempts} attempts: ${fetchError.message}`);
+          }
         }
-        
-        const resultsData = await resultsResponse.json();
-        console.log(`✅ Task completed successfully, retrieved results`);
-        
-        // Return the processed results
-        return resultsData.data || resultsData;
       } else if (statusData.status === 'failed') {
         throw new Error(`Task failed: ${statusData.message}`);
       } else if (statusData.status === 'processing') {
