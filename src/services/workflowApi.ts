@@ -95,7 +95,7 @@ const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType
 */
 
 // Enhanced function to analyze complete data structure for comprehensive JSON access
-const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 10): DataStructureItem[] => {
+const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 20): DataStructureItem[] => {
   if (level > maxDepth) return []; // Prevent infinite recursion but allow deeper exploration
   
   const items: DataStructureItem[] = [];
@@ -250,6 +250,11 @@ export const storeNodeResult = async (nodeId: string, response: StandardNodeResp
 // Function to get stored node data for variable selector
 export const getStoredNodeData = (nodeId: string) => {
   return globalWorkflowData[nodeId]?.data?.processed || null;
+};
+
+// Function to get full stored node response
+export const getStoredNodeResponse = (nodeId: string) => {
+  return globalWorkflowData[nodeId] || null;
 };
 
 // Function to populate test data for development
@@ -685,8 +690,13 @@ export const processVariables = (text: string, workflowData: Record<string, any>
 
 // Resolve variable path with support for arrays and complex paths
 export const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
+  console.log('🔍 Resolving variable path:', path);
+  console.log('📊 Available data keys:', Object.keys(workflowData));
+  
   const pathParts = path.split('.');
-    let current = workflowData;
+  let current = workflowData;
+  
+  console.log('🗂️ Path parts:', pathParts);
     
   for (const part of pathParts) {
     if (part.includes('[') && part.includes(']')) {
@@ -706,12 +716,18 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
         }
       }
     } else {
+      console.log(`📝 Accessing property '${part}' on:`, typeof current, current ? Object.keys(current) : 'null/undefined');
       current = current[part];
+      console.log(`📥 Result after '${part}':`, typeof current, current);
     }
     
-    if (current === undefined) break;
+    if (current === undefined) {
+      console.log(`❌ Path resolution stopped at '${part}' - value undefined`);
+      break;
+    }
   }
   
+  console.log('✅ Final resolved value:', current);
   return current;
 };
 

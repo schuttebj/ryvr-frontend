@@ -58,8 +58,8 @@ export default function VariableSelector({
       const loadNodeData = async () => {
         try {
           const workflowApi = await import('../../services/workflowApi');
-          const data = workflowApi.getStoredNodeData(nodeId);
-          setNodeData(data);
+          const fullResponse = workflowApi.getStoredNodeResponse(nodeId);
+          setNodeData(fullResponse);
         } catch (error) {
           console.warn(`Failed to load data for node ${nodeId}:`, error);
           setNodeData(null);
@@ -78,7 +78,37 @@ export default function VariableSelector({
       );
     }
 
-    return renderDataTree(nodeData, nodeId, nodeId);
+    // Show all data sections with proper path prefixes
+    return (
+      <Box>
+        {nodeData.data?.processed && (
+          <>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
+              📊 Processed Data:
+            </Typography>
+            {renderDataTree(nodeData.data.processed, `${nodeId}.data.processed`, nodeId, 0)}
+          </>
+        )}
+        
+        {nodeData.data?.raw && (
+          <>
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              🔗 Raw API Data:
+            </Typography>
+            {renderDataTree(nodeData.data.raw, `${nodeId}.data.raw`, nodeId, 0)}
+          </>
+        )}
+        
+        {nodeData.data?.summary && (
+          <>
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              📋 Summary:
+            </Typography>
+            {renderDataTree(nodeData.data.summary, `${nodeId}.data.summary`, nodeId, 0)}
+          </>
+        )}
+      </Box>
+    );
   };
 
   // Load real executed node data when dialog opens
