@@ -1240,7 +1240,8 @@ export const workflowApi = {
             ...(finalConfig.target && { target: finalConfig.target }),
             ...(finalConfig.resultType && { result_type: finalConfig.resultType }),
             ...(finalConfig.dateRange && { date_range: finalConfig.dateRange }),
-            ...(finalConfig.organicOnly && { organic_only: 'true' })
+            // Set organic_only to true if result type is organic_only
+            ...(finalConfig.resultType === 'organic_only' && { organic_only: 'true' })
           });
           
           try {
@@ -1300,8 +1301,8 @@ export const workflowApi = {
             if (apiResponse.status === 'submitted' && apiResponse.task_id) {
               console.log(`📋 Task submitted with ID: ${apiResponse.task_id}`);
               
-              // Store task ID for status checking
-              result = {
+              // Start polling for task completion and get final results
+              result = await pollTaskCompletion(apiResponse.task_id, {
                 status: 'submitted',
                 task_id: apiResponse.task_id,
                 message: apiResponse.message,
@@ -1309,10 +1310,7 @@ export const workflowApi = {
                 provider: apiResponse.provider,
                 task_type: apiResponse.task_type,
                 timestamp: apiResponse.timestamp
-              };
-              
-              // Start polling for task completion
-              await pollTaskCompletion(apiResponse.task_id, result);
+              });
             } else if (apiResponse.success && apiResponse.data) {
               // Use the standardized response from our backend
               result = apiResponse.data.processed || apiResponse.data;
@@ -1320,29 +1318,29 @@ export const workflowApi = {
               // Fallback: Handle direct DataForSEO API response format
               const taskResult = apiResponse.tasks[0].result[0];
             
-              if (!taskResult) {
+            if (!taskResult) {
                   throw new Error('No SERP results returned from API');
-              }
-              
-              // Map DataForSEO response to expected structure for variable system
-              result = {
-                results: [
-                  {
-                    keyword: taskResult.keyword,
-                    type: taskResult.type,
-                    se_domain: taskResult.se_domain,
-                    location_code: taskResult.location_code,
-                    language_code: taskResult.language_code,
-                    check_url: taskResult.check_url,
-                    datetime: taskResult.datetime,
-                    total_count: taskResult.items_count || taskResult.items?.length || 0,
-                    se_results_count: taskResult.se_results_count,
-                    items: taskResult.items || []
-                  }
-                ],
-                // Also include raw API response for advanced users
-                raw_api_response: apiResponse
-              };
+            }
+            
+            // Map DataForSEO response to expected structure for variable system
+            result = {
+              results: [
+                {
+                  keyword: taskResult.keyword,
+                  type: taskResult.type,
+                  se_domain: taskResult.se_domain,
+                  location_code: taskResult.location_code,
+                  language_code: taskResult.language_code,
+                  check_url: taskResult.check_url,
+                  datetime: taskResult.datetime,
+                  total_count: taskResult.items_count || taskResult.items?.length || 0,
+                  se_results_count: taskResult.se_results_count,
+                  items: taskResult.items || []
+                }
+              ],
+              // Also include raw API response for advanced users
+              raw_api_response: apiResponse
+            };
             } else {
               throw new Error('Invalid API response structure');
             }

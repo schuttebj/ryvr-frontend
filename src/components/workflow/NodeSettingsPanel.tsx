@@ -599,19 +599,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               <FormHelperText>Operating system affects how results are displayed</FormHelperText>
             </FormControl>
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={formData.config?.organicOnly || false}
-                  onChange={(e) => handleConfigChange('organicOnly', e.target.checked)}
-                />
-              }
-              label="Organic Results Only"
-              sx={{ mb: 2 }}
-            />
-            <FormHelperText sx={{ mt: -1.5, mb: 2 }}>
-              Filter out local packs, ads, and other non-organic results. Only include results with domains.
-            </FormHelperText>
+
 
             <VariableTextField
               fullWidth
