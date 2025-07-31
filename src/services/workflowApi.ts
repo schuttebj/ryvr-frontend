@@ -227,7 +227,10 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
       executedAt: response.executedAt,
       status: response.status as 'success', // Safe cast since we filtered for success
       dataStructure: analyzeDataStructure(response.data.processed), // Keep for backward compatibility
-      completeStructure: analyzeCompleteDataStructure(response) // New comprehensive structure
+      completeStructure: analyzeCompleteDataStructure(response), // New comprehensive structure
+      // Required properties for compatibility
+      id: response.nodeId,
+      data: response.data
     }));
 };
 
