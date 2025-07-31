@@ -641,8 +641,8 @@ export const dataforSeoApi = {
   }
 };
 
-// Enhanced variable processing helper for new format
-const processVariables = (text: string, workflowData: Record<string, any>): string => {
+// Enhanced variable processing helper for new format  
+export const processVariables = (text: string, workflowData: Record<string, any>): string => {
   if (!text) return text;
   
   console.log('🔄 Processing variables in text:', text);
@@ -681,7 +681,7 @@ const processVariables = (text: string, workflowData: Record<string, any>): stri
 };
 
 // Resolve variable path with support for arrays and complex paths
-const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
+export const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
   const pathParts = path.split('.');
     let current = workflowData;
     
@@ -1266,12 +1266,16 @@ export const workflowApi = {
         case WorkflowNodeType.SEO_SERP_ANALYZE:
         case 'seo_serp_google_organic':
         case WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC:
+          // Process variables in config values
+          const processedKeyword = finalConfig.keyword ? processVariables(finalConfig.keyword, inputData) : inputData.keyword;
+          const processedTarget = finalConfig.target ? processVariables(finalConfig.target, inputData) : undefined;
+          
           // Validate required fields
-          if (!finalConfig.keyword && !inputData.keyword) {
+          if (!processedKeyword) {
             throw new Error('Keyword is required for SERP analysis');
           }
           
-          const keyword = finalConfig.keyword || inputData.keyword;
+          const keyword = processedKeyword;
           const locationCode = finalConfig.locationCode || 2840;
           const languageCode = finalConfig.languageCode || 'en';
           const maxResults = finalConfig.maxResults || 10;
@@ -1287,7 +1291,7 @@ export const workflowApi = {
             ...(maxResults && { depth: maxResults.toString() }),
             ...(finalConfig.device && { device: finalConfig.device }),
             ...(finalConfig.os && { os: finalConfig.os }),
-            ...(finalConfig.target && { target: finalConfig.target }),
+            ...(processedTarget && { target: processedTarget }), // Use processed target
             ...(finalConfig.resultType && { result_type: finalConfig.resultType }),
             ...(finalConfig.dateRange && { date_range: finalConfig.dateRange }),
             // Set organic_only to true if result type is organic_only

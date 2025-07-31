@@ -167,10 +167,10 @@ export default function VariableSelector({
 
   // Render actual data tree with property names and values (simplified display names)
   const renderDataTree = (data: any, currentPath: string = '', nodeId: string = '', level: number = 0): React.ReactNode => {
-    if (level > 8) {
+    if (level > 15) { // Increased from 8 to 15 for deeper nesting
       return (
         <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', ml: level * 2 }}>
-          ... (deeply nested - click parent path to access)
+          ... (deeply nested - continue expanding to access)
         </Typography>
       );
     }
