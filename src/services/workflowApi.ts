@@ -810,8 +810,34 @@ const pollTaskCompletion = async (taskId: string, initialResult: any): Promise<a
           const resultsData = await resultsResponse.json();
           console.log(`✅ Task completed successfully, retrieved results`);
           
-          // Return the processed results
-          return resultsData.data || resultsData;
+          // Convert backend standardized format to frontend expected format
+          if (resultsData.data) {
+            const backendData = resultsData.data;
+            
+            // Transform to expected frontend structure
+            const frontendFormat = {
+              results: [{
+                keyword: backendData.keyword,
+                type: 'organic',
+                se_domain: backendData.se_domain || 'google.com',
+                location_code: backendData.location,
+                language_code: backendData.language,
+                check_url: `https://www.google.com/search?q=${encodeURIComponent(backendData.keyword || '')}`,
+                datetime: new Date().toISOString(),
+                total_count: backendData.total_results || (backendData.all_results ? backendData.all_results.length : 0),
+                se_results_count: backendData.total_results || 1000000,
+                items: backendData.all_results || backendData.organic_results || []
+              }],
+              // Also include raw backend response for advanced users
+              raw_api_response: resultsData
+            };
+            
+            console.log(`🔄 Converted backend format to frontend format:`, frontendFormat);
+            return frontendFormat;
+          }
+          
+          // Fallback: return as-is if no data property
+          return resultsData;
           
         } catch (fetchError: any) {
           // If results fetch fails, treat as still processing
