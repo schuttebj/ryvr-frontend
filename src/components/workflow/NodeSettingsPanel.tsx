@@ -28,11 +28,14 @@ import {
   PlayArrow as TestIcon,
   ExpandMore as ExpandMoreIcon,
   DataArray as DataIcon,
+  AutoAwesome as AutoAwesomeIcon,
+  Tooltip,
   Add as AddIcon,
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import DataMappingSelector from './DataMappingSelector';
 import VariableTextField from './VariableTextField';
+import JsonSchemaBuilder from './JsonSchemaBuilder';
 // AvailableDataDisplay removed - using variable selector instead
 
 interface Integration {
@@ -70,6 +73,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
+  const [isJsonSchemaBuilderOpen, setIsJsonSchemaBuilderOpen] = useState(false);
   
   // Real data will be loaded from executed nodes - no more hardcoded samples
 
@@ -785,18 +789,30 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             />
             
             {formData.config?.jsonResponse && (
-              <VariableTextField
-                fullWidth
-                multiline
-                rows={3}
-                label="JSON Schema"
-                value={formData.config?.jsonSchema || ''}
-                onChange={(value) => handleConfigChange('jsonSchema', value)}
-                sx={{ mb: 2 }}
-                helperText="Optional: Define expected JSON structure. Can use variables for dynamic schemas."
-                placeholder='{"result": "string", "confidence": "number"}'
-                availableData={{}}
-              />
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                  <VariableTextField
+                    fullWidth
+                    multiline
+                    rows={3}
+                    label="JSON Schema"
+                    value={formData.config?.jsonSchema || ''}
+                    onChange={(value) => handleConfigChange('jsonSchema', value)}
+                    helperText="Optional: Define expected JSON structure. Can use variables for dynamic schemas."
+                    placeholder='{"result": "string", "confidence": "number"}'
+                    availableData={{}}
+                  />
+                  <Tooltip title="Generate JSON Schema with AI">
+                    <IconButton
+                      onClick={() => setIsJsonSchemaBuilderOpen(true)}
+                      sx={{ mt: 1 }}
+                      color="primary"
+                    >
+                      <AutoAwesomeIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </Box>
             )}
             
             <TextField
@@ -817,18 +833,52 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               Content Extraction Settings
             </Typography>
             
-            {/* Input Mapping */}
+            {/* URL Sources */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
               URL Sources
             </Typography>
             
-            <DataMappingSelector
-              value={formData.config?.inputMapping || ''}
-              onChange={(value) => handleConfigChange('inputMapping', value)}
-              placeholder="serp_results.results[0].items[*].url"
-              helperText="JSON path to extract URLs from previous nodes (supports arrays with *)"
-              label="Input Mapping (URLs)"
+            <VariableTextField
+              fullWidth
+              multiline
+              rows={3}
+              label="URL Source"
+              value={formData.config?.urlSource || ''}
+              onChange={(value) => handleConfigChange('urlSource', value)}
+              sx={{ mb: 2 }}
+              placeholder="{{seo_serp_analyze.data.processed.all_results[*].url|list}} or https://example.com, https://example2.com"
+              helperText="URLs to extract content from. Can use variables from previous nodes, comma-separated URLs, or one URL per line."
+              availableData={{}}
             />
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Max URLs to Process"
+              value={formData.config?.maxUrls || 10}
+              onChange={(e) => handleConfigChange('maxUrls', parseInt(e.target.value))}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 1, max: 50 }}
+              helperText="Maximum number of URLs to process (1-50)"
+            />
+            
+            {/* Legacy Input Mapping (for backward compatibility) */}
+            <Accordion sx={{ mb: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Typography variant="body2" color="text.secondary">
+                  Legacy Input Mapping (Advanced)
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <DataMappingSelector
+                  value={formData.config?.inputMapping || ''}
+                  onChange={(value) => handleConfigChange('inputMapping', value)}
+                  placeholder="serp_results.results[0].items[*].url"
+                  helperText="Legacy JSON path mapping - use URL Source field above instead"
+                  label="Legacy Input Mapping"
+                />
+              </AccordionDetails>
+            </Accordion>
             
             {/* Extraction Configuration */}
             <Typography variant="body2" color="primary" sx={{ mb: 1, fontWeight: 'bold' }}>
@@ -1194,6 +1244,15 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           Configure this node's settings and click "Save Changes" to apply them to your workflow.
         </Alert>
       </Box>
+
+      {/* JSON Schema Builder Dialog */}
+      <JsonSchemaBuilder
+        open={isJsonSchemaBuilderOpen}
+        onClose={() => setIsJsonSchemaBuilderOpen(false)}
+        onSelect={(schema) => handleConfigChange('jsonSchema', schema)}
+        initialDescription=""
+        initialSchema={formData.config?.jsonSchema || ''}
+      />
     </Box>
   );
 }

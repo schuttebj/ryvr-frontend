@@ -1625,13 +1625,75 @@ export const workflowApi = {
         // Content Extraction
         case 'content_extract':
         case WorkflowNodeType.CONTENT_EXTRACT:
-          // Get URLs from input mapping
-          const inputMapping = finalConfig.inputMapping || '';
+          console.log('🔍 Content Extraction node started');
+          console.log('📥 Input data keys:', Object.keys(inputData));
+          console.log('⚙️ Config:', {
+            urlSource: finalConfig.urlSource,
+            extractionType: finalConfig.extractionType,
+            batchProcess: finalConfig.batchProcess,
+            maxUrls: finalConfig.maxUrls
+          });
+
+          // Get URLs from variable or input mapping
           let urls: string[] = [];
           
-          if (inputMapping && inputData) {
+          // Handle variable-based URL input (similar to AI node)
+          if (finalConfig.urlSource && inputData) {
+            console.log('🔗 Processing URL source:', finalConfig.urlSource);
+            
+            // Create variable data for processing
+            const contentVariableData: Record<string, any> = {};
+            
+            // Get available node data
+            const availableNodes = getAvailableDataNodes();
+            availableNodes.forEach(node => {
+              if (node.data) {
+                contentVariableData[node.id] = { data: node.data };
+              }
+            });
+            
+            console.log('📊 Available variable data keys:', Object.keys(contentVariableData));
+            
+            // Process variables in the URL source
+            const processedUrlSource = processVariables(finalConfig.urlSource, contentVariableData);
+            console.log('🔄 Processed URL source:', processedUrlSource);
+            
+            // Parse the processed result to extract URLs
+            try {
+              if (processedUrlSource.includes('http')) {
+                // If the result contains URLs, extract them
+                const urlMatches = processedUrlSource.match(/https?:\/\/[^\s,]+/g);
+                if (urlMatches) {
+                  urls = urlMatches.slice(0, finalConfig.maxUrls || 10);
+                } else {
+                  // Split by common delimiters
+                  urls = processedUrlSource
+                    .split(/[,\n\r\t]+/)
+                    .map(url => url.trim())
+                    .filter(url => url.includes('http'))
+                    .slice(0, finalConfig.maxUrls || 10);
+                }
+              } else {
+                // Fallback: try to resolve as JSON path
+                const resolvedData = resolveVariablePath(finalConfig.urlSource.replace(/[{}]/g, ''), contentVariableData);
+                console.log('📍 Resolved URL data:', { type: typeof resolvedData, isArray: Array.isArray(resolvedData) });
+                
+                if (Array.isArray(resolvedData)) {
+                  urls = resolvedData.filter(url => url && typeof url === 'string' && url.includes('http')).slice(0, finalConfig.maxUrls || 10);
+                } else if (typeof resolvedData === 'string' && resolvedData.includes('http')) {
+                  urls = [resolvedData];
+                }
+              }
+            } catch (error) {
+              console.error('❌ Error processing URL source:', error);
+            }
+          }
+          
+          // Fallback to legacy input mapping if no URLs found
+          if (urls.length === 0 && finalConfig.inputMapping && inputData) {
+            console.log('🔄 Fallback to legacy input mapping');
             // Parse JSON path (e.g., "serp_results.results[0].items[*].url")
-            const pathParts = inputMapping.split('.');
+            const pathParts = finalConfig.inputMapping.split('.');
             let currentData: any = inputData;
             
             for (let i = 0; i < pathParts.length; i++) {
@@ -1761,8 +1823,43 @@ export const workflowApi = {
              }
            }));
           
-          // Return single item or array based on batch processing setting
-          result = finalConfig.batchProcess ? extractedContent : extractedContent[0];
+          // Structure the result for variable mapping
+          const successfulExtractions = extractedContent.filter(item => item.success);
+          const failedExtractions = extractedContent.filter(item => !item.success);
+          
+          result = {
+            // Structured data for variable mapping
+            extracted_content: extractedContent,
+            successful_extractions: successfulExtractions,
+            failed_extractions: failedExtractions,
+            
+            // Summary statistics
+            total_urls: urls.length,
+            successful_count: successfulExtractions.length,
+            failed_count: failedExtractions.length,
+            success_rate: Math.round((successfulExtractions.length / urls.length) * 100),
+            
+            // Easy access arrays for variable mapping
+            all_content: extractedContent.map(item => item.content).filter(Boolean),
+            all_titles: extractedContent.map(item => item.title).filter(Boolean),
+            all_urls: extractedContent.map(item => item.url),
+            all_domains: [...new Set(extractedContent.map(item => item.domain))],
+            
+            // Metadata
+            extraction_config: {
+              extraction_type: finalConfig.extractionType || 'full_text',
+              batch_process: finalConfig.batchProcess,
+              max_length: finalConfig.maxLength || 5000,
+              remove_html: finalConfig.removeHtml || false
+            },
+            processed_at: new Date().toISOString()
+          };
+          
+          console.log('📄 Content Extraction completed:');
+          console.log(`   - Total URLs: ${urls.length}`);
+          console.log(`   - Successful: ${successfulExtractions.length}`);
+          console.log(`   - Failed: ${failedExtractions.length}`);
+          console.log(`   - Success Rate: ${result.success_rate}%`);
           break;
           
         // Data Filter
@@ -1904,6 +2001,7 @@ export const workflowApi = {
 
           try {
             // Fetch client data from backend
+            const backendUrl = 'https://ryvr-backend.onrender.com';
             const token = localStorage.getItem('authToken');
             const clientResponse = await fetch(`${backendUrl}/api/v1/clients/${clientId}`, {
               method: 'GET',

@@ -15,35 +15,21 @@ import {
   DialogActions,
   TextField,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Divider,
-  Alert,
   CircularProgress,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   LinearProgress,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  Person as PersonIcon,
   Business as BusinessIcon,
-  Assessment as AssessmentIcon,
-  ExpandMore as ExpandMoreIcon,
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
-import { Client, QuestionnaireResponses, BusinessProfile, QUESTIONNAIRE_CATEGORIES } from '../types/client';
+import { Client, QuestionnaireResponses, QUESTIONNAIRE_CATEGORIES } from '../types/client';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -63,7 +49,7 @@ export default function ClientsPage() {
   const [tabValue, setTabValue] = useState(0);
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
   const [isQuestionnaireOpen, setIsQuestionnaireOpen] = useState(false);
   const [isProfileGenerating, setIsProfileGenerating] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(0);
@@ -107,17 +93,19 @@ export default function ClientsPage() {
     setClients(mockClients);
   }, []);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   const handleAddClient = () => {
-    setIsAddDialogOpen(true);
+    // TODO: Implement add client dialog
+    console.log('Add client clicked');
   };
 
   const handleEditClient = (client: Client) => {
     setSelectedClient(client);
-    setIsAddDialogOpen(true);
+    // TODO: Implement edit client dialog
+    console.log('Edit client clicked:', client.name);
   };
 
   const handleStartQuestionnaire = (client: Client) => {
@@ -180,7 +168,7 @@ export default function ClientsPage() {
     
     const totalQuestions = QUESTIONNAIRE_CATEGORIES.reduce((acc, cat) => acc + cat.questions.length, 0);
     const answeredQuestions = Object.values(client.questionnaireResponses).reduce((acc, category) => {
-      return acc + Object.values(category || {}).filter(answer => answer && answer.trim()).length;
+      return acc + Object.values(category || {}).filter(answer => answer && String(answer).trim()).length;
     }, 0);
     
     return Math.round((answeredQuestions / totalQuestions) * 100);
