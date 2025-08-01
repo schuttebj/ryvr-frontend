@@ -80,10 +80,18 @@ export default function VariableTextField({
       const availableNodes = getAvailableDataNodes();
       const allData: Record<string, any> = {};
       
-      // Combine all available data
+      // Combine all available data - match the path structure that VariableSelector creates
       availableNodes.forEach(node => {
         if (node.data) {
-          allData[node.id] = node.data;
+          // Create the structure that matches variable paths: nodeId.data.processed, nodeId.data.raw, etc.
+          allData[node.id] = {
+            data: node.data  // Wrap in data object to match paths like nodeId.data.processed
+          };
+          console.log(`📊 Added data for node ${node.id}:`, {
+            structure: 'wrapped in data object',
+            availablePaths: [`${node.id}.data.processed`, `${node.id}.data.raw`, `${node.id}.data.summary`],
+            keys: Object.keys(node.data)
+          });
         }
       });
       

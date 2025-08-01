@@ -197,10 +197,10 @@ export default function VariableSelector({
 
   // Render actual data tree with property names and values (simplified display names)
   const renderDataTree = (data: any, currentPath: string = '', nodeId: string = '', level: number = 0): React.ReactNode => {
-    if (level > 15) { // Increased from 8 to 15 for deeper nesting
+    if (level > 25) { // Increased to 25 for very deep nesting - unlimited depth
       return (
         <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', ml: level * 2 }}>
-          ... (deeply nested - continue expanding to access)
+          ... (very deep nesting - continue expanding to access all levels)
         </Typography>
       );
     }

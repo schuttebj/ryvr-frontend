@@ -95,8 +95,18 @@ const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType
 */
 
 // Enhanced function to analyze complete data structure for comprehensive JSON access
-const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 20): DataStructureItem[] => {
-  if (level > maxDepth) return []; // Prevent infinite recursion but allow deeper exploration
+const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 50): DataStructureItem[] => {
+  // Only stop if we've seen this exact object before (circular reference detection)
+  if (level > maxDepth) {
+    console.warn(`🔄 Max depth ${maxDepth} reached at path: ${path}`);
+    return [{
+      path: path + '[...]',
+      label: `Deep structure (${maxDepth}+ levels) - continue exploring`,
+      type: 'object',
+      sampleValue: 'Object with deeper nesting available',
+      children: []
+    }];
+  }
   
   const items: DataStructureItem[] = [];
   
@@ -654,7 +664,13 @@ export const processVariables = (text: string, workflowData: Record<string, any>
   if (!text) return text;
   
   console.log('🔄 Processing variables in text:', text);
-  console.log('📊 Available workflow data:', Object.keys(workflowData));
+  console.log('📊 Available workflow data keys:', Object.keys(workflowData));
+  console.log('📊 Sample workflow data structure:', Object.keys(workflowData).slice(0, 1).map(key => ({
+    key,
+    type: typeof workflowData[key],
+    hasData: !!workflowData[key]?.data,
+    topLevelKeys: typeof workflowData[key] === 'object' ? Object.keys(workflowData[key]) : []
+  })));
   
   // Replace variables in format {{node_id.property}} or {{node_id.property|format}}
   return text.replace(/\{\{([^}]+)\}\}/g, (match, variableExpression) => {
@@ -691,12 +707,9 @@ export const processVariables = (text: string, workflowData: Record<string, any>
 // Resolve variable path with support for arrays and complex paths
 export const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
   console.log('🔍 Resolving variable path:', path);
-  console.log('📊 Available data keys:', Object.keys(workflowData));
   
   const pathParts = path.split('.');
   let current = workflowData;
-  
-  console.log('🗂️ Path parts:', pathParts);
     
   for (const part of pathParts) {
     if (part.includes('[') && part.includes(']')) {
@@ -716,9 +729,7 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
         }
       }
     } else {
-      console.log(`📝 Accessing property '${part}' on:`, typeof current, current ? Object.keys(current) : 'null/undefined');
       current = current[part];
-      console.log(`📥 Result after '${part}':`, typeof current, current);
     }
     
     if (current === undefined) {
@@ -727,7 +738,7 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
     }
   }
   
-  console.log('✅ Final resolved value:', current);
+  console.log('✅ Final resolved value type:', typeof current);
   return current;
 };
 
@@ -1285,9 +1296,31 @@ export const workflowApi = {
         case WorkflowNodeType.SEO_SERP_ANALYZE:
         case 'seo_serp_google_organic':
         case WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC:
-          // Process variables in config values
-          const processedKeyword = finalConfig.keyword ? processVariables(finalConfig.keyword, inputData) : inputData.keyword;
-          const processedTarget = finalConfig.target ? processVariables(finalConfig.target, inputData) : undefined;
+          // Process variables in config values - prepare data in correct format
+          const variableData: Record<string, any> = {};
+          
+          // Build the same data structure that VariableSelector and preview use
+          Object.keys(globalWorkflowData).forEach(nodeId => {
+            const nodeResponse = globalWorkflowData[nodeId];
+            if (nodeResponse && nodeResponse.data) {
+              variableData[nodeId] = {
+                data: nodeResponse.data  // Match the nodeId.data.processed structure
+              };
+            }
+          });
+          
+          console.log('🔧 Variable substitution data prepared:', {
+            inputDataKeys: Object.keys(inputData),
+            variableDataKeys: Object.keys(variableData),
+            sampleStructure: Object.keys(variableData)[0] ? {
+              nodeId: Object.keys(variableData)[0],
+              hasDataProperty: !!variableData[Object.keys(variableData)[0]]?.data,
+              dataKeys: Object.keys(variableData[Object.keys(variableData)[0]]?.data || {})
+            } : 'no data'
+          });
+          
+          const processedKeyword = finalConfig.keyword ? processVariables(finalConfig.keyword, variableData) : inputData.keyword;
+          const processedTarget = finalConfig.target ? processVariables(finalConfig.target, variableData) : undefined;
           
           // Validate required fields
           if (!processedKeyword) {
