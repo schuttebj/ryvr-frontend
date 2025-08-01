@@ -33,9 +33,17 @@ import {
   Add as AddIcon,
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
+import { Client } from '../../types/client';
 import DataMappingSelector from './DataMappingSelector';
 import VariableTextField from './VariableTextField';
 import JsonSchemaBuilder from './JsonSchemaBuilder';
+
+interface ClientForSelection {
+  id: string;
+  name: string;
+  company?: string;
+  hasProfile: boolean;
+}
 // AvailableDataDisplay removed - using variable selector instead
 
 interface Integration {
@@ -1104,20 +1112,20 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         );
 
       case WorkflowNodeType.CLIENT_PROFILE:
-        const loadAvailableClients = () => {
-          try {
-            const clients = JSON.parse(localStorage.getItem('ryvr_clients') || '[]');
-            return clients.map((client: any) => ({
-              id: client.id,
-              name: client.name,
-              company: client.company,
-              hasProfile: !!client.businessProfile
-            }));
-          } catch (error) {
-            console.error('Failed to load clients:', error);
-            return [];
-          }
-        };
+                  const loadAvailableClients = (): ClientForSelection[] => {
+            try {
+              const clients = JSON.parse(localStorage.getItem('ryvr_clients') || '[]');
+              return clients.map((client: Client) => ({
+                id: client.id,
+                name: client.name,
+                company: client.company,
+                hasProfile: !!client.businessProfile
+              }));
+            } catch (error) {
+              console.error('Failed to load clients:', error);
+              return [];
+            }
+          };
 
         const availableClients = loadAvailableClients();
 
@@ -1136,7 +1144,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 MenuProps={selectMenuProps}
               >
                 <MenuItem value="">-- Select a Client --</MenuItem>
-                {availableClients.map((client) => (
+                {availableClients.map((client: ClientForSelection) => (
                   <MenuItem key={client.id} value={client.id}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                       <Box>

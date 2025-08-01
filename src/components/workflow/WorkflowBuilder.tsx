@@ -45,6 +45,7 @@ import '@xyflow/react/dist/style.css';
 import { useNavigate } from 'react-router-dom';
 
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
+import { Search as SearchIcon } from '@mui/icons-material';
 import NodeSettingsPanel from './NodeSettingsPanel';
 import ValidationResultsDialog from './ValidationResultsDialog';
 import WorkflowExecutionPanel from './WorkflowExecutionPanel';
@@ -56,6 +57,112 @@ const TriggerNode = (props: any) => <BaseNode {...props} nodeType="trigger" />;
 const SerpNode = (props: any) => <BaseNode {...props} nodeType="serp" />;
 const AiNode = (props: any) => <BaseNode {...props} nodeType="ai" />;
 const EmailNode = (props: any) => <BaseNode {...props} nodeType="email" />;
+
+// Brand color system for different node categories
+const BRAND_COLORS = {
+  // Core system
+  trigger: '#9C27B0',      // Purple for triggers
+  action: '#FF5722',       // Deep Orange for actions
+  client: '#2196F3',       // Blue for client data
+  
+  // AI & Content
+  ai: '#10B981',           // OpenAI Green
+  content: '#F59E0B',      // Amber for content
+  
+  // Google Services
+  google: '#4285F4',       // Google Blue
+  analytics: '#FF6D01',    // Google Analytics Orange
+  ads: '#34A853',         // Google Ads Green
+  maps: '#EA4335',        // Google Maps Red
+  gtm: '#4285F4',         // GTM Blue
+  
+  // SEO Tools
+  seo: '#6366F1',         // Indigo for SEO
+  ahrefs: '#FF6B35',      // Ahrefs Orange
+  
+  // Social Media
+  meta: '#1877F2',        // Meta/Facebook Blue
+  twitter: '#1DA1F2',     // Twitter Blue
+  linkedin: '#0A66C2',    // LinkedIn Blue
+  instagram: '#E4405F',   // Instagram Pink
+  
+  // CRM & Marketing
+  hubspot: '#FF7A59',     // HubSpot Orange
+  mailchimp: '#FFE01B',   // Mailchimp Yellow
+  
+  // E-commerce
+  shopify: '#96BF48',     // Shopify Green
+  woocommerce: '#96588A', // WooCommerce Purple
+  
+  // Communication
+  slack: '#4A154B',       // Slack Purple
+  discord: '#5865F2',     // Discord Blurple
+  teams: '#6264A7',       // Teams Purple
+  
+  // Project Management
+  asana: '#F06A6A',       // Asana Red
+  trello: '#0079BF',      // Trello Blue
+  notion: '#000000',      // Notion Black
+  
+  // WordPress
+  wordpress: '#21759B',   // WordPress Blue
+  
+  // Default fallback
+  default: '#64748B'      // Slate Gray
+};
+
+// Function to get node color based on type
+const getNodeColor = (nodeType: WorkflowNodeType): string => {
+  // AI Tools
+  if (nodeType.startsWith('ai_')) return BRAND_COLORS.ai;
+  
+  // Google services
+  if (nodeType.includes('google_analytics')) return BRAND_COLORS.analytics;
+  if (nodeType.includes('google_ads')) return BRAND_COLORS.ads;
+  if (nodeType.includes('google_maps')) return BRAND_COLORS.maps;
+  if (nodeType.includes('gtm_')) return BRAND_COLORS.gtm;
+  
+  // SEO tools
+  if (nodeType.startsWith('seo_')) return BRAND_COLORS.seo;
+  if (nodeType.startsWith('ahrefs_')) return BRAND_COLORS.ahrefs;
+  
+  // Meta/Facebook
+  if (nodeType.startsWith('meta_')) return BRAND_COLORS.meta;
+  
+  // Social media
+  if (nodeType.startsWith('twitter_')) return BRAND_COLORS.twitter;
+  if (nodeType.startsWith('linkedin_')) return BRAND_COLORS.linkedin;
+  if (nodeType.startsWith('instagram_')) return BRAND_COLORS.instagram;
+  
+  // CRM & Marketing
+  if (nodeType.startsWith('hubspot_')) return BRAND_COLORS.hubspot;
+  if (nodeType.startsWith('mailchimp_')) return BRAND_COLORS.mailchimp;
+  
+  // E-commerce
+  if (nodeType.startsWith('shopify_')) return BRAND_COLORS.shopify;
+  if (nodeType.startsWith('woocommerce_')) return BRAND_COLORS.woocommerce;
+  
+  // Communication
+  if (nodeType.startsWith('slack_')) return BRAND_COLORS.slack;
+  if (nodeType.startsWith('discord_')) return BRAND_COLORS.discord;
+  if (nodeType.startsWith('teams_')) return BRAND_COLORS.teams;
+  
+  // Project Management
+  if (nodeType.startsWith('asana_')) return BRAND_COLORS.asana;
+  if (nodeType.startsWith('trello_')) return BRAND_COLORS.trello;
+  if (nodeType.startsWith('notion_')) return BRAND_COLORS.notion;
+  
+  // WordPress
+  if (nodeType.startsWith('wordpress_')) return BRAND_COLORS.wordpress;
+  
+  // Core types
+  if (nodeType === WorkflowNodeType.TRIGGER) return BRAND_COLORS.trigger;
+  if (nodeType === WorkflowNodeType.CLIENT_PROFILE) return BRAND_COLORS.client;
+  if (nodeType === WorkflowNodeType.EMAIL || nodeType === WorkflowNodeType.ACTION) return BRAND_COLORS.action;
+  if (nodeType === WorkflowNodeType.CONTENT_EXTRACT) return BRAND_COLORS.content;
+  
+  return BRAND_COLORS.default;
+};
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -74,6 +181,7 @@ interface NodePaletteItem {
   label: string;
   description: string;
   category: string;
+  color?: string;
 }
 
 const nodePaletteItems: NodePaletteItem[] = [
@@ -82,7 +190,8 @@ const nodePaletteItems: NodePaletteItem[] = [
     type: WorkflowNodeType.TRIGGER,
     label: 'Manual Trigger',
     description: 'Start workflow manually',
-    category: 'Triggers'
+    category: 'Triggers',
+    color: BRAND_COLORS.trigger
   },
   
   // AI Tools
@@ -90,13 +199,15 @@ const nodePaletteItems: NodePaletteItem[] = [
     type: WorkflowNodeType.AI_OPENAI_TASK,
     label: 'OpenAI Task',
     description: 'Unified OpenAI task with custom prompts',
-    category: 'AI Tools'
+    category: 'AI Tools',
+    color: BRAND_COLORS.ai
   },
   {
     type: WorkflowNodeType.CONTENT_EXTRACT,
     label: 'Extract Content',
     description: 'Extract content from web pages',
-    category: 'Content'
+    category: 'Content Tools',
+    color: BRAND_COLORS.content
   },
   
   // SERP Analysis
@@ -104,13 +215,15 @@ const nodePaletteItems: NodePaletteItem[] = [
     type: WorkflowNodeType.SEO_SERP_ANALYZE,
     label: 'SERP Analysis',
     description: 'Analyze search results',
-    category: 'SERP'
+    category: 'SEO Tools',
+    color: BRAND_COLORS.seo
   },
   {
     type: WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC,
     label: 'Google Organic',
     description: 'Google organic search results',
-    category: 'SERP'
+    category: 'SEO Tools',
+    color: BRAND_COLORS.seo
   },
   {
     type: WorkflowNodeType.SEO_SERP_GOOGLE_ADS,
@@ -248,7 +361,8 @@ const nodePaletteItems: NodePaletteItem[] = [
     type: WorkflowNodeType.CLIENT_PROFILE,
     label: 'Client Profile',
     description: 'Load client data and business profile',
-    category: 'Client Data'
+    category: 'Client Data',
+    color: BRAND_COLORS.client
   },
   
   // Actions
@@ -256,7 +370,159 @@ const nodePaletteItems: NodePaletteItem[] = [
     type: WorkflowNodeType.EMAIL,
     label: 'Send Email',
     description: 'Send email notification',
-    category: 'Actions'
+    category: 'Actions',
+    color: BRAND_COLORS.action
+  },
+  
+  // Google Analytics
+  {
+    type: WorkflowNodeType.GOOGLE_ANALYTICS_OVERVIEW,
+    label: 'GA Overview',
+    description: 'Get Google Analytics overview',
+    category: 'Google Analytics',
+    color: BRAND_COLORS.analytics
+  },
+  {
+    type: WorkflowNodeType.GOOGLE_ANALYTICS_TRAFFIC,
+    label: 'Traffic Analysis',
+    description: 'Analyze website traffic',
+    category: 'Google Analytics',
+    color: BRAND_COLORS.analytics
+  },
+  {
+    type: WorkflowNodeType.GOOGLE_ANALYTICS_CONVERSIONS,
+    label: 'Conversion Tracking',
+    description: 'Track conversions and goals',
+    category: 'Google Analytics',
+    color: BRAND_COLORS.analytics
+  },
+  
+  // Google Ads
+  {
+    type: WorkflowNodeType.GOOGLE_ADS_CAMPAIGNS,
+    label: 'Campaign Data',
+    description: 'Get Google Ads campaign data',
+    category: 'Google Ads',
+    color: BRAND_COLORS.ads
+  },
+  {
+    type: WorkflowNodeType.GOOGLE_ADS_KEYWORDS,
+    label: 'Keyword Performance',
+    description: 'Analyze keyword performance',
+    category: 'Google Ads',
+    color: BRAND_COLORS.ads
+  },
+  
+  // Meta Ads
+  {
+    type: WorkflowNodeType.META_ADS_CAMPAIGNS,
+    label: 'Campaign Data',
+    description: 'Get Meta Ads campaign data',
+    category: 'Meta Ads',
+    color: BRAND_COLORS.meta
+  },
+  {
+    type: WorkflowNodeType.META_ADS_INSIGHTS,
+    label: 'Ad Insights',
+    description: 'Get detailed ad insights',
+    category: 'Meta Ads',
+    color: BRAND_COLORS.meta
+  },
+  
+  // Google Maps
+  {
+    type: WorkflowNodeType.GOOGLE_MAPS_PLACES,
+    label: 'Places Data',
+    description: 'Get Google Places information',
+    category: 'Google Maps',
+    color: BRAND_COLORS.maps
+  },
+  {
+    type: WorkflowNodeType.GOOGLE_MAPS_REVIEWS,
+    label: 'Reviews Analysis',
+    description: 'Analyze Google Maps reviews',
+    category: 'Google Maps',
+    color: BRAND_COLORS.maps
+  },
+  
+  // Ahrefs
+  {
+    type: WorkflowNodeType.AHREFS_SITE_EXPLORER,
+    label: 'Site Explorer',
+    description: 'Analyze website with Ahrefs',
+    category: 'Ahrefs',
+    color: BRAND_COLORS.ahrefs
+  },
+  {
+    type: WorkflowNodeType.AHREFS_KEYWORDS,
+    label: 'Keyword Research',
+    description: 'Research keywords with Ahrefs',
+    category: 'Ahrefs',
+    color: BRAND_COLORS.ahrefs
+  },
+  
+  // WordPress
+  {
+    type: WorkflowNodeType.WORDPRESS_POSTS,
+    label: 'Post Management',
+    description: 'Manage WordPress posts',
+    category: 'WordPress',
+    color: BRAND_COLORS.wordpress
+  },
+  {
+    type: WorkflowNodeType.WORDPRESS_PAGES,
+    label: 'Page Management',
+    description: 'Manage WordPress pages',
+    category: 'WordPress',
+    color: BRAND_COLORS.wordpress
+  },
+  
+  // CRM & Marketing
+  {
+    type: WorkflowNodeType.HUBSPOT_CONTACTS,
+    label: 'Contact Management',
+    description: 'Manage HubSpot contacts',
+    category: 'CRM & Marketing',
+    color: BRAND_COLORS.hubspot
+  },
+  {
+    type: WorkflowNodeType.MAILCHIMP_LISTS,
+    label: 'List Management',
+    description: 'Manage Mailchimp lists',
+    category: 'CRM & Marketing',
+    color: BRAND_COLORS.mailchimp
+  },
+  
+  // Social Media
+  {
+    type: WorkflowNodeType.TWITTER_POSTS,
+    label: 'Tweet Management',
+    description: 'Manage Twitter posts',
+    category: 'Social Media',
+    color: BRAND_COLORS.twitter
+  },
+  {
+    type: WorkflowNodeType.LINKEDIN_POSTS,
+    label: 'LinkedIn Posts',
+    description: 'Manage LinkedIn posts',
+    category: 'Social Media',
+    color: BRAND_COLORS.linkedin
+  },
+  
+  // E-commerce
+  {
+    type: WorkflowNodeType.SHOPIFY_PRODUCTS,
+    label: 'Product Management',
+    description: 'Manage Shopify products',
+    category: 'E-commerce',
+    color: BRAND_COLORS.shopify
+  },
+  {
+    type: WorkflowNodeType.WOOCOMMERCE_PRODUCTS,
+    label: 'WooCommerce Products',
+    description: 'Manage WooCommerce products',
+    category: 'E-commerce',
+    color: BRAND_COLORS.woocommerce
   }
 ];
 
@@ -280,6 +546,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [workflowActive, setWorkflowActive] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Track the current workflow ID to fix autosave creating new workflows
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
@@ -790,32 +1057,74 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
 
             <Divider sx={{ mb: 2 }} />
 
+            {/* Search Box */}
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search nodes..."
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />,
+              }}
+              sx={{ mb: 3 }}
+            />
+
             {/* Node Categories */}
-            {['Triggers', 'AI Tools', 'SERP', 'Keywords', 'Labs', 'Backlinks', 'On-Page', 'Content', 'Client Data', 'Actions'].map((category) => (
+            {(() => {
+              const categories = [
+                'Triggers', 'AI Tools', 'Google Analytics', 'Google Ads', 'Meta Ads', 
+                'Google Maps', 'Ahrefs', 'WordPress', 'CRM & Marketing', 'Social Media', 
+                'E-commerce', 'SEO Tools', 'Content Tools', 'Client Data', 'Actions'
+              ];
+              
+              // Filter categories and items based on search
+              const filteredCategories = categories.filter(category => {
+                if (!searchTerm) return true;
+                const categoryItems = nodePaletteItems.filter(item => item.category === category);
+                return categoryItems.some(item => 
+                  item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  category.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+              });
+              
+              return filteredCategories.map((category) => (
               <Box key={category} sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>
                   {category}
                 </Typography>
                 {nodePaletteItems
-                  .filter(item => item.category === category)
+                  .filter(item => {
+                    if (item.category !== category) return false;
+                    if (!searchTerm) return true;
+                    return item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.description.toLowerCase().includes(searchTerm.toLowerCase());
+                  })
                   .map((item) => (
                     <Paper
                       key={item.type}
                       elevation={1}
                       draggable
-                      onDragStart={(event) => onDragStart(event, item.type)}
+                      onDragStart={(event: React.DragEvent) => onDragStart(event, item.type)}
                       sx={{
                         p: 2,
                         mb: 1,
                         cursor: 'grab',
-                        border: '1px solid #e0e0e0',
+                        border: `2px solid ${item.color || getNodeColor(item.type)}`,
+                        borderRadius: 2,
+                        backgroundColor: 'white',
                         '&:hover': {
-                          backgroundColor: '#f5f5f5',
-                          borderColor: '#1976d2',
+                          backgroundColor: '#f8fafc',
+                          borderColor: item.color || getNodeColor(item.type),
+                          boxShadow: `0 4px 12px ${(item.color || getNodeColor(item.type))}20`,
+                          transform: 'translateY(-1px)',
                         },
                         '&:active': {
                           cursor: 'grabbing',
-                        }
+                          transform: 'translateY(0)',
+                        },
+                        transition: 'all 0.2s ease',
                       }}
                     >
                       <Typography variant="body2" fontWeight={500} sx={{ mb: 0.5 }}>
@@ -827,7 +1136,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                     </Paper>
                   ))}
               </Box>
-            ))}
+            ));
+            })()}
           </Box>
         </Paper>
 
@@ -943,7 +1253,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             fullWidth
             variant="outlined"
             value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWorkflowName(e.target.value)}
             sx={{ mb: 2 }}
           />
           <TextField
@@ -954,7 +1264,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             rows={3}
             variant="outlined"
             value={workflowDescription}
-            onChange={(e) => setWorkflowDescription(e.target.value)}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWorkflowDescription(e.target.value)}
           />
         </DialogContent>
         <DialogActions>

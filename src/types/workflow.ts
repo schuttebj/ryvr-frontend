@@ -66,6 +66,89 @@ export enum WorkflowNodeType {
   // Content Analysis
   SEO_CONTENT_ANALYSIS = 'seo_content_analysis',
   SEO_CONTENT_SENTIMENT = 'seo_content_sentiment',
+  
+  // Google Analytics
+  GOOGLE_ANALYTICS_OVERVIEW = 'google_analytics_overview',
+  GOOGLE_ANALYTICS_TRAFFIC = 'google_analytics_traffic',
+  GOOGLE_ANALYTICS_CONVERSIONS = 'google_analytics_conversions',
+  GOOGLE_ANALYTICS_AUDIENCE = 'google_analytics_audience',
+  GOOGLE_ANALYTICS_REALTIME = 'google_analytics_realtime',
+  
+  // Google Tag Manager
+  GTM_CONTAINER_INFO = 'gtm_container_info',
+  GTM_TAG_MANAGEMENT = 'gtm_tag_management',
+  GTM_TRIGGER_SETUP = 'gtm_trigger_setup',
+  GTM_VARIABLE_CONFIG = 'gtm_variable_config',
+  
+  // Google Ads
+  GOOGLE_ADS_CAMPAIGNS = 'google_ads_campaigns',
+  GOOGLE_ADS_KEYWORDS = 'google_ads_keywords',
+  GOOGLE_ADS_PERFORMANCE = 'google_ads_performance',
+  GOOGLE_ADS_AUDIENCE = 'google_ads_audience',
+  GOOGLE_ADS_EXTENSIONS = 'google_ads_extensions',
+  
+  // Meta (Facebook) Ads
+  META_ADS_CAMPAIGNS = 'meta_ads_campaigns',
+  META_ADS_INSIGHTS = 'meta_ads_insights',
+  META_ADS_AUDIENCE = 'meta_ads_audience',
+  META_ADS_CREATIVE = 'meta_ads_creative',
+  META_PIXEL_EVENTS = 'meta_pixel_events',
+  
+  // Google Maps
+  GOOGLE_MAPS_PLACES = 'google_maps_places',
+  GOOGLE_MAPS_REVIEWS = 'google_maps_reviews',
+  GOOGLE_MAPS_BUSINESS = 'google_maps_business',
+  GOOGLE_MAPS_DIRECTIONS = 'google_maps_directions',
+  
+  // Ahrefs
+  AHREFS_SITE_EXPLORER = 'ahrefs_site_explorer',
+  AHREFS_KEYWORDS = 'ahrefs_keywords',
+  AHREFS_BACKLINKS = 'ahrefs_backlinks',
+  AHREFS_RANK_TRACKER = 'ahrefs_rank_tracker',
+  AHREFS_CONTENT_GAP = 'ahrefs_content_gap',
+  
+  // WordPress Integration
+  WORDPRESS_POSTS = 'wordpress_posts',
+  WORDPRESS_PAGES = 'wordpress_pages',
+  WORDPRESS_MEDIA = 'wordpress_media',
+  WORDPRESS_USERS = 'wordpress_users',
+  WORDPRESS_PLUGINS = 'wordpress_plugins',
+  
+  // CRM & Marketing Automation
+  HUBSPOT_CONTACTS = 'hubspot_contacts',
+  HUBSPOT_DEALS = 'hubspot_deals',
+  HUBSPOT_CAMPAIGNS = 'hubspot_campaigns',
+  MAILCHIMP_LISTS = 'mailchimp_lists',
+  MAILCHIMP_CAMPAIGNS = 'mailchimp_campaigns',
+  
+  // Social Media
+  TWITTER_POSTS = 'twitter_posts',
+  TWITTER_ANALYTICS = 'twitter_analytics',
+  LINKEDIN_POSTS = 'linkedin_posts',
+  LINKEDIN_ANALYTICS = 'linkedin_analytics',
+  INSTAGRAM_POSTS = 'instagram_posts',
+  
+  // E-commerce
+  SHOPIFY_PRODUCTS = 'shopify_products',
+  SHOPIFY_ORDERS = 'shopify_orders',
+  SHOPIFY_CUSTOMERS = 'shopify_customers',
+  WOOCOMMERCE_PRODUCTS = 'woocommerce_products',
+  WOOCOMMERCE_ORDERS = 'woocommerce_orders',
+  
+  // Communication
+  SLACK_MESSAGES = 'slack_messages',
+  DISCORD_MESSAGES = 'discord_messages',
+  TEAMS_MESSAGES = 'teams_messages',
+  
+  // Project Management
+  ASANA_TASKS = 'asana_tasks',
+  TRELLO_CARDS = 'trello_cards',
+  NOTION_PAGES = 'notion_pages',
+  
+  // Analytics & Reporting
+  GOOGLE_SEARCH_CONSOLE = 'google_search_console',
+  HOTJAR_ANALYTICS = 'hotjar_analytics',
+  MIXPANEL_EVENTS = 'mixpanel_events',
 }
 
 // Standardized Node Response Interface
