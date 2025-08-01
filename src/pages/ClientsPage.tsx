@@ -247,10 +247,14 @@ export default function ClientsPage() {
         setClients(updatedClients);
         saveClientsToStorage(updatedClients);
         
-        alert('Business profile generated successfully! Check the Business Profiles tab to view it.');
+        alert('🤖 AI Business profile generated successfully! Check the Business Profiles tab to view your comprehensive business analysis.');
       } else {
         console.error('❌ Profile generation failed:', result.error);
-        alert(`Failed to generate business profile: ${result.error || 'Unknown error'}`);
+        if (result.error?.includes('OpenAI')) {
+          alert(`❌ ${result.error}\n\n💡 Tip: Go to Integrations to set up your OpenAI API key for AI-powered profile generation.`);
+        } else {
+          alert(`Failed to generate business profile: ${result.error || 'Unknown error'}`);
+        }
       }
     } catch (error) {
       console.error('❌ Failed to generate profile:', error);
@@ -707,11 +711,23 @@ export default function ClientsPage() {
               No Business Profiles Generated Yet
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-              Complete a client questionnaire and generate an AI-powered business profile to see it here.
+              Complete a client questionnaire and generate an AI-powered business profile using GPT-4o-mini to see comprehensive strategic analysis here.
             </Typography>
-            {clients.some(client => client.questionnaireResponses) && (
+            {clients.some(client => client.questionnaireResponses) ? (
+              <Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  💡 <strong>Next Steps:</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  1. Set up OpenAI integration (go to Integrations → Add OpenAI API key)
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  2. Click "Generate Profile" on any client with completed questionnaire
+                </Typography>
+              </Box>
+            ) : (
               <Typography variant="body2" color="text.secondary">
-                💡 Tip: Go to the Clients tab and click "Generate Profile" on a client with a completed questionnaire.
+                💡 Complete a client questionnaire first, then set up OpenAI integration to generate AI-powered business profiles.
               </Typography>
             )}
           </Box>

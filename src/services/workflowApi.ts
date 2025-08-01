@@ -228,7 +228,7 @@ const analyzeCompleteDataStructure = (nodeResponse: StandardNodeResponse): any =
 
 // Function to get available data from executed nodes with comprehensive structure
 export const getAvailableDataNodes = (): AvailableDataNode[] => {
-  return Object.values(globalWorkflowData)
+  const workflowNodes = Object.values(globalWorkflowData)
     .filter(response => response.status === 'success')
     .map(response => ({
       nodeId: response.nodeId,
@@ -242,6 +242,56 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
       id: response.nodeId,
       data: response.data
     }));
+
+  // Add client business profile data as available variables
+  try {
+    const clients = JSON.parse(localStorage.getItem('ryvr_clients') || '[]');
+    const clientsWithProfiles = clients.filter((client: any) => client.businessProfile);
+    
+    const clientNodes = clientsWithProfiles.map((client: any) => ({
+      nodeId: `client_${client.id}`,
+      nodeLabel: `${client.name} - Business Profile`,
+      nodeType: 'client_profile',
+      executedAt: client.profileGeneratedAt || new Date().toISOString(),
+      status: 'success' as const,
+      dataStructure: analyzeDataStructure(client.businessProfile),
+      completeStructure: {
+        sections: [
+          {
+            label: 'Client Info',
+            description: 'Basic client information',
+            paths: [
+              { path: `client_${client.id}.name`, type: 'string', label: 'Client Name' },
+              { path: `client_${client.id}.company`, type: 'string', label: 'Company' },
+              { path: `client_${client.id}.industry`, type: 'string', label: 'Industry' }
+            ]
+          },
+          {
+            label: 'Business Profile',
+            description: 'AI-generated business analysis',
+            paths: analyzeDataStructure(client.businessProfile, `client_${client.id}.profile`, 0, 5)
+          }
+        ]
+      },
+      id: `client_${client.id}`,
+      data: {
+        processed: {
+          name: client.name,
+          company: client.company,
+          industry: client.industry,
+          email: client.email,
+          phone: client.phone,
+          profile: client.businessProfile
+        }
+      }
+    }));
+
+    console.log(`📊 Added ${clientNodes.length} client business profiles to available data nodes`);
+    return [...workflowNodes, ...clientNodes];
+  } catch (error) {
+    console.warn('Failed to load client business profiles for variables:', error);
+    return workflowNodes;
+  }
 };
 
 // Function to clear workflow data (for development reset)
