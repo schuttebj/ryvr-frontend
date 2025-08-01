@@ -143,10 +143,10 @@ export default function VariableSelector({
         variable = `{{${selectedPath}}}`;
         break;
       case 'list':
-        variable = `{{${selectedPath}|list}}`;
+          variable = `{{${selectedPath}|list}}`;
         break;
       case 'json':
-        variable = `{{${selectedPath}|json}}`;
+          variable = `{{${selectedPath}|json}}`;
         break;
       case 'range':
         variable = `{{${selectedPath}|range:${rangeStart}-${rangeEnd}}}`;
@@ -196,15 +196,20 @@ export default function VariableSelector({
   };
 
   // Render actual data tree with property names and values (simplified display names)
-  const renderDataTree = (data: any, currentPath: string = '', nodeId: string = '', level: number = 0): React.ReactNode => {
-    if (level > 25) { // Increased to 25 for very deep nesting - unlimited depth
+  const renderDataTree = (data: any, currentPath: string = '', nodeId: string = '', level: number = 0, visited: Set<any> = new Set()): React.ReactNode => {
+    // Prevent infinite recursion with circular references instead of depth limits
+    if (visited.has(data)) {
       return (
-        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', ml: level * 2 }}>
-          ... (very deep nesting - continue expanding to access all levels)
+        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', ml: level * 1 }}>
+          [Circular Reference] - {currentPath}
         </Typography>
       );
     }
-
+    
+    if (typeof data === 'object' && data !== null) {
+      visited.add(data);
+    }
+    
     if (Array.isArray(data)) {
       return (
         <Box sx={{ ml: level * 2 }}>
@@ -229,8 +234,8 @@ export default function VariableSelector({
             <Accordion key={index} sx={{ mb: 1, ml: 1 }}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Chip
-                    size="small"
+            <Chip
+              size="small"
                     label={`${currentPath.replace(nodeId + '.', '')}[${index}]`}
                     variant="outlined"
                     color="primary"
@@ -246,10 +251,10 @@ export default function VariableSelector({
                       : String(item).substring(0, 50) + (String(item).length > 50 ? '...' : '')
                     }
                   </Typography>
-                </Box>
+          </Box>
               </AccordionSummary>
               <AccordionDetails>
-                {renderDataTree(item, `${currentPath}[${index}]`, nodeId, level + 1)}
+                {renderDataTree(item, `${currentPath}[${index}]`, nodeId, level + 1, new Set(visited))}
               </AccordionDetails>
             </Accordion>
           ))}
@@ -257,7 +262,7 @@ export default function VariableSelector({
           {data.length > 3 && (
             <Typography variant="caption" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic' }}>
               ... and {data.length - 3} more items (use [*] for all, or specify index)
-            </Typography>
+              </Typography>
           )}
         </Box>
       );
@@ -284,9 +289,9 @@ export default function VariableSelector({
               const displayPath = newPath.replace(nodeId + '.', ''); // Remove nodeId from display
               const isObject = typeof value === 'object' && value !== null;
               const isArray = Array.isArray(value);
-              
-              return (
-                <Box key={key} sx={{ mb: 1 }}>
+            
+            return (
+              <Box key={key} sx={{ mb: 1 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                     <Chip
                       size="small"
@@ -319,17 +324,17 @@ export default function VariableSelector({
                       <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
                         {isArray ? `[${(value as any[]).length} items]` : `{${Object.keys(value).length} props}`}
                       </Typography>
-                    )}
-                  </Box>
-                  
-                  {isObject && level < 4 && (
-                    <Box sx={{ ml: 2, pl: 1, borderLeft: '1px solid', borderColor: 'divider', mt: 1 }}>
-                      {renderDataTree(value, newPath, nodeId, level + 1)}
-                    </Box>
                   )}
                 </Box>
-              );
-            })}
+                  
+                  {isObject && (
+                    <Box sx={{ ml: 2, pl: 1, borderLeft: '1px solid', borderColor: 'divider', mt: 1 }}>
+                      {renderDataTree(value, newPath, nodeId, level + 1, new Set(visited))}
+                  </Box>
+                )}
+              </Box>
+            );
+          })}
         </Box>
       );
     } else {
@@ -462,7 +467,7 @@ export default function VariableSelector({
             
             {realNodeData.map((node) => (
               <Accordion key={node.nodeId} sx={{ mb: 2 }} defaultExpanded>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                     <CheckCircle color="success" fontSize="small" />
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
@@ -473,14 +478,14 @@ export default function VariableSelector({
                       {node.nodeType} • {new Date(node.executedAt).toLocaleString()}
                     </Typography>
                   </Box>
-                </AccordionSummary>
-                <AccordionDetails>
+          </AccordionSummary>
+          <AccordionDetails>
                   <Paper sx={{ p: 2, maxHeight: 500, overflow: 'auto', bgcolor: 'grey.50' }}>
                     {/* Show the actual processed data directly */}
                     <NodeDataDisplay nodeId={node.nodeId} />
-                  </Paper>
-                </AccordionDetails>
-              </Accordion>
+            </Paper>
+          </AccordionDetails>
+        </Accordion>
             ))}
           </Box>
         ) : (
@@ -541,4 +546,4 @@ export default function VariableSelector({
       </DialogActions>
     </Dialog>
   );
-}
+} 

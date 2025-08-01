@@ -709,7 +709,7 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
   console.log('🔍 Resolving variable path:', path);
   
   const pathParts = path.split('.');
-  let current = workflowData;
+    let current = workflowData;
     
   for (const part of pathParts) {
     if (part.includes('[') && part.includes(']')) {
@@ -727,11 +727,11 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
         } else {
         return undefined;
         }
+        }
+      } else {
+        current = current[part];
       }
-    } else {
-      current = current[part];
-    }
-    
+      
     if (current === undefined) {
       console.log(`❌ Path resolution stopped at '${part}' - value undefined`);
       break;
@@ -1228,13 +1228,28 @@ export const workflowApi = {
           const taskSystemPrompt = finalConfig.systemPrompt || 'You are a helpful AI assistant.';
           const taskUserPrompt = finalConfig.userPrompt || finalConfig.prompt || 'Please help with the following task.';
           
-          // Process variables in prompts (supports both {{variable}} and {variable} syntax)
-          console.log('Processing variables with input data:', JSON.stringify(inputData, null, 2));
-          console.log('Original system prompt:', taskSystemPrompt);
-          console.log('Original user prompt:', taskUserPrompt);
+          // Process variables in prompts - prepare data in correct format
+          const aiVariableData: Record<string, any> = {};
           
-          let processedTaskSystemPrompt = processVariables(taskSystemPrompt, inputData);
-          let processedTaskUserPrompt = processVariables(taskUserPrompt, inputData);
+          // Build the same data structure that VariableSelector and preview use
+          Object.keys(globalWorkflowData).forEach(nodeId => {
+            const nodeResponse = globalWorkflowData[nodeId];
+            if (nodeResponse && nodeResponse.data) {
+              aiVariableData[nodeId] = {
+                data: nodeResponse.data  // Match the nodeId.data.processed structure
+              };
+            }
+          });
+          
+          console.log('🤖 AI variable substitution data prepared:', {
+            inputDataKeys: Object.keys(inputData),
+            aiVariableDataKeys: Object.keys(aiVariableData),
+            systemPrompt: taskSystemPrompt.substring(0, 100) + '...',
+            userPrompt: taskUserPrompt.substring(0, 100) + '...'
+          });
+          
+          let processedTaskSystemPrompt = processVariables(taskSystemPrompt, aiVariableData);
+          let processedTaskUserPrompt = processVariables(taskUserPrompt, aiVariableData);
           
           console.log('Processed system prompt:', processedTaskSystemPrompt);
           console.log('Processed user prompt:', processedTaskUserPrompt);
