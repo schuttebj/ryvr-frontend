@@ -744,35 +744,89 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
 
 // Apply formatting to variable values
 const applyVariableFormat = (value: any, format: string): string => {
+  console.log(`🎨 Applying format '${format}' to value:`, {
+    type: typeof value,
+    isArray: Array.isArray(value),
+    length: Array.isArray(value) ? value.length : 'N/A',
+    sampleValue: Array.isArray(value) ? value.slice(0, 3) : value
+  });
+  
   switch (format.toLowerCase()) {
     case 'list':
       if (Array.isArray(value)) {
-        return value.join(', ');
+        // Handle array of objects by extracting useful properties
+        const listItems = value.map(item => {
+          if (typeof item === 'object' && item !== null) {
+            // Try common properties that make sense for lists
+            return item.title || item.name || item.url || item.domain || item.keyword || JSON.stringify(item);
+          }
+          return String(item);
+        });
+        const result = listItems.join(', ');
+        console.log(`📝 List format result: "${result}"`);
+        return result;
       }
+      console.log(`⚠️ List format applied to non-array value: ${typeof value}`);
       return String(value || '');
       
     case 'json':
-      return JSON.stringify(value, null, 2);
+      const jsonResult = JSON.stringify(value, null, 2);
+      console.log(`📝 JSON format result: ${jsonResult.substring(0, 100)}...`);
+      return jsonResult;
       
     case 'count':
       if (Array.isArray(value)) {
-        return String(value.length);
+        const count = String(value.length);
+        console.log(`📝 Count format result: ${count}`);
+        return count;
       }
+      console.log(`⚠️ Count format applied to non-array value, returning '1'`);
       return '1';
       
     case 'first':
       if (Array.isArray(value) && value.length > 0) {
-        return String(value[0]);
+        const first = String(value[0]);
+        console.log(`📝 First format result: "${first}"`);
+        return first;
       }
+      console.log(`⚠️ First format applied to empty/non-array value`);
       return String(value || '');
       
     case 'last':
       if (Array.isArray(value) && value.length > 0) {
-        return String(value[value.length - 1]);
+        const last = String(value[value.length - 1]);
+        console.log(`📝 Last format result: "${last}"`);
+        return last;
       }
+      console.log(`⚠️ Last format applied to empty/non-array value`);
       return String(value || '');
       
     default:
+      // Check if it's a range format like "range:0-4"
+      if (format.startsWith('range:')) {
+        const rangeMatch = format.match(/range:(\d+)-(\d+)/);
+        if (rangeMatch && Array.isArray(value)) {
+          const start = parseInt(rangeMatch[1]);
+          const end = parseInt(rangeMatch[2]);
+          const rangeSlice = value.slice(start, end + 1);
+          
+          // Handle array of objects by extracting useful properties
+          const rangeItems = rangeSlice.map(item => {
+            if (typeof item === 'object' && item !== null) {
+              return item.title || item.name || item.url || item.domain || item.keyword || JSON.stringify(item);
+            }
+            return String(item);
+          });
+          
+          const result = rangeItems.join(', ');
+          console.log(`📝 Range format (${start}-${end}) result: "${result}"`);
+          return result;
+        }
+        console.log(`⚠️ Range format applied to non-array or invalid range`);
+        return String(value || '');
+      }
+      
+      console.log(`📝 No format applied, returning string value`);
       return String(value || '');
   }
 };
