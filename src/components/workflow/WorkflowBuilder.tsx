@@ -1111,18 +1111,21 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                         p: 2,
                         mb: 1,
                         cursor: 'grab',
-                        border: `2px solid ${item.color || getNodeColor(item.type)}`,
-                        borderRadius: 2,
-                        backgroundColor: 'white',
+                        border: '1px solid #e0e0e0',
+                        borderLeft: `4px solid ${item.color || getNodeColor(item.type)}`,
+                        borderRadius: '4px',
+                        backgroundColor: `${(item.color || getNodeColor(item.type))}08`, // Very subtle 3% tint
                         '&:hover': {
-                          backgroundColor: '#f8fafc',
-                          borderColor: item.color || getNodeColor(item.type),
-                          boxShadow: `0 4px 12px ${(item.color || getNodeColor(item.type))}20`,
+                          backgroundColor: `${(item.color || getNodeColor(item.type))}15`, // Slightly more visible on hover (8% tint)
+                          borderColor: '#d0d0d0',
+                          borderLeftColor: item.color || getNodeColor(item.type),
+                          boxShadow: `0 2px 8px ${(item.color || getNodeColor(item.type))}20`,
                           transform: 'translateY(-1px)',
                         },
                         '&:active': {
                           cursor: 'grabbing',
                           transform: 'translateY(0)',
+                          backgroundColor: `${(item.color || getNodeColor(item.type))}20`, // More visible when pressed
                         },
                         transition: 'all 0.2s ease',
                       }}

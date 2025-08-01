@@ -150,18 +150,21 @@ export default function BaseNode({
       sx={{
         minWidth: 220,
         maxWidth: 320,
-        border: selected ? `2px solid ${nodeColor}` : '1px solid #e0e0e0',
-        borderRadius: 3,
-        boxShadow: selected ? `0 4px 12px ${nodeColor}30` : '0 2px 8px rgba(0,0,0,0.08)',
-        backgroundColor: 'white',
+        border: '1px solid #e0e0e0',
+        borderLeft: `4px solid ${nodeColor}`,
+        borderRadius: '8px',
+        boxShadow: selected ? `0 4px 16px ${nodeColor}25` : '0 2px 8px rgba(0,0,0,0.08)',
+        backgroundColor: selected ? `${nodeColor}12` : `${nodeColor}06`, // Subtle tint, more visible when selected
         transition: 'all 0.2s ease',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'visible', // Allow handles to be visible outside card
         '&:hover': {
-          boxShadow: `0 4px 12px ${nodeColor}20`,
+          backgroundColor: `${nodeColor}15`, // Slightly more visible on hover
+          boxShadow: `0 6px 20px ${nodeColor}25`,
           transform: 'translateY(-2px)',
-          borderColor: nodeColor,
+          borderColor: '#d0d0d0',
+          borderLeftColor: nodeColor,
         },
       }}
     >
