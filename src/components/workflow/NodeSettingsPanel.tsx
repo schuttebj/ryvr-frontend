@@ -19,6 +19,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Link,
+  Tooltip,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -29,7 +30,6 @@ import {
   ExpandMore as ExpandMoreIcon,
   DataArray as DataIcon,
   AutoAwesome as AutoAwesomeIcon,
-  Tooltip,
   Add as AddIcon,
 } from '@mui/icons-material';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';

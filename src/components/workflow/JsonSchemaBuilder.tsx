@@ -59,7 +59,7 @@ export default function JsonSchemaBuilder({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
