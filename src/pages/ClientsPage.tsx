@@ -31,6 +31,7 @@ import {
   AutoAwesome as AutoAwesomeIcon,
 } from '@mui/icons-material';
 import { Client, QuestionnaireResponses, QUESTIONNAIRE_CATEGORIES } from '../types/client';
+import { simpleApi } from '../services/simpleApi';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -225,20 +226,35 @@ export default function ClientsPage() {
 
     setIsProfileGenerating(true);
     try {
-      // TODO: Implement AI profile generation
-      console.log('Generating business profile for:', client.name);
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Mock delay
+      console.log('🤖 Generating business profile for:', client.name);
       
-      // Update client with generated profile
-      const updatedClients = clients.map(c => 
-        c.id === client.id 
-          ? { ...c, profileGeneratedAt: new Date().toISOString() }
-          : c
-      );
-      setClients(updatedClients);
-      saveClientsToStorage(updatedClients); // Persist to localStorage
+      // Call the API to generate business profile
+      const result = await simpleApi.generateBusinessProfile(client.id, 'gpt-4o-mini');
+      
+      if (result.success && result.profile) {
+        console.log('✅ Business profile generated successfully');
+        
+        // Update client with generated profile
+        const updatedClients = clients.map(c => 
+          c.id === client.id 
+            ? { 
+                ...c, 
+                businessProfile: result.profile,
+                profileGeneratedAt: new Date().toISOString() 
+              }
+            : c
+        );
+        setClients(updatedClients);
+        saveClientsToStorage(updatedClients);
+        
+        alert('Business profile generated successfully! Check the Business Profiles tab to view it.');
+      } else {
+        console.error('❌ Profile generation failed:', result.error);
+        alert(`Failed to generate business profile: ${result.error || 'Unknown error'}`);
+      }
     } catch (error) {
-      console.error('Failed to generate profile:', error);
+      console.error('❌ Failed to generate profile:', error);
+      alert('Failed to generate business profile. Please try again.');
     } finally {
       setIsProfileGenerating(false);
     }
@@ -546,9 +562,160 @@ export default function ClientsPage() {
 
       <TabPanel value={tabValue} index={1}>
         <Typography variant="h5" gutterBottom>Business Profiles</Typography>
-        <Typography variant="body1" color="text.secondary">
-          AI-generated business profiles from completed questionnaires will appear here.
-        </Typography>
+        
+        {clients.filter(client => client.businessProfile).length > 0 ? (
+          <Grid container spacing={3}>
+            {clients.filter(client => client.businessProfile).map(client => (
+              <Grid item xs={12} key={client.id}>
+                <Card sx={{ mb: 2 }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box>
+                        <Typography variant="h6" gutterBottom>
+                          {client.name} - Business Profile
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Generated: {client.profileGeneratedAt ? new Date(client.profileGeneratedAt).toLocaleDateString() : 'Unknown'}
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        label="AI Generated" 
+                        color="success" 
+                        icon={<AutoAwesomeIcon />}
+                        variant="outlined"
+                      />
+                    </Box>
+
+                    {/* Business Summary */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        📊 Business Summary
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="body2" color="text.secondary">Business Name</Typography>
+                          <Typography variant="body1">{client.businessProfile?.business_summary?.name || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Typography variant="body2" color="text.secondary">Industry</Typography>
+                          <Typography variant="body1">{client.businessProfile?.business_summary?.industry || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <Typography variant="body2" color="text.secondary">Value Proposition</Typography>
+                          <Typography variant="body1">{client.businessProfile?.business_summary?.value_proposition || 'N/A'}</Typography>
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    {/* Customer Profile */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        🎯 Customer Profile
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">Target Audience</Typography>
+                      <Typography variant="body1" sx={{ mb: 1 }}>
+                        {client.businessProfile?.customer_profile?.target_audience || 'N/A'}
+                      </Typography>
+                      
+                      {client.businessProfile?.customer_profile?.primary_pain_points && (
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2" color="text.secondary">Primary Pain Points</Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                            {client.businessProfile.customer_profile.primary_pain_points.map((point: string, index: number) => (
+                              <Chip key={index} label={point} size="small" variant="outlined" />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Marketing & Growth */}
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        📈 Marketing & Growth
+                      </Typography>
+                      
+                      {client.businessProfile?.marketing_and_growth?.quick_wins && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="body2" color="text.secondary">Quick Wins</Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                            {client.businessProfile.marketing_and_growth.quick_wins.map((win: string, index: number) => (
+                              <Chip key={index} label={win} size="small" color="success" variant="outlined" />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {client.businessProfile?.marketing_and_growth?.growth_challenges && (
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">Growth Challenges</Typography>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                            {client.businessProfile.marketing_and_growth.growth_challenges.map((challenge: string, index: number) => (
+                              <Chip key={index} label={challenge} size="small" color="warning" variant="outlined" />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
+
+                    {/* Summary Recommendations */}
+                    {client.businessProfile?.summary_recommendations && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+                          💡 Strategic Recommendations
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          {client.businessProfile.summary_recommendations.map((rec: string, index: number) => (
+                            <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                              <Typography variant="body2" color="primary" sx={{ fontWeight: 'bold', minWidth: '20px' }}>
+                                {index + 1}.
+                              </Typography>
+                              <Typography variant="body2">{rec}</Typography>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Action Buttons */}
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                      <Button 
+                        variant="outlined" 
+                        size="small"
+                        onClick={() => console.log('View full profile:', client.businessProfile)}
+                      >
+                        View Full Profile
+                      </Button>
+                      <Button 
+                        variant="outlined" 
+                        size="small"
+                        onClick={() => handleGenerateProfile(client)}
+                        disabled={isProfileGenerating}
+                      >
+                        Regenerate Profile
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <AutoAwesomeIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              No Business Profiles Generated Yet
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+              Complete a client questionnaire and generate an AI-powered business profile to see it here.
+            </Typography>
+            {clients.some(client => client.questionnaireResponses) && (
+              <Typography variant="body2" color="text.secondary">
+                💡 Tip: Go to the Clients tab and click "Generate Profile" on a client with a completed questionnaire.
+              </Typography>
+            )}
+          </Box>
+        )}
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>

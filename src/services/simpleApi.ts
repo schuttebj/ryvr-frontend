@@ -260,6 +260,103 @@ export const simpleApi = {
     return { success: true, executionId: `sim_${workflowId}_${Date.now()}` };
   },
 
+  // BUSINESS PROFILE GENERATION
+  async generateBusinessProfile(clientId: string, aiModel: string = 'gpt-4o-mini'): Promise<{ success: boolean, profile?: any, error?: string }> {
+    if (backendAvailable) {
+      try {
+        const token = localStorage.getItem('ryvr_auth_token');
+        const response = await fetch(`${API_BASE_URL}/api/clients/${clientId}/generate-profile`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            ai_model: aiModel,
+            include_recommendations: true
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          return { success: true, profile: result.business_profile };
+        } else {
+          const error = await response.json();
+          return { success: false, error: error.detail || 'Failed to generate profile' };
+        }
+      } catch (error) {
+        console.error('Backend profile generation failed:', error);
+        return { success: false, error: 'Network error' };
+      }
+    }
+    
+    // Fallback: Mock profile generation
+    console.log('Simulating profile generation for client:', clientId);
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate delay
+    
+    const mockProfile = {
+      business_summary: {
+        name: "Generated Business Profile",
+        founder_or_lead: "Business Owner",
+        industry: "Technology",
+        core_offering: "Digital Solutions",
+        value_proposition: "AI-generated mock profile for testing"
+      },
+      customer_profile: {
+        target_audience: "Generated target audience",
+        primary_pain_points: ["Mock pain point 1", "Mock pain point 2"],
+        customer_journey_overview: "Generated customer journey",
+        competitive_landscape: {
+          top_competitors: ["Competitor A", "Competitor B"],
+          differentiators: ["Unique feature 1", "Unique feature 2"]
+        }
+      },
+      business_model: {
+        revenue_streams: ["Revenue stream 1", "Revenue stream 2"],
+        pricing: "Generated pricing strategy",
+        distribution_channels: ["Channel 1", "Channel 2"]
+      },
+      marketing_and_growth: {
+        channels: ["Marketing channel 1", "Marketing channel 2"],
+        what_works: ["Strategy 1", "Strategy 2"],
+        growth_challenges: ["Challenge 1", "Challenge 2"],
+        quick_wins: ["Quick win 1", "Quick win 2"]
+      },
+      operations: {
+        key_processes: ["Process 1", "Process 2"],
+        technology_stack: ["Tech 1", "Tech 2"],
+        bottlenecks: ["Bottleneck 1", "Bottleneck 2"]
+      },
+      financials_and_metrics: {
+        primary_kpis: ["KPI 1", "KPI 2"],
+        current_performance_snapshot: "Generated performance snapshot",
+        financial_pain_points: ["Financial challenge 1", "Financial challenge 2"]
+      },
+      team_and_capacity: {
+        team_structure: "Generated team structure",
+        constraints: ["Constraint 1", "Constraint 2"],
+        opportunities: ["Opportunity 1", "Opportunity 2"]
+      },
+      goals_and_vision: {
+        short_term: ["Short-term goal 1", "Short-term goal 2"],
+        long_term: ["Long-term goal 1", "Long-term goal 2"],
+        existential_risks: ["Risk 1", "Risk 2"]
+      },
+      brand_and_positioning: {
+        desired_perception: "Generated brand perception",
+        voice_tone: "Generated voice and tone",
+        messaging_pillars: ["Message 1", "Message 2"]
+      },
+      strategic_risks_and_opportunities: {
+        risks: ["Strategic risk 1", "Strategic risk 2"],
+        immediate_opportunities: ["Opportunity 1", "Opportunity 2"]
+      },
+      summary_recommendations: ["Recommendation 1", "Recommendation 2", "Recommendation 3"]
+    };
+    
+    return { success: true, profile: mockProfile };
+  },
+
   // Utility to check backend status
   async isBackendAvailable(): Promise<boolean> {
     return await checkBackend();
