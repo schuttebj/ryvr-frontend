@@ -1,5 +1,5 @@
 // Simple API service that can work with backend or localStorage fallback
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
 
 interface Integration {
   id: string;
@@ -276,6 +276,22 @@ export const simpleApi = {
         const token = localStorage.getItem('ryvr_auth_token');
         console.log('🔍 Auth token present:', !!token);
         
+        // Check if this is a localStorage client (string ID) vs backend client (numeric ID)
+        const isLocalStorageClient = clientId.toString().includes('client_');
+        console.log('🔍 Client type:', isLocalStorageClient ? 'localStorage' : 'backend database');
+        
+        if (isLocalStorageClient) {
+          console.log('⚠️ Cannot use backend API for localStorage client - client not in database');
+          console.log('🔄 Skipping to direct OpenAI fallback...');
+          // Skip to OpenAI fallback for localStorage clients
+          throw new Error('localStorage client - skip to OpenAI');
+        }
+        
+        if (!token) {
+          console.log('⚠️ No authentication token found - cannot call authenticated backend');
+          throw new Error('No auth token - skip to OpenAI');
+        }
+        
         const requestBody = {
           ai_model: aiModel,
           include_recommendations: true
@@ -318,7 +334,8 @@ export const simpleApi = {
     }
     
     // Fallback: Direct OpenAI API call
-    console.log('⚡ Backend unavailable, attempting direct OpenAI call for client:', clientId);
+    console.log('⚡ Using direct OpenAI call for client:', clientId);
+    console.log('📝 Reason: Backend unavailable or localStorage client detected');
     
     try {
       // Get OpenAI API key from integrations

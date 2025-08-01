@@ -21,6 +21,9 @@ import {
   IconButton,
   CircularProgress,
   LinearProgress,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -29,6 +32,9 @@ import {
   CheckCircle as CheckCircleIcon,
   RadioButtonUnchecked as RadioButtonUncheckedIcon,
   AutoAwesome as AutoAwesomeIcon,
+  Close as CloseIcon,
+  Save as SaveIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { Client, QuestionnaireResponses, QUESTIONNAIRE_CATEGORIES } from '../types/client';
 import { simpleApi } from '../services/simpleApi';
@@ -77,6 +83,11 @@ export default function ClientsPage() {
     tags: [],
     notes: ''
   });
+
+  // Profile Editor Dialog State
+  const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editedProfile, setEditedProfile] = useState<any>(null);
 
   // Load clients from localStorage or create mock data
   useEffect(() => {
@@ -210,6 +221,42 @@ export default function ClientsPage() {
     console.log('Edit client clicked:', client.name);
   };
 
+  const handleOpenProfileEditor = (client: Client) => {
+    setEditingClient(client);
+    setEditedProfile(JSON.parse(JSON.stringify(client.businessProfile))); // Deep copy
+    setIsProfileEditorOpen(true);
+  };
+
+  const handleSaveProfileChanges = () => {
+    if (!editingClient || !editedProfile) return;
+
+    const updatedClients = clients.map(c => 
+      c.id === editingClient.id 
+        ? { 
+            ...c, 
+            businessProfile: editedProfile,
+            updatedAt: new Date().toISOString()
+          }
+        : c
+    );
+    
+    setClients(updatedClients);
+    saveClientsToStorage(updatedClients);
+    setIsProfileEditorOpen(false);
+    
+    console.log('✅ Business profile updated for:', editingClient.name);
+  };
+
+  const handleProfileFieldChange = (section: string, field: string, value: any) => {
+    setEditedProfile((prev: any) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
+    }));
+  };
+
   const handleStartQuestionnaire = (client: Client) => {
     setSelectedClient(client);
     setResponses(client.questionnaireResponses || {} as QuestionnaireResponses);
@@ -247,13 +294,13 @@ export default function ClientsPage() {
         setClients(updatedClients);
         saveClientsToStorage(updatedClients);
         
-        alert('🤖 AI Business profile generated successfully! Check the Business Profiles tab to view your comprehensive business analysis.');
+        alert('🤖 AI Business profile generated successfully!\n\n✨ Your comprehensive business analysis is ready in the Business Profiles tab.\n\n🔧 Note: Generated using direct OpenAI integration since this is a local client.');
       } else {
         console.error('❌ Profile generation failed:', result.error);
-        if (result.error?.includes('OpenAI')) {
-          alert(`❌ ${result.error}\n\n💡 Tip: Go to Integrations to set up your OpenAI API key for AI-powered profile generation.`);
+        if (result.error?.includes('OpenAI') || result.error?.includes('integration')) {
+          alert(`❌ ${result.error}\n\n💡 Setup Guide:\n1. Go to Integrations page\n2. Add OpenAI integration\n3. Enter your OpenAI API key\n4. Try generating the profile again`);
         } else {
-          alert(`Failed to generate business profile: ${result.error || 'Unknown error'}`);
+          alert(`Failed to generate business profile: ${result.error || 'Unknown error'}\n\nPlease check console for details.`);
         }
       }
     } catch (error) {
@@ -686,7 +733,7 @@ export default function ClientsPage() {
                       <Button 
                         variant="outlined" 
                         size="small"
-                        onClick={() => console.log('View full profile:', client.businessProfile)}
+                        onClick={() => handleOpenProfileEditor(client)}
                       >
                         View Full Profile
                       </Button>
@@ -740,6 +787,268 @@ export default function ClientsPage() {
           Client insights and analytics dashboard coming soon.
         </Typography>
       </TabPanel>
+
+      {/* Business Profile Editor Dialog */}
+      <Dialog 
+        open={isProfileEditorOpen} 
+        onClose={() => setIsProfileEditorOpen(false)} 
+        maxWidth="lg" 
+        fullWidth
+        PaperProps={{
+          sx: { height: '90vh' }
+        }}
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AutoAwesomeIcon color="primary" />
+              <Typography variant="h6">
+                Business Profile Editor - {editingClient?.name}
+              </Typography>
+            </Box>
+            <IconButton onClick={() => setIsProfileEditorOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        
+        <DialogContent sx={{ p: 0 }}>
+          {editedProfile && (
+            <Box sx={{ height: '100%', overflow: 'auto' }}>
+              {/* Business Summary Section */}
+              <Accordion defaultExpanded>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    📊 Business Summary
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Business Name"
+                        value={editedProfile.business_summary?.name || ''}
+                        onChange={(e) => handleProfileFieldChange('business_summary', 'name', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Founder/Lead"
+                        value={editedProfile.business_summary?.founder_or_lead || ''}
+                        onChange={(e) => handleProfileFieldChange('business_summary', 'founder_or_lead', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Industry"
+                        value={editedProfile.business_summary?.industry || ''}
+                        onChange={(e) => handleProfileFieldChange('business_summary', 'industry', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Core Offering"
+                        multiline
+                        rows={2}
+                        value={editedProfile.business_summary?.core_offering || ''}
+                        onChange={(e) => handleProfileFieldChange('business_summary', 'core_offering', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Value Proposition"
+                        multiline
+                        rows={2}
+                        value={editedProfile.business_summary?.value_proposition || ''}
+                        onChange={(e) => handleProfileFieldChange('business_summary', 'value_proposition', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Customer Profile Section */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    🎯 Customer Profile
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Target Audience"
+                        multiline
+                        rows={3}
+                        value={editedProfile.customer_profile?.target_audience || ''}
+                        onChange={(e) => handleProfileFieldChange('customer_profile', 'target_audience', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Primary Pain Points (comma-separated)"
+                        multiline
+                        rows={2}
+                        value={editedProfile.customer_profile?.primary_pain_points?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('customer_profile', 'primary_pain_points', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                        helperText="Separate each pain point with commas"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Customer Journey Overview"
+                        multiline
+                        rows={3}
+                        value={editedProfile.customer_profile?.customer_journey_overview || ''}
+                        onChange={(e) => handleProfileFieldChange('customer_profile', 'customer_journey_overview', e.target.value)}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Marketing & Growth Section */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    📈 Marketing & Growth
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Marketing Channels (comma-separated)"
+                        multiline
+                        rows={2}
+                        value={editedProfile.marketing_and_growth?.channels?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('marketing_and_growth', 'channels', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="What Works (comma-separated)"
+                        multiline
+                        rows={2}
+                        value={editedProfile.marketing_and_growth?.what_works?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('marketing_and_growth', 'what_works', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Growth Challenges (comma-separated)"
+                        multiline
+                        rows={2}
+                        value={editedProfile.marketing_and_growth?.growth_challenges?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('marketing_and_growth', 'growth_challenges', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Quick Wins (comma-separated)"
+                        multiline
+                        rows={2}
+                        value={editedProfile.marketing_and_growth?.quick_wins?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('marketing_and_growth', 'quick_wins', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Strategic Recommendations Section */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    💡 Strategic Recommendations
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <TextField
+                    fullWidth
+                    label="Strategic Recommendations (one per line)"
+                    multiline
+                    rows={6}
+                    value={editedProfile.summary_recommendations?.join('\n') || ''}
+                    onChange={(e) => setEditedProfile((prev: any) => ({ ...prev, summary_recommendations: e.target.value.split('\n').map((s: string) => s.trim()).filter((s: string) => s) }))}
+                    sx={{ mb: 2 }}
+                    helperText="Enter each recommendation on a new line"
+                  />
+                </AccordionDetails>
+              </Accordion>
+
+              {/* Goals & Vision Section */}
+              <Accordion>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    🎯 Goals & Vision
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Short-term Goals (comma-separated)"
+                        multiline
+                        rows={3}
+                        value={editedProfile.goals_and_vision?.short_term?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('goals_and_vision', 'short_term', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Long-term Goals (comma-separated)"
+                        multiline
+                        rows={3}
+                        value={editedProfile.goals_and_vision?.long_term?.join(', ') || ''}
+                        onChange={(e) => handleProfileFieldChange('goals_and_vision', 'long_term', e.target.value.split(',').map((s: string) => s.trim()).filter((s: string) => s))}
+                        sx={{ mb: 2 }}
+                      />
+                    </Grid>
+                  </Grid>
+                </AccordionDetails>
+              </Accordion>
+            </Box>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #e0e0e0' }}>
+          <Button onClick={() => setIsProfileEditorOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSaveProfileChanges} startIcon={<SaveIcon />}>
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add Client Dialog */}
       <Dialog open={isAddClientOpen} onClose={() => setIsAddClientOpen(false)} maxWidth="sm" fullWidth>

@@ -1103,6 +1103,93 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           </Box>
         );
 
+      case WorkflowNodeType.CLIENT_PROFILE:
+        const loadAvailableClients = () => {
+          try {
+            const clients = JSON.parse(localStorage.getItem('ryvr_clients') || '[]');
+            return clients.map((client: any) => ({
+              id: client.id,
+              name: client.name,
+              company: client.company,
+              hasProfile: !!client.businessProfile
+            }));
+          } catch (error) {
+            console.error('Failed to load clients:', error);
+            return [];
+          }
+        };
+
+        const availableClients = loadAvailableClients();
+
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              👤 Client Profile Settings
+            </Typography>
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Select Client</InputLabel>
+              <Select
+                value={formData.config?.clientId || ''}
+                label="Select Client"
+                onChange={(e) => handleConfigChange('clientId', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="">-- Select a Client --</MenuItem>
+                {availableClients.map((client) => (
+                  <MenuItem key={client.id} value={client.id}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <Box>
+                        <Typography variant="body2">{client.name}</Typography>
+                        {client.company && (
+                          <Typography variant="caption" color="text.secondary">{client.company}</Typography>
+                        )}
+                      </Box>
+                      {client.hasProfile && (
+                        <Chip size="small" label="AI Profile" color="success" variant="outlined" />
+                      )}
+                    </Box>
+                  </MenuItem>
+                ))}
+                {availableClients.length === 0 && (
+                  <MenuItem disabled>
+                    <Typography variant="body2" color="text.secondary">
+                      No clients found. Create clients in the Clients page first.
+                    </Typography>
+                  </MenuItem>
+                )}
+              </Select>
+              <FormHelperText>
+                Choose which client's data to load into the workflow. This includes questionnaire responses and AI-generated business profiles.
+              </FormHelperText>
+            </FormControl>
+
+            {formData.config?.clientId && (
+              <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
+                  📊 Available Data:
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+                  • Basic info: name, company, email, phone, industry
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mb: 0.5 }}>
+                  • Questionnaire responses (12 categories)
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+                  • AI business profile (if generated)
+                </Typography>
+                <Typography variant="caption" color="primary">
+                  💡 Use variables like {`{{${formData.config.clientId}.client_meta.name}}`} or {`{{${formData.config.clientId}.business_profile.marketing_and_growth.quick_wins}}`}
+                </Typography>
+              </Box>
+            )}
+
+            <Alert severity="info" sx={{ mb: 2 }}>
+              This node loads client data and makes it available as variables for subsequent nodes in your workflow.
+            </Alert>
+          </Box>
+        );
+
       default:
         return (
           <Box sx={{ mt: 2 }}>

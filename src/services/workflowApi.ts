@@ -1371,10 +1371,20 @@ export const workflowApi = {
           // Process variables in prompts - prepare data in correct format
           const aiVariableData: Record<string, any> = {};
           
-          // Build the same data structure that VariableSelector and preview use
+          // CRITICAL FIX: Use inputData (current workflow execution data) as primary source
+          // This contains the actual results from previous nodes in this execution
+          Object.keys(inputData).forEach(nodeId => {
+            if (inputData[nodeId]) {
+              aiVariableData[nodeId] = {
+                data: inputData[nodeId]  // Direct access to execution results
+              };
+            }
+          });
+          
+          // Also check globalWorkflowData as fallback
           Object.keys(globalWorkflowData).forEach(nodeId => {
             const nodeResponse = globalWorkflowData[nodeId];
-            if (nodeResponse && nodeResponse.data) {
+            if (nodeResponse && nodeResponse.data && !aiVariableData[nodeId]) {
               aiVariableData[nodeId] = {
                 data: nodeResponse.data  // Match the nodeId.data.processed structure
               };
@@ -1386,6 +1396,17 @@ export const workflowApi = {
             aiVariableDataKeys: Object.keys(aiVariableData),
             systemPrompt: taskSystemPrompt.substring(0, 100) + '...',
             userPrompt: taskUserPrompt.substring(0, 100) + '...'
+          });
+          
+          // Debug: Log the structure of available data
+          console.log('🔍 AI Variable Data Structure:');
+          Object.keys(aiVariableData).forEach(nodeId => {
+            const nodeData = aiVariableData[nodeId];
+            console.log(`  ${nodeId}:`, {
+              hasData: !!nodeData.data,
+              dataKeys: nodeData.data ? Object.keys(nodeData.data) : [],
+              samplePath: nodeData.data?.processed ? 'has processed data' : 'no processed data'
+            });
           });
           
           let processedTaskSystemPrompt = processVariables(taskSystemPrompt, aiVariableData);
@@ -2049,23 +2070,47 @@ export const workflowApi = {
             throw new Error('Client ID is required for client profile node');
           }
 
+          console.log('👤 Loading client profile for:', clientId);
+
           try {
-            // Fetch client data from backend
-            const backendUrl = 'https://ryvr-backend.onrender.com';
-            const token = localStorage.getItem('authToken');
-            const clientResponse = await fetch(`${backendUrl}/api/v1/clients/${clientId}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            });
+            let clientData = null;
+            
+            // First try localStorage (for local clients)
+            if (clientId.toString().includes('client_')) {
+              console.log('📱 Loading from localStorage...');
+              const clients = JSON.parse(localStorage.getItem('ryvr_clients') || '[]');
+              clientData = clients.find((c: any) => c.id === clientId);
+              
+              if (clientData) {
+                console.log('✅ Found localStorage client:', clientData.name);
+              } else {
+                throw new Error('Client not found in localStorage');
+              }
+            } else {
+              // Try backend for database clients
+              console.log('🌐 Loading from backend database...');
+              const backendUrl = 'https://ryvr-backend.onrender.com';
+              const token = localStorage.getItem('ryvr_auth_token');
+              
+              if (!token) {
+                throw new Error('No authentication token found for backend client');
+              }
+              
+              const clientResponse = await fetch(`${backendUrl}/api/clients/${clientId}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
 
-            if (!clientResponse.ok) {
-              throw new Error(`Failed to fetch client data: ${clientResponse.status}`);
+              if (!clientResponse.ok) {
+                throw new Error(`Failed to fetch client data: ${clientResponse.status}`);
+              }
+
+              clientData = await clientResponse.json();
+              console.log('✅ Found backend client:', clientData.name);
             }
-
-            const clientData = await clientResponse.json();
             
             // Structure the client profile data for use in variables
             result = {
@@ -2176,9 +2221,23 @@ export const workflowApi = {
           throw new Error(`Unsupported node type: ${nodeType}`);
       }
       
+      // Structure the return data in standardized format
+      const structuredData = {
+        processed: result, // Main processed data for workflows
+        raw: result,       // Keep raw data for debugging
+        summary: {         // Extract key summary info
+          nodeType: nodeType,
+          success: true,
+          itemCount: Array.isArray(result?.results?.[0]?.items) ? result.results[0].items.length : 
+                    Array.isArray(result?.results) ? result.results.length :
+                    typeof result === 'object' ? Object.keys(result).length : 1,
+          executedAt: new Date().toISOString()
+        }
+      };
+
       return {
         success: true,
-        data: result,
+        data: structuredData,
         nodeType,
         executedAt: new Date().toISOString(),
         outputVariable: finalConfig.outputVariable || nodeType.replace('_', ''),
@@ -2321,7 +2380,24 @@ export const workflowApi = {
             [node.id]: result.data,
             [outputVariable]: result.data
           };
-          console.log(`Node ${node.id} completed, output stored as:`, outputVariable);
+          
+          // CRITICAL FIX: Store in globalWorkflowData for variable processing
+          const standardNodeResponse: StandardNodeResponse = {
+            executionId: `exec_${node.id}_${Date.now()}`,
+            nodeId: node.id,
+            nodeType: node.data.type,
+            status: 'success',
+            executedAt: new Date().toISOString(),
+            executionTime: 0, // TODO: Track actual execution time
+            data: result.data || { processed: result, raw: result, summary: {} },
+            inputData: mappedInputData
+          };
+          
+          // Store in global workflow data for variable access
+          globalWorkflowData[node.id] = standardNodeResponse;
+          console.log(`Node ${node.id} completed, stored in globalWorkflowData:`, node.id);
+          console.log(`Available globalWorkflowData keys:`, Object.keys(globalWorkflowData));
+          
         } else {
           console.error(`Node ${node.id} failed:`, result.error);
           break; // Stop execution on first failure

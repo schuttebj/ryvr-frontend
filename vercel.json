@@ -23,6 +23,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://ryvr-api.onrender.com"
+    "VITE_API_URL": "https://ryvr-backend.onrender.com"
   }
 } 

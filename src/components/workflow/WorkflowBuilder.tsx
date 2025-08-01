@@ -243,6 +243,14 @@ const nodePaletteItems: NodePaletteItem[] = [
     category: 'Content'
   },
   
+  // Client Data
+  {
+    type: WorkflowNodeType.CLIENT_PROFILE,
+    label: 'Client Profile',
+    description: 'Load client data and business profile',
+    category: 'Client Data'
+  },
+  
   // Actions
   {
     type: WorkflowNodeType.EMAIL,
@@ -783,7 +791,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             <Divider sx={{ mb: 2 }} />
 
             {/* Node Categories */}
-            {['Triggers', 'AI Tools', 'SERP', 'Keywords', 'Labs', 'Backlinks', 'On-Page', 'Content', 'Actions'].map((category) => (
+            {['Triggers', 'AI Tools', 'SERP', 'Keywords', 'Labs', 'Backlinks', 'On-Page', 'Content', 'Client Data', 'Actions'].map((category) => (
               <Box key={category} sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>
                   {category}
