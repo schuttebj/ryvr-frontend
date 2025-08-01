@@ -162,7 +162,7 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
 
         // Update execution steps based on the results
         if (workflowResult.results && workflowResult.results.length > 0) {
-          workflowResult.results.forEach((result: any, index: number) => {
+          workflowResult.results.forEach((result: any) => {
             const stepIndex = executionSteps.findIndex(step => step.nodeId === result.nodeId);
             if (stepIndex !== -1) {
               setExecutionSteps(prev => prev.map((step, idx) => 
