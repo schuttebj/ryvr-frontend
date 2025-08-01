@@ -709,11 +709,13 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
   console.log('🔍 Resolving variable path:', path);
   
   const pathParts = path.split('.');
-    let current = workflowData;
+  let current = workflowData;
+  let isArrayContext = false; // Track if we're working with an array from wildcard access
     
-  for (const part of pathParts) {
+  for (let i = 0; i < pathParts.length; i++) {
+    const part = pathParts[i];
     if (part.includes('[') && part.includes(']')) {
-      // Handle array access like items[0] or items[*]
+            // Handle array access like items[0] or items[*]
       const match = part.match(/(\w+)\[([0-9*]+)\]/);
       if (match) {
         const [, arrayKey, index] = match;
@@ -721,16 +723,45 @@ export const resolveVariablePath = (path: string, workflowData: Record<string, a
           if (index === '*') {
             // Return the entire array for * index
             current = current[arrayKey];
+            isArrayContext = true; // Mark that we're now working with an array
+            console.log(`📚 Array wildcard access: got ${current.length} items`);
           } else {
             current = current[arrayKey][parseInt(index)];
+            isArrayContext = false; // Single item access
+            console.log(`📚 Array index access [${index}]: got item`);
           }
         } else {
-        return undefined;
+          console.log(`❌ Array access failed: ${arrayKey} is not an array`);
+          return undefined;
         }
-        }
+      }
+    } else {
+      // Regular property access
+      if (isArrayContext && Array.isArray(current)) {
+        // If we're in array context and trying to access a property, map it across all items
+        const remainingPath = pathParts.slice(i).join('.');
+        console.log(`📚 Mapping property '${remainingPath}' across ${current.length} array items`);
+        
+        const mappedValues = current.map(item => {
+          let value = item;
+          const subParts = remainingPath.split('.');
+          
+          for (const subPart of subParts) {
+            if (value && typeof value === 'object') {
+              value = value[subPart];
+            } else {
+              return undefined;
+            }
+          }
+          return value;
+        }).filter(val => val !== undefined && val !== null);
+        
+        console.log(`📚 Mapped ${mappedValues.length} values:`, mappedValues.slice(0, 3));
+        return mappedValues;
       } else {
         current = current[part];
       }
+    }
       
     if (current === undefined) {
       console.log(`❌ Path resolution stopped at '${part}' - value undefined`);

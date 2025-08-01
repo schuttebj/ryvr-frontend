@@ -95,18 +95,16 @@ export default function VariableTextField({
         }
       });
       
-      const resolvedValue = resolveVariablePath(variablePath, allData);
+      // Use processVariables to handle format parsing correctly
+      const dummyText = `{{${variablePath}}}`;
+      const processedValue = processVariables(dummyText, allData);
       
-      if (resolvedValue === undefined || resolvedValue === null) {
+      // If it returned the original text, the variable wasn't found
+      if (processedValue === dummyText) {
         return '<undefined>';
       }
       
-      if (typeof resolvedValue === 'object') {
-        return '<object>';
-      }
-      
-      const stringValue = String(resolvedValue);
-      return stringValue.length > 50 ? stringValue.substring(0, 47) + '...' : stringValue;
+      return processedValue.length > 50 ? processedValue.substring(0, 47) + '...' : processedValue;
     } catch (error) {
       return '<error>';
     }
