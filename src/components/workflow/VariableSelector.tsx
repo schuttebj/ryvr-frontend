@@ -45,6 +45,12 @@ export default function VariableSelector({
 }: VariableSelectorProps) {
   const [selectedFormat, setSelectedFormat] = useState<'single' | 'list' | 'json' | 'range'>('single');
   const [selectedPath, setSelectedPath] = useState('');
+  
+  // Enhanced setSelectedPath with logging
+  const setSelectedPathWithLogging = (path: string) => {
+    console.log('🎯 Setting selected path:', path);
+    setSelectedPath(path);
+  };
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState(4);
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
@@ -155,6 +161,7 @@ export default function VariableSelector({
         variable = `{{${selectedPath}}}`;
     }
     
+    console.log('🎨 Generated variable:', variable, 'from path:', selectedPath, 'with format:', selectedFormat);
     return variable;
   };
 
@@ -221,7 +228,10 @@ export default function VariableSelector({
               variant="outlined"
               color="secondary"
               sx={{ fontSize: '0.7rem', cursor: 'pointer', mr: 1 }}
-              onClick={() => setSelectedPath(`${currentPath}[*]`)}
+              onClick={() => {
+                console.log('🌟 Wildcard clicked! Setting path:', `${currentPath}[*]`);
+                setSelectedPathWithLogging(`${currentPath}[*]`);
+              }}
               icon={<ListIcon fontSize="small" />}
             />
             <Typography variant="caption" color="text.secondary">
@@ -241,7 +251,8 @@ export default function VariableSelector({
                     color="primary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedPath(`${currentPath}[${index}]`);
+                      console.log('📍 Individual item clicked! Setting path:', `${currentPath}[${index}]`);
+                      setSelectedPathWithLogging(`${currentPath}[${index}]`);
                     }}
                     sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
                   />
@@ -272,7 +283,7 @@ export default function VariableSelector({
                   onClick={() => {
                     const wildcardPath = `${currentPath}[*]`;
                     const simplifiedPath = wildcardPath.replace(/^[^.]+\.data\./, '');
-                    setSelectedPath(simplifiedPath);
+                    setSelectedPathWithLogging(simplifiedPath);
                   }}
                   sx={{ 
                     fontSize: '0.7rem', 
@@ -323,7 +334,7 @@ export default function VariableSelector({
                       variant="outlined"
                       color={isArray ? 'secondary' : isObject ? 'info' : 'primary'}
                       sx={{ fontSize: '0.7rem', cursor: 'pointer', minWidth: 'auto' }}
-                      onClick={() => setSelectedPath(newPath)}
+                      onClick={() => setSelectedPathWithLogging(newPath)}
                       icon={isArray ? <ListIcon fontSize="small" /> : isObject ? <JsonIcon fontSize="small" /> : <CodeIcon fontSize="small" />}
                     />
                     
@@ -370,7 +381,7 @@ export default function VariableSelector({
             variant="outlined"
             color="primary"
             sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
-            onClick={() => setSelectedPath(currentPath)}
+            onClick={() => setSelectedPathWithLogging(currentPath)}
           />
           <Typography variant="caption" color="text.secondary" sx={{ ml: 1, fontFamily: 'monospace' }}>
             = {String(data)}
