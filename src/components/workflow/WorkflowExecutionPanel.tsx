@@ -245,53 +245,6 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
     }
   };
 
-  // Execute individual node
-  const executeNode = async (node: any): Promise<any> => {
-    const nodeType = node.data.type;
-    const config = node.data.config || {};
-
-    addLogMessage(`🔧 Executing ${nodeType} node with config: ${JSON.stringify(config)}`);
-
-    switch (nodeType) {
-      case WorkflowNodeType.SEO_SERP_ANALYZE:
-        return await (workflowApi.executeNode as any)(nodeType, {
-          keyword: config.keyword || 'Marketing',
-          locationCode: config.locationCode || 2840,
-          languageCode: config.languageCode || 'en',
-          device: config.device || 'desktop',
-          depth: config.depth || 10,
-          organicOnly: config.organicOnly || false,
-          resultType: config.resultType,
-          dateRange: config.dateRange
-        }, {}, node.id);
-
-      case WorkflowNodeType.AI_OPENAI_TASK:
-        return await (workflowApi.executeNode as any)(nodeType, {
-          prompt: config.prompt || 'Generate content about marketing',
-          model: config.model || 'gpt-3.5-turbo',
-          maxTokens: config.maxTokens || 500
-        }, {}, node.id);
-
-      case WorkflowNodeType.DATA_FILTER:
-        return await (workflowApi.executeNode as any)(nodeType, {
-          data: config.data || [],
-          filterType: config.filterType || 'contains',
-          filterValue: config.filterValue || '',
-          field: config.field || 'title'
-        }, {}, node.id);
-
-      default:
-        // Mock execution for other node types
-        addLogMessage(`🎭 Mock execution for ${nodeType} node`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
-        return {
-          status: 'success',
-          data: `Mock result for ${nodeType}`,
-          timestamp: new Date().toISOString()
-        };
-    }
-  };
-
   // Stop execution
   const stopExecution = () => {
     setIsExecuting(false);
