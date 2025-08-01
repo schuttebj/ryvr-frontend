@@ -57,14 +57,23 @@ export default function ClientsPage() {
   const [responses, setResponses] = useState<QuestionnaireResponses>({} as QuestionnaireResponses);
   const [lastSaved, setLastSaved] = useState<string>('');
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
-  const [newClientData, setNewClientData] = useState({
+  const [newClientData, setNewClientData] = useState<{
+    name: string;
+    email: string;
+    company: string;
+    industry: string;
+    phone: string;
+    status: 'potential' | 'active' | 'inactive';
+    tags: string[];
+    notes: string;
+  }>({
     name: '',
     email: '',
     company: '',
     industry: '',
     phone: '',
-    status: 'potential' as const,
-    tags: [] as string[],
+    status: 'potential',
+    tags: [],
     notes: ''
   });
 
