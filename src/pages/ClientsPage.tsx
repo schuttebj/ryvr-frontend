@@ -15,6 +15,7 @@ import {
   DialogActions,
   TextField,
   FormControl,
+  InputLabel,
   Select,
   MenuItem,
   IconButton,
@@ -54,9 +55,38 @@ export default function ClientsPage() {
   const [isProfileGenerating, setIsProfileGenerating] = useState(false);
   const [currentCategory, setCurrentCategory] = useState(0);
   const [responses, setResponses] = useState<QuestionnaireResponses>({} as QuestionnaireResponses);
+  const [lastSaved, setLastSaved] = useState<string>('');
+  const [isAddClientOpen, setIsAddClientOpen] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    industry: '',
+    phone: '',
+    status: 'potential' as const,
+    tags: [] as string[],
+    notes: ''
+  });
 
-  // Mock data for development
+  // Load clients from localStorage or create mock data
   useEffect(() => {
+    const savedClients = localStorage.getItem('ryvr_clients');
+    
+    if (savedClients) {
+      try {
+        const parsedClients = JSON.parse(savedClients);
+        setClients(parsedClients);
+        console.log('✅ Loaded clients from localStorage:', parsedClients.length, 'clients');
+      } catch (error) {
+        console.error('❌ Error parsing saved clients:', error);
+        loadMockClients();
+      }
+    } else {
+      loadMockClients();
+    }
+  }, []);
+
+  const loadMockClients = () => {
     const mockClients: Client[] = [
       {
         id: '1',
@@ -91,15 +121,77 @@ export default function ClientsPage() {
       }
     ];
     setClients(mockClients);
-  }, []);
+    saveClientsToStorage(mockClients);
+    console.log('✅ Created mock clients data');
+  };
+
+  // Save clients to localStorage
+  const saveClientsToStorage = (clientsData: Client[]) => {
+    try {
+      localStorage.setItem('ryvr_clients', JSON.stringify(clientsData));
+      console.log('💾 Clients saved to localStorage');
+    } catch (error) {
+      console.error('❌ Error saving clients to localStorage:', error);
+    }
+  };
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
   const handleAddClient = () => {
-    // TODO: Implement add client dialog
-    console.log('Add client clicked');
+    setNewClientData({
+      name: '',
+      email: '',
+      company: '',
+      industry: '',
+      phone: '',
+      status: 'potential',
+      tags: [],
+      notes: ''
+    });
+    setIsAddClientOpen(true);
+  };
+
+  const handleSaveNewClient = () => {
+    if (!newClientData.name.trim()) {
+      alert('Please enter a client name');
+      return;
+    }
+
+    // Check if client name already exists
+    const existingClient = clients.find(client => 
+      client.name.toLowerCase() === newClientData.name.trim().toLowerCase()
+    );
+    
+    if (existingClient) {
+      alert('A client with this name already exists. Please choose a different name.');
+      return;
+    }
+
+    // Generate unique ID
+    const clientId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const newClient: Client = {
+      id: clientId,
+      name: newClientData.name.trim(),
+      email: newClientData.email.trim(),
+      company: newClientData.company.trim(),
+      industry: newClientData.industry.trim(),
+      phone: newClientData.phone.trim(),
+      status: newClientData.status,
+      tags: newClientData.tags,
+      notes: newClientData.notes.trim(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    const updatedClients = [...clients, newClient];
+    setClients(updatedClients);
+    saveClientsToStorage(updatedClients);
+    setIsAddClientOpen(false);
+    
+    console.log('✅ New client added:', newClient.name, 'with ID:', newClient.id);
   };
 
   const handleEditClient = (client: Client) => {
@@ -112,6 +204,7 @@ export default function ClientsPage() {
     setSelectedClient(client);
     setResponses(client.questionnaireResponses || {} as QuestionnaireResponses);
     setCurrentCategory(0);
+    setLastSaved(''); // Reset auto-save indicator
     setIsQuestionnaireOpen(true);
   };
 
@@ -134,6 +227,7 @@ export default function ClientsPage() {
           : c
       );
       setClients(updatedClients);
+      saveClientsToStorage(updatedClients); // Persist to localStorage
     } catch (error) {
       console.error('Failed to generate profile:', error);
     } finally {
@@ -142,13 +236,28 @@ export default function ClientsPage() {
   };
 
   const updateResponse = (categoryId: keyof QuestionnaireResponses, questionId: string, value: string) => {
-    setResponses(prev => ({
-      ...prev,
+    const newResponses = {
+      ...responses,
       [categoryId]: {
-        ...prev[categoryId],
+        ...responses[categoryId],
         [questionId]: value
       }
-    }));
+    };
+    
+    setResponses(newResponses);
+    
+    // Auto-save: Update the client immediately and persist to localStorage
+    if (selectedClient) {
+      const updatedClients = clients.map(client =>
+        client.id === selectedClient.id
+          ? { ...client, questionnaireResponses: newResponses, updatedAt: new Date().toISOString() }
+          : client
+      );
+      setClients(updatedClients);
+      saveClientsToStorage(updatedClients);
+      setLastSaved(new Date().toLocaleTimeString());
+      console.log('🔄 Auto-saved response for:', categoryId, questionId);
+    }
   };
 
   const saveQuestionnaire = () => {
@@ -159,8 +268,12 @@ export default function ClientsPage() {
         ? { ...client, questionnaireResponses: responses, updatedAt: new Date().toISOString() }
         : client
     );
+    
     setClients(updatedClients);
+    saveClientsToStorage(updatedClients); // Persist to localStorage
     setIsQuestionnaireOpen(false);
+    
+    console.log('✅ Questionnaire saved for client:', selectedClient.name);
   };
 
   const getQuestionnaireProgress = (client: Client) => {
@@ -290,9 +403,16 @@ export default function ClientsPage() {
             <Typography variant="h6">
               {selectedClient?.name} - Business Questionnaire
             </Typography>
-            <Typography variant="caption">
-              Category {currentCategory + 1} of {QUESTIONNAIRE_CATEGORIES.length}
-            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+              <Typography variant="caption">
+                Category {currentCategory + 1} of {QUESTIONNAIRE_CATEGORIES.length}
+              </Typography>
+              {lastSaved && (
+                <Typography variant="caption" color="success.main" sx={{ fontSize: '0.7rem' }}>
+                  ✓ Auto-saved at {lastSaved}
+                </Typography>
+              )}
+            </Box>
           </Box>
         </DialogTitle>
         
@@ -390,7 +510,7 @@ export default function ClientsPage() {
             Next
           </Button>
           <Button variant="contained" onClick={saveQuestionnaire}>
-            Save Progress
+            Close & Save
           </Button>
         </DialogActions>
       </Dialog>
@@ -428,6 +548,103 @@ export default function ClientsPage() {
           Client insights and analytics dashboard coming soon.
         </Typography>
       </TabPanel>
+
+      {/* Add Client Dialog */}
+      <Dialog open={isAddClientOpen} onClose={() => setIsAddClientOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6">Add New Client</Typography>
+        </DialogTitle>
+        
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Client Name"
+              value={newClientData.name}
+              onChange={(e) => setNewClientData(prev => ({ ...prev, name: e.target.value }))}
+              fullWidth
+              required
+              placeholder="Enter client name"
+            />
+            
+            <TextField
+              label="Company"
+              value={newClientData.company}
+              onChange={(e) => setNewClientData(prev => ({ ...prev, company: e.target.value }))}
+              fullWidth
+              placeholder="Company name"
+            />
+            
+            <TextField
+              label="Email"
+              type="email"
+              value={newClientData.email}
+              onChange={(e) => setNewClientData(prev => ({ ...prev, email: e.target.value }))}
+              fullWidth
+              placeholder="client@company.com"
+            />
+            
+            <TextField
+              label="Phone"
+              value={newClientData.phone}
+              onChange={(e) => setNewClientData(prev => ({ ...prev, phone: e.target.value }))}
+              fullWidth
+              placeholder="+1 (555) 123-4567"
+            />
+            
+            <TextField
+              label="Industry"
+              value={newClientData.industry}
+              onChange={(e) => setNewClientData(prev => ({ ...prev, industry: e.target.value }))}
+              fullWidth
+              placeholder="e.g., Technology, Healthcare, E-commerce"
+            />
+            
+            <FormControl fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={newClientData.status}
+                label="Status"
+                onChange={(e) => setNewClientData(prev => ({ ...prev, status: e.target.value as 'potential' | 'active' | 'inactive' }))}
+              >
+                <MenuItem value="potential">Potential</MenuItem>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <TextField
+              label="Tags"
+              value={newClientData.tags.join(', ')}
+              onChange={(e) => {
+                const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+                setNewClientData(prev => ({ ...prev, tags }));
+              }}
+              fullWidth
+              placeholder="e.g., Enterprise, SaaS, High Priority"
+              helperText="Separate tags with commas"
+            />
+            
+            <TextField
+              label="Notes"
+              value={newClientData.notes}
+              onChange={(e) => setNewClientData(prev => ({ ...prev, notes: e.target.value }))}
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="Additional notes about this client..."
+            />
+          </Box>
+        </DialogContent>
+        
+        <DialogActions>
+          <Button onClick={() => setIsAddClientOpen(false)}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={handleSaveNewClient}>
+            Add Client
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {renderQuestionnaire()}
 
