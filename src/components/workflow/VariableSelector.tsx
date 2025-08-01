@@ -260,9 +260,33 @@ export default function VariableSelector({
           ))}
           
           {data.length > 3 && (
-            <Typography variant="caption" color="text.secondary" sx={{ ml: 2, fontStyle: 'italic' }}>
-              ... and {data.length - 3} more items (use [*] for all, or specify index)
+            <Box sx={{ ml: 2, mt: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                ... and {data.length - 3} more items
               </Typography>
+              <Box sx={{ mt: 0.5 }}>
+                <Chip
+                  label="Select All [*]"
+                  size="small"
+                  variant="outlined"
+                  onClick={() => {
+                    const wildcardPath = `${currentPath}[*]`;
+                    const simplifiedPath = wildcardPath.replace(/^[^.]+\.data\./, '');
+                    setSelectedPath(simplifiedPath);
+                  }}
+                  sx={{ 
+                    fontSize: '0.7rem', 
+                    cursor: 'pointer',
+                    color: 'primary.main',
+                    borderColor: 'primary.main',
+                    '&:hover': {
+                      backgroundColor: 'primary.light',
+                      color: 'white'
+                    }
+                  }}
+                />
+              </Box>
+            </Box>
           )}
         </Box>
       );
