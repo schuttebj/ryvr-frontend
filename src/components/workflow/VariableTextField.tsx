@@ -15,7 +15,7 @@ import {
   VisibilityOff,
 } from '@mui/icons-material';
 import VariableSelector from './VariableSelector';
-import { getAvailableDataNodes, resolveVariablePath } from '../../services/workflowApi';
+import { getAvailableDataNodes, processVariables } from '../../services/workflowApi';
 
 interface VariableTextFieldProps extends Omit<TextFieldProps, 'onChange'> {
   value: string;
