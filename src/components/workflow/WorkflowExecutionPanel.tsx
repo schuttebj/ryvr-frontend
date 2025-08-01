@@ -30,7 +30,6 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Divider,
   Avatar,
   Tooltip,
 } from '@mui/material';
@@ -443,7 +442,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
 
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={activeTab} onChange={(e, value) => setActiveTab(value)}>
+          <Tabs value={activeTab} onChange={(_, value) => setActiveTab(value)}>
             <Tab label="Execution" icon={<TimelineIcon />} />
             <Tab 
               label="Results" 
@@ -554,7 +553,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
           {activeTab === 1 && workflowResults.length > 0 && (
             <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
               <Grid container spacing={2}>
-                {workflowResults.map((result, index) => (
+                {workflowResults.map((result) => (
                   <Grid item xs={12} md={6} key={result.nodeId}>
                     <Card>
                       <CardContent>
@@ -642,7 +641,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
                         <TimelineIcon color="primary" />
                         Performance Metrics
                       </Typography>
-                      <Box space={2}>
+                      <Box>
                         <Box display="flex" justifyContent="space-between" mb={1}>
                           <Typography variant="body2">Success Rate:</Typography>
                           <Typography variant="body2" fontWeight="bold">
