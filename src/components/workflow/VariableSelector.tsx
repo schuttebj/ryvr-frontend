@@ -51,6 +51,21 @@ export default function VariableSelector({
     console.log('🎯 Setting selected path:', path);
     setSelectedPath(path);
   };
+
+  // Convert the last array index in a path to wildcard
+  const convertToWildcardPath = (path: string): string => {
+    // Find the last occurrence of [number] and replace with [*]
+    // Example: items[0].domain → items[*].domain
+    // Handle multiple arrays: results[0].items[1].domain → results[0].items[*].domain
+    const parts = path.split('.');
+    const lastPart = parts[parts.length - 1]; // The property name (e.g., "domain")
+    const pathWithoutLastPart = parts.slice(0, -1).join('.'); // Everything before the property
+    
+    // Replace the last [number] with [*] in the path before the property
+    const wildcardPathWithoutProperty = pathWithoutLastPart.replace(/\[(\d+)\]([^\[]*)$/, '[*]$2');
+    
+    return `${wildcardPathWithoutProperty}.${lastPart}`;
+  };
   const [rangeStart, setRangeStart] = useState(0);
   const [rangeEnd, setRangeEnd] = useState(4);
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
@@ -224,10 +239,20 @@ export default function VariableSelector({
           <Box sx={{ mb: 1 }}>
             <Chip
               size="small"
-              label={`${currentPath.replace(nodeId + '.', '')}[*] (All ${data.length} items)`}
-              variant="outlined"
-              color="secondary"
-              sx={{ fontSize: '0.7rem', cursor: 'pointer', mr: 1 }}
+              label={`SELECT ALL [*] (${data.length} items)`}
+              variant="filled"
+              color="warning"
+              sx={{ 
+                fontSize: '0.8rem', 
+                cursor: 'pointer', 
+                mr: 1,
+                fontWeight: 'bold',
+                backgroundColor: 'orange',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'darkorange'
+                }
+              }}
               onClick={() => {
                 console.log('🌟 Wildcard clicked! Setting path:', `${currentPath}[*]`);
                 setSelectedPathWithLogging(`${currentPath}[*]`);
@@ -337,6 +362,32 @@ export default function VariableSelector({
                       onClick={() => setSelectedPathWithLogging(newPath)}
                       icon={isArray ? <ListIcon fontSize="small" /> : isObject ? <JsonIcon fontSize="small" /> : <CodeIcon fontSize="small" />}
                     />
+                    
+                    {/* Add "Get All" button for properties that can be wildcarded */}
+                    {!isArray && !isObject && /\[\d+\]/.test(newPath) && (
+                      <Chip
+                        size="small"
+                        label="Get All"
+                        variant="filled"
+                        color="warning"
+                        sx={{ 
+                          fontSize: '0.65rem', 
+                          cursor: 'pointer',
+                          height: '20px',
+                          backgroundColor: 'orange',
+                          color: 'white',
+                          '&:hover': {
+                            backgroundColor: 'darkorange'
+                          }
+                        }}
+                        onClick={() => {
+                          // Convert the last array index to wildcard
+                          const wildcardPath = convertToWildcardPath(newPath);
+                          console.log('🌟 Get All clicked! Converting:', newPath, '→', wildcardPath);
+                          setSelectedPathWithLogging(wildcardPath);
+                        }}
+                      />
+                    )}
                     
                     <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '0.8rem' }}>
                       {displayPath}
