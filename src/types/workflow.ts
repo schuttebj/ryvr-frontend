@@ -20,6 +20,9 @@ export enum WorkflowNodeType {
   // Data Processing & Filtering
   DATA_FILTER = 'data_filter',
   
+  // Client Management
+  CLIENT_PROFILE = 'client_profile',
+  
   // SEO Tools (DataForSEO Integration)
   // SERP Analysis
   SEO_SERP_ANALYZE = 'seo_serp_analyze',

@@ -1894,6 +1894,83 @@ export const workflowApi = {
           console.log(`   - Filter: ${filterProperty} ${filterOperation} "${filterValue}"`);
           break;
           
+        // Client Profile
+        case 'client_profile':
+        case WorkflowNodeType.CLIENT_PROFILE:
+          const clientId = finalConfig.clientId;
+          if (!clientId) {
+            throw new Error('Client ID is required for client profile node');
+          }
+
+          try {
+            // Fetch client data from backend
+            const token = localStorage.getItem('authToken');
+            const clientResponse = await fetch(`${backendUrl}/api/v1/clients/${clientId}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+
+            if (!clientResponse.ok) {
+              throw new Error(`Failed to fetch client data: ${clientResponse.status}`);
+            }
+
+            const clientData = await clientResponse.json();
+            
+            // Structure the client profile data for use in variables
+            result = {
+              client_basic: clientData.questionnaireResponses?.basic || {},
+              client_business_model: clientData.questionnaireResponses?.model || {},
+              client_market: clientData.questionnaireResponses?.market || {},
+              client_operations: clientData.questionnaireResponses?.operations || {},
+              client_marketing: clientData.questionnaireResponses?.marketing || {},
+              client_financials: clientData.questionnaireResponses?.financials || {},
+              client_team: clientData.questionnaireResponses?.team || {},
+              client_goals: clientData.questionnaireResponses?.goals || {},
+              client_challenges: clientData.questionnaireResponses?.challenges || {},
+              client_resources: clientData.questionnaireResponses?.resources || {},
+              client_brand: clientData.questionnaireResponses?.brand || {},
+              client_risk: clientData.questionnaireResponses?.risk || {},
+              business_profile: clientData.businessProfile || {},
+              client_meta: {
+                id: clientData.id,
+                name: clientData.name,
+                email: clientData.email,
+                company: clientData.company,
+                industry: clientData.industry,
+                status: clientData.status,
+                tags: clientData.tags || [],
+                created_at: clientData.createdAt,
+                updated_at: clientData.updatedAt
+              }
+            };
+
+            console.log(`👤 Client Profile loaded for: ${clientData.name}`);
+          } catch (error) {
+            console.error('Failed to load client profile:', error);
+            
+            // Fallback to mock data for development
+            result = {
+              client_basic: {
+                businessName: 'Sample Business',
+                founderName: 'John Doe, CEO',
+                industry: 'Technology',
+                coreOffering: 'Software solutions'
+              },
+              client_meta: {
+                id: clientId,
+                name: 'Sample Client',
+                industry: 'Technology',
+                status: 'active'
+              },
+              business_profile: {},
+              note: 'Using fallback data - client not found or backend unavailable'
+            };
+          }
+          break;
+          
         // Legacy DataForSEO nodes (keeping for backward compatibility)  
         case 'seo_keywords_volume':
           const keywords = finalConfig.keywords ? finalConfig.keywords.split(',').map((k: string) => k.trim()) : [];
