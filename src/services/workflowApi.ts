@@ -708,6 +708,11 @@ export const processVariables = (text: string, workflowData: Record<string, any>
 export const resolveVariablePath = (path: string, workflowData: Record<string, any>): any => {
   console.log('🔍 Resolving variable path:', path);
   
+  // Debug: Check if this is a wildcard path
+  if (path.includes('[*]')) {
+    console.log('🌟 WILDCARD PATH DETECTED!');
+  }
+  
   const pathParts = path.split('.');
   let current = workflowData;
   let isArrayContext = false; // Track if we're working with an array from wildcard access
