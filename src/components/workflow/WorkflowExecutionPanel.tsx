@@ -68,11 +68,12 @@ interface WorkflowExecutionStep {
 
 interface WorkflowExecutionPanelProps {
   nodes: any[];
+  edges: any[];
   open: boolean;
   onClose: () => void;
 }
 
-export default function WorkflowExecutionPanel({ nodes, open, onClose }: WorkflowExecutionPanelProps) {
+export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: WorkflowExecutionPanelProps) {
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionSteps, setExecutionSteps] = useState<WorkflowExecutionStep[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
@@ -114,7 +115,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
     });
   };
 
-  // Execute workflow
+  // Execute workflow using the proper workflowApi
   const executeWorkflow = async () => {
     if (nodes.length === 0) {
       addLogMessage('❌ No nodes to execute');
@@ -124,7 +125,7 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
     setIsExecuting(true);
     setCurrentStepIndex(-1);
     setExecutionLog([]);
-    addLogMessage('🚀 Starting workflow execution...');
+    addLogMessage('🚀 Starting workflow execution with proper flow order...');
 
     // Reset all steps to pending
     setExecutionSteps(prev => prev.map(step => ({
@@ -136,115 +137,109 @@ export default function WorkflowExecutionPanel({ nodes, open, onClose }: Workflo
     })));
 
     try {
-      // Execute nodes in order (simple sequential execution for now)
-      for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
-        const stepIndex = executionSteps.findIndex(step => step.nodeId === node.id);
-        
-        if (stepIndex === -1) continue;
+      // Create a proper workflow object with edges
+      const workflowData = {
+        id: `temp_workflow_${Date.now()}`,
+        name: 'Test Execution',
+        nodes: nodes,
+        edges: edges || [], // Include edges for proper flow order
+        isActive: true
+      };
 
-        setCurrentStepIndex(i);
-        
-        // Update step to running
-        setExecutionSteps(prev => prev.map((step, index) => 
-          index === stepIndex 
-            ? { ...step, status: 'running', startTime: new Date(), progress: 0 }
-            : step
-        ));
+      addLogMessage(`📋 Executing workflow with ${nodes.length} nodes and ${edges.length} edges...`);
+      addLogMessage(`🔗 Flow order will be determined by node connections`);
 
-        addLogMessage(`📋 Executing node: ${node.data.label || node.id} (${node.data.type})`);
+      const startTime = Date.now();
 
-        try {
-          // Execute the node
-          const result = await executeNode(node);
-          
-          // Update step to completed
-          setExecutionSteps(prev => prev.map((step, index) => 
-            index === stepIndex 
-              ? { 
-                  ...step, 
-                  status: 'completed', 
-                  endTime: new Date(),
-                  duration: new Date().getTime() - (step.startTime?.getTime() || 0),
-                  result,
-                  progress: 100
-                }
-              : step
-          ));
+      // Use the proper workflowApi.executeWorkflow that follows edges
+      const workflowResult = await workflowApi.executeWorkflow(workflowData);
 
-          addLogMessage(`✅ Node completed: ${node.data.label || node.id}`);
-          
-          // Store result for variable system
-          await workflowApi.storeNodeResult(node.id, {
-            executionId: `exec_${Date.now()}`,
-            nodeId: node.id,
-            nodeType: node.data.type,
-            status: 'success',
-            executedAt: new Date().toISOString(),
-            executionTime: new Date().getTime() - (executionSteps[stepIndex]?.startTime?.getTime() || 0),
-            data: {
-              processed: result,
-              raw: result,
-              summary: { result: result }
-            },
-            inputData: node.data.config || {},
-            apiMetadata: {
-              provider: 'workflow_execution',
-              endpoint: '/api/v1/workflow/execute',
-              creditsUsed: 0
+      const endTime = Date.now();
+      const totalDuration = endTime - startTime;
+
+      if (workflowResult.success) {
+        addLogMessage(`🎉 Workflow execution completed successfully in ${totalDuration}ms!`);
+
+        // Update execution steps based on the results
+        if (workflowResult.results && workflowResult.results.length > 0) {
+          workflowResult.results.forEach((result: any, index: number) => {
+            const stepIndex = executionSteps.findIndex(step => step.nodeId === result.nodeId);
+            if (stepIndex !== -1) {
+              setExecutionSteps(prev => prev.map((step, idx) => 
+                idx === stepIndex 
+                  ? { 
+                      ...step, 
+                      status: result.success ? 'completed' : 'failed',
+                      endTime: new Date(),
+                      duration: result.executionTime || Math.floor(totalDuration / workflowResult.results.length),
+                      result: result.data,
+                      error: result.error,
+                      progress: result.success ? 100 : 0
+                    }
+                  : step
+              ));
+
+              addLogMessage(result.success 
+                ? `✅ Node completed: ${result.nodeId} (${result.nodeType})` 
+                : `❌ Node failed: ${result.nodeId} - ${result.error}`
+              );
             }
           });
 
-        } catch (error: any) {
-          // Update step to failed
-          setExecutionSteps(prev => prev.map((step, index) => 
-            index === stepIndex 
-              ? { 
-                  ...step, 
-                  status: 'failed', 
-                  endTime: new Date(),
-                  duration: new Date().getTime() - (step.startTime?.getTime() || 0),
-                  error: error.message,
-                  progress: 0
-                }
-              : step
-          ));
+          // Set results for display
+          const displayResults = workflowResult.results.map((result: any) => ({
+            nodeId: result.nodeId,
+            nodeType: result.nodeType,
+            nodeLabel: nodes.find(n => n.id === result.nodeId)?.data?.label || result.nodeId,
+            result: result.data,
+            duration: result.executionTime || Math.floor(totalDuration / workflowResult.results.length),
+            timestamp: new Date()
+          }));
 
-          addLogMessage(`❌ Node failed: ${node.data.label || node.id} - ${error.message}`);
+          setWorkflowResults(displayResults);
+
+          // Generate summary
+          const summary = {
+            totalNodes: workflowResult.results.length,
+            completedNodes: workflowResult.results.filter((r: any) => r.success).length,
+            failedNodes: workflowResult.results.filter((r: any) => !r.success).length,
+            totalDuration: totalDuration,
+            startTime: new Date(startTime),
+            endTime: new Date(endTime),
+            successRate: (workflowResult.results.filter((r: any) => r.success).length / workflowResult.results.length) * 100
+          };
+
+          setExecutionSummary(summary);
+          addLogMessage(`📊 Summary: ${summary.completedNodes}/${summary.totalNodes} nodes completed (${summary.successRate.toFixed(1)}% success rate)`);
+        } else {
+          addLogMessage('⚠️ No results returned from workflow execution');
         }
-
-        // Small delay between nodes
-        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        addLogMessage(`💥 Workflow execution failed: ${workflowResult.error}`);
+        
+        // Mark all steps as failed if overall workflow failed
+        setExecutionSteps(prev => prev.map(step => ({
+          ...step,
+          status: 'failed',
+          error: workflowResult.error,
+          endTime: new Date(),
+          progress: 0
+        })));
       }
-
-      addLogMessage('🎉 Workflow execution completed!');
       
     } catch (error: any) {
       addLogMessage(`💥 Workflow execution failed: ${error.message}`);
-    } finally {
-      // Generate execution summary and results
-      const completedSteps = executionSteps.filter(step => step.status === 'completed');
-      const results = completedSteps.map(step => ({
-        nodeId: step.nodeId,
-        nodeType: step.nodeType,
-        nodeLabel: nodes.find(n => n.id === step.nodeId)?.data?.label || step.nodeId,
-        result: step.result,
-        duration: step.duration,
-        timestamp: step.endTime
-      }));
-
-      const summary = {
-        totalNodes: executionSteps.length,
-        completedNodes: completedSteps.length,
-        failedNodes: executionSteps.filter(step => step.status === 'failed').length,
-        totalDuration: executionSteps.reduce((sum, step) => sum + (step.duration || 0), 0),
-        startTime: executionSteps[0]?.startTime,
+      console.error('Workflow execution error:', error);
+      
+      // Mark all steps as failed
+      setExecutionSteps(prev => prev.map(step => ({
+        ...step,
+        status: 'failed',
+        error: error.message,
         endTime: new Date(),
-        successRate: (completedSteps.length / executionSteps.length) * 100
-      };
-
-      setWorkflowResults(results);
-      setExecutionSummary(summary);
+        progress: 0
+      })));
+    } finally {
       setIsExecuting(false);
       setCurrentStepIndex(-1);
     }

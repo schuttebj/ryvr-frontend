@@ -13,7 +13,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Chip,
   Alert,
   CircularProgress,
@@ -27,7 +26,17 @@ import {
   Tooltip,
   Grid,
   Paper,
-  Divider
+  Divider,
+  Tab,
+  Tabs,
+  Avatar,
+  TableContainer,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
+  LinearProgress
 } from '@mui/material';
 import {
   PlayArrow as PlayIcon,
@@ -39,7 +48,13 @@ import {
   Error as ErrorIcon,
   AccessTime as TimeIcon,
   DataObject as DataIcon,
-  Timeline as TimelineIcon
+  Timeline as TimelineIcon,
+  Assessment as ResultsIcon,
+  Speed as PerformanceIcon,
+  Download as ExportIcon,
+  Close as CloseIcon,
+  ListAlt as StepsIcon,
+  TrendingUp as MetricsIcon
 } from '@mui/icons-material';
 import { workflowApi } from '../services/workflowApi';
 
@@ -72,6 +87,7 @@ export const WorkflowRunsPage: React.FC = () => {
   const [runningWorkflows, setRunningWorkflows] = useState<Set<string>>(new Set());
   const [selectedRun, setSelectedRun] = useState<WorkflowRun | null>(null);
   const [showRunDetails, setShowRunDetails] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     loadWorkflows();
@@ -182,6 +198,7 @@ export const WorkflowRunsPage: React.FC = () => {
 
   const viewRunDetails = (run: WorkflowRun) => {
     setSelectedRun(run);
+    setActiveTab(0); // Reset to Overview tab
     setShowRunDetails(true);
   };
 
@@ -209,6 +226,48 @@ export const WorkflowRunsPage: React.FC = () => {
     return `${(ms / 60000).toFixed(1)}m`;
   };
 
+  // Get node color based on type (same as in WorkflowBuilder)
+  const getNodeColor = (nodeType: string): string => {
+    if (nodeType?.startsWith('ai_')) return '#10B981';
+    if (nodeType?.includes('google_analytics')) return '#FF6D01';
+    if (nodeType?.includes('google_ads')) return '#34A853';
+    if (nodeType?.startsWith('seo_')) return '#6366F1';
+    if (nodeType?.startsWith('meta_')) return '#1877F2';
+    if (nodeType === 'trigger') return '#9C27B0';
+    if (nodeType === 'client_profile') return '#2196F3';
+    return '#64748B';
+  };
+
+  // Export results
+  const exportResults = (run: WorkflowRun) => {
+    const exportData = {
+      run: {
+        id: run.id,
+        workflowName: run.workflowName,
+        status: run.status,
+        startedAt: run.startedAt,
+        completedAt: run.completedAt,
+        duration: run.duration
+      },
+      summary: {
+        totalNodes: run.nodeCount,
+        successfulNodes: run.successfulNodes,
+        failedNodes: run.nodeCount - run.successfulNodes,
+        successRate: ((run.successfulNodes / run.nodeCount) * 100).toFixed(1)
+      },
+      results: run.results,
+      finalResult: run.finalResult
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `workflow-run-${run.id}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ mb: 4 }}>
@@ -233,7 +292,7 @@ export const WorkflowRunsPage: React.FC = () => {
                 <InputLabel>Select Active Workflow</InputLabel>
                 <Select
                   value={selectedWorkflow}
-                  onChange={(e) => setSelectedWorkflow(e.target.value)}
+                  onChange={(e: any) => setSelectedWorkflow(e.target.value)}
                   label="Select Active Workflow"
                 >
                   {workflows.map((workflow) => (
@@ -371,154 +430,390 @@ export const WorkflowRunsPage: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Run Details Dialog */}
+      {/* Enhanced Run Details Dialog */}
       <Dialog 
         open={showRunDetails} 
         onClose={() => setShowRunDetails(false)}
-        maxWidth="lg"
+        maxWidth="xl"
         fullWidth
+        PaperProps={{ sx: { height: '90vh' } }}
       >
         <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <DataIcon />
-            Run Details: {selectedRun?.workflowName}
-            <Chip 
-              label={selectedRun?.status} 
-              color={getStatusColor(selectedRun?.status || '') as any}
-              size="small"
-            />
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <ResultsIcon color="primary" />
+              <Typography variant="h6">
+                {selectedRun?.workflowName}
+              </Typography>
+              <Chip 
+                label={selectedRun?.status} 
+                color={getStatusColor(selectedRun?.status || '') as any}
+                size="small"
+              />
+              {selectedRun && (
+                <Chip 
+                  label={`${((selectedRun.successfulNodes / selectedRun.nodeCount) * 100).toFixed(0)}% Success`}
+                  color={selectedRun.successfulNodes === selectedRun.nodeCount ? "success" : 
+                         selectedRun.successfulNodes > selectedRun.nodeCount / 2 ? "warning" : "error"}
+                  size="small"
+                />
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {selectedRun && (
+                <Tooltip title="Export Results">
+                  <IconButton onClick={() => exportResults(selectedRun)} size="small">
+                    <ExportIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <IconButton onClick={() => setShowRunDetails(false)} size="small">
+                <CloseIcon />
+              </IconButton>
+            </Box>
           </Box>
         </DialogTitle>
         
-        <DialogContent>
+        <DialogContent sx={{ p: 0, height: '100%', display: 'flex', flexDirection: 'column' }}>
           {selectedRun && (
-            <Box sx={{ mt: 2 }}>
-              {/* Run Summary */}
-              <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={6} md={3}>
-                    <Typography variant="caption" color="text.secondary">Duration</Typography>
-                    <Typography variant="body1">
-                      {selectedRun.duration ? formatDuration(selectedRun.duration) : 'N/A'}
-                    </Typography>
+            <>
+              {/* Quick Stats Bar */}
+              <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', bgcolor: '#f8f9fa' }}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h4" color="primary">
+                        {selectedRun.successfulNodes}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Successful Nodes
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Typography variant="caption" color="text.secondary">Nodes</Typography>
-                    <Typography variant="body1">
-                      {selectedRun.successfulNodes}/{selectedRun.nodeCount}
-                    </Typography>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h4" color="error">
+                        {selectedRun.nodeCount - selectedRun.successfulNodes}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Failed Nodes
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Typography variant="caption" color="text.secondary">Started</Typography>
-                    <Typography variant="body1">
-                      {new Date(selectedRun.startedAt).toLocaleString()}
-                    </Typography>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h4" color="secondary">
+                        {selectedRun.duration ? formatDuration(selectedRun.duration) : 'N/A'}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Total Duration
+                      </Typography>
+                    </Box>
                   </Grid>
-                  <Grid item xs={6} md={3}>
-                    <Typography variant="caption" color="text.secondary">Completed</Typography>
-                    <Typography variant="body1">
-                      {selectedRun.completedAt ? new Date(selectedRun.completedAt).toLocaleString() : 'N/A'}
-                    </Typography>
+                  <Grid item xs={12} md={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h4" color="success">
+                        {((selectedRun.successfulNodes / selectedRun.nodeCount) * 100).toFixed(0)}%
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Success Rate
+                      </Typography>
+                    </Box>
                   </Grid>
                 </Grid>
-              </Paper>
+              </Box>
 
-              {/* Error Display */}
-              {selectedRun.error && (
-                <Alert severity="error" sx={{ mb: 3 }}>
-                  <Typography variant="body2">{selectedRun.error}</Typography>
-                </Alert>
-              )}
+              {/* Tabs */}
+              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+                <Tabs value={activeTab} onChange={(_: any, value: any) => setActiveTab(value)}>
+                  <Tab label="Overview" icon={<MetricsIcon />} />
+                  <Tab 
+                    label="Step Details" 
+                    icon={<StepsIcon />} 
+                    disabled={!selectedRun.results || selectedRun.results.length === 0}
+                  />
+                  <Tab 
+                    label="Final Result" 
+                    icon={<ResultsIcon />} 
+                    disabled={!selectedRun.finalResult}
+                  />
+                  <Tab label="Raw Data" icon={<DataIcon />} />
+                </Tabs>
+              </Box>
 
-              {/* Final Result */}
-              {selectedRun.finalResult && (
-                <Accordion defaultExpanded>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="h6" sx={{ color: 'success.main' }}>
-                      🎯 Final Result
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box sx={{ 
-                      bgcolor: 'grey.100', 
-                      p: 2, 
-                      borderRadius: 1, 
-                      fontFamily: 'monospace', 
-                      fontSize: '0.875rem',
-                      maxHeight: 300,
-                      overflow: 'auto'
-                    }}>
-                      <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                        {JSON.stringify(selectedRun.finalResult, null, 2)}
-                      </pre>
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
-              )}
-
-              {/* Step-by-Step Results */}
-              {selectedRun.results && selectedRun.results.length > 0 && (
-                <Accordion>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="h6">
-                      📋 Step-by-Step Results ({selectedRun.results.length})
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                      {selectedRun.results.map((result: any, index: number) => (
-                        <Box 
-                          key={index}
-                          sx={{ 
-                            border: 1, 
-                            borderColor: 'divider', 
-                            borderRadius: 1, 
-                            p: 2,
-                            bgcolor: result.success ? 'success.50' : 'error.50'
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                            <Chip label={`Step ${index + 1}`} size="small" color="primary" />
-                            {result.success ? <SuccessIcon color="success" /> : <ErrorIcon color="error" />}
-                            <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                              Node: {result.nodeId}
+              {/* Tab Content */}
+              <Box sx={{ flex: 1, overflow: 'hidden' }}>
+                {/* Overview Tab */}
+                {activeTab === 0 && (
+                  <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
+                    <Grid container spacing={3}>
+                      {/* Execution Timeline */}
+                      <Grid item xs={12} md={6}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <TimelineIcon color="primary" />
+                              Execution Timeline
                             </Typography>
-                          </Box>
-
-                          {result.error && (
-                            <Alert severity="error" sx={{ mb: 2 }}>
-                              {result.error}
-                            </Alert>
-                          )}
-
-                          {result.data && (
-                            <Box sx={{ 
-                              bgcolor: 'grey.100', 
-                              p: 1, 
-                              borderRadius: 1, 
-                              fontFamily: 'monospace', 
-                              fontSize: '0.75rem',
-                              maxHeight: 200,
-                              overflow: 'auto'
-                            }}>
-                              <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                                {JSON.stringify(result.data, null, 2)}
-                              </pre>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <Box display="flex" justifyContent="space-between">
+                                <Typography variant="body2">Started:</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {new Date(selectedRun.startedAt).toLocaleString()}
+                                </Typography>
+                              </Box>
+                              <Box display="flex" justifyContent="space-between">
+                                <Typography variant="body2">Completed:</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {selectedRun.completedAt ? new Date(selectedRun.completedAt).toLocaleString() : 'N/A'}
+                                </Typography>
+                              </Box>
+                              <Box display="flex" justifyContent="space-between">
+                                <Typography variant="body2">Duration:</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {selectedRun.duration ? formatDuration(selectedRun.duration) : 'N/A'}
+                                </Typography>
+                              </Box>
+                              <Box display="flex" justifyContent="space-between">
+                                <Typography variant="body2">Avg. per Node:</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {selectedRun.duration ? formatDuration(selectedRun.duration / selectedRun.nodeCount) : 'N/A'}
+                                </Typography>
+                              </Box>
                             </Box>
-                          )}
-                        </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      {/* Performance Metrics */}
+                      <Grid item xs={12} md={6}>
+                        <Card>
+                          <CardContent>
+                            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <PerformanceIcon color="primary" />
+                              Performance Breakdown
+                            </Typography>
+                            <Box sx={{ mb: 2 }}>
+                              <Box display="flex" justifyContent="space-between" mb={1}>
+                                <Typography variant="body2">Success Rate:</Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {((selectedRun.successfulNodes / selectedRun.nodeCount) * 100).toFixed(1)}%
+                                </Typography>
+                              </Box>
+                              <LinearProgress 
+                                variant="determinate" 
+                                value={(selectedRun.successfulNodes / selectedRun.nodeCount) * 100}
+                                sx={{ height: 8, borderRadius: 4 }}
+                                color={selectedRun.successfulNodes === selectedRun.nodeCount ? "success" : "warning"}
+                              />
+                            </Box>
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                              <Typography variant="body2">Total Nodes:</Typography>
+                              <Typography variant="body2" fontWeight="bold">{selectedRun.nodeCount}</Typography>
+                            </Box>
+                            <Box display="flex" justifyContent="space-between" mb={1}>
+                              <Typography variant="body2">Failed Nodes:</Typography>
+                              <Typography variant="body2" fontWeight="bold" color="error.main">
+                                {selectedRun.nodeCount - selectedRun.successfulNodes}
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Grid>
+
+                      {/* Error Display */}
+                      {selectedRun.error && (
+                        <Grid item xs={12}>
+                          <Alert severity="error">
+                            <Typography variant="h6" gutterBottom>Execution Error</Typography>
+                            <Typography variant="body2">{selectedRun.error}</Typography>
+                          </Alert>
+                        </Grid>
+                      )}
+
+                      {/* Results Summary Table */}
+                      {selectedRun.results && selectedRun.results.length > 0 && (
+                        <Grid item xs={12}>
+                          <Card>
+                            <CardContent>
+                              <Typography variant="h6" sx={{ mb: 2 }}>
+                                📊 Node Execution Summary
+                              </Typography>
+                              <TableContainer>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Step</TableCell>
+                                      <TableCell>Node ID</TableCell>
+                                      <TableCell>Type</TableCell>
+                                      <TableCell>Status</TableCell>
+                                      <TableCell>Has Data</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {selectedRun.results.map((result: any, index: number) => (
+                                      <TableRow key={index}>
+                                        <TableCell>
+                                          <Chip label={`${index + 1}`} size="small" color="primary" />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+                                            {result.nodeId || `Step ${index + 1}`}
+                                          </Typography>
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip 
+                                            label={result.nodeType || 'Unknown'}
+                                            size="small"
+                                            sx={{ 
+                                              bgcolor: getNodeColor(result.nodeType || ''), 
+                                              color: 'white',
+                                              fontSize: '0.7rem'
+                                            }}
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          <Chip 
+                                            label={result.success ? "Success" : "Failed"} 
+                                            color={result.success ? "success" : "error"} 
+                                            size="small" 
+                                          />
+                                        </TableCell>
+                                        <TableCell>
+                                          {result.data ? (
+                                            <Chip label="✓ Yes" color="info" size="small" />
+                                          ) : (
+                                            <Chip label="✗ No" color="default" size="small" />
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </TableContainer>
+                            </CardContent>
+                          </Card>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Box>
+                )}
+
+                {/* Step Details Tab */}
+                {activeTab === 1 && selectedRun.results && selectedRun.results.length > 0 && (
+                  <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
+                    <Grid container spacing={2}>
+                      {selectedRun.results.map((result: any, index: number) => (
+                        <Grid item xs={12} md={6} key={index}>
+                          <Card sx={{ height: '100%' }}>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                <Avatar 
+                                  sx={{ 
+                                    bgcolor: getNodeColor(result.nodeType || ''), 
+                                    width: 32, 
+                                    height: 32 
+                                  }}
+                                >
+                                  {result.success ? <SuccessIcon /> : <ErrorIcon />}
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="h6" sx={{ fontSize: '1rem' }}>
+                                    Step {index + 1}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {result.nodeId || 'Unknown Node'}
+                                  </Typography>
+                                </Box>
+                                <Box sx={{ ml: 'auto' }}>
+                                  <Chip 
+                                    label={result.success ? "Success" : "Failed"} 
+                                    color={result.success ? "success" : "error"} 
+                                    size="small" 
+                                  />
+                                </Box>
+                              </Box>
+
+                              {result.error && (
+                                <Alert severity="error" sx={{ mb: 2 }}>
+                                  <Typography variant="body2">{result.error}</Typography>
+                                </Alert>
+                              )}
+
+                              {result.data && (
+                                <Accordion>
+                                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                    <Typography variant="body2">View Result Data</Typography>
+                                  </AccordionSummary>
+                                  <AccordionDetails>
+                                    <Paper sx={{ p: 1, backgroundColor: '#f8f9fa', overflow: 'auto', maxHeight: 300 }}>
+                                      <pre style={{ fontSize: '0.7rem', margin: 0, whiteSpace: 'pre-wrap' }}>
+                                        {JSON.stringify(result.data, null, 2)}
+                                      </pre>
+                                    </Paper>
+                                  </AccordionDetails>
+                                </Accordion>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </Grid>
                       ))}
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
-              )}
-            </Box>
+                    </Grid>
+                  </Box>
+                )}
+
+                {/* Final Result Tab */}
+                {activeTab === 2 && selectedRun.finalResult && (
+                  <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          🎯 Workflow Final Output
+                        </Typography>
+                        <Paper sx={{ 
+                          p: 2, 
+                          backgroundColor: '#f8f9fa', 
+                          overflow: 'auto', 
+                          maxHeight: '60vh',
+                          fontFamily: 'monospace'
+                        }}>
+                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.875rem' }}>
+                            {JSON.stringify(selectedRun.finalResult, null, 2)}
+                          </pre>
+                        </Paper>
+                      </CardContent>
+                    </Card>
+                  </Box>
+                )}
+
+                {/* Raw Data Tab */}
+                {activeTab === 3 && (
+                  <Box sx={{ height: '100%', overflow: 'auto', p: 3 }}>
+                    <Card>
+                      <CardContent>
+                        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <DataIcon />
+                          Complete Run Data
+                        </Typography>
+                        <Paper sx={{ 
+                          p: 2, 
+                          backgroundColor: '#f8f9fa', 
+                          overflow: 'auto', 
+                          maxHeight: '60vh',
+                          fontFamily: 'monospace'
+                        }}>
+                          <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.75rem' }}>
+                            {JSON.stringify(selectedRun, null, 2)}
+                          </pre>
+                        </Paper>
+                      </CardContent>
+                    </Card>
+                  </Box>
+                )}
+              </Box>
+            </>
           )}
         </DialogContent>
-        
-        <DialogActions>
-          <Button onClick={() => setShowRunDetails(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
     </Box>
   );

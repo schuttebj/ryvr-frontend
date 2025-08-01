@@ -921,29 +921,61 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       {
         id: 'serp-1',
         type: 'serp',
-        position: { x: 300, y: 100 },
+        position: { x: 350, y: 100 },
         data: {
           id: 'serp-1',
           type: WorkflowNodeType.SEO_SERP_ANALYZE,
           label: 'SERP Analysis',
           description: 'Analyze search engine results',
-          config: { keyword: 'example keyword', locationCode: 2840, languageCode: 'en' },
+          config: { 
+            keyword: 'marketing trends', 
+            locationCode: 2840, 
+            languageCode: 'en',
+            resultType: 'organic',
+            maxResults: 10,
+            integrationId: '' // ⚠️ Configure integrations first!
+          },
           isValid: true,
         } as unknown as Record<string, unknown>,
       },
       {
-        id: 'content-1',
-        type: 'content',
-        position: { x: 500, y: 100 },
+        id: 'ai-1',
+        type: 'ai',
+        position: { x: 600, y: 100 },
         data: {
-          id: 'content-1',
-          type: WorkflowNodeType.CONTENT_EXTRACT,
-          label: 'Extract Content',
-          description: 'Extract content from SERP result URLs',
+          id: 'ai-1',
+          type: WorkflowNodeType.AI_OPENAI_TASK,
+          label: 'AI Analysis',
+          description: 'Analyze SERP results with AI',
           config: { 
-            inputMapping: 'serp_results.results[0].items[*].url',
-            extractionType: 'full_text',
-            outputFormat: 'text'
+            systemPrompt: 'You are a marketing analyst. Analyze the provided search results and identify key trends and insights.',
+            userPrompt: 'Please analyze these search results: {{serp-1.data.processed.results[0].items}}',
+            model: 'gpt-4o-mini',
+            maxTokens: 1000,
+            temperature: 0.3,
+            integrationId: '', // Will need to be set by user
+            outputVariable: 'analysis_result'
+          },
+          isValid: true,
+        } as unknown as Record<string, unknown>,
+      },
+      {
+        id: 'ai-2',
+        type: 'ai',
+        position: { x: 850, y: 100 },
+        data: {
+          id: 'ai-2',
+          type: WorkflowNodeType.AI_OPENAI_TASK,
+          label: 'Summary Report',
+          description: 'Create a summary report',
+          config: { 
+            systemPrompt: 'You are a professional report writer. Create concise, actionable summaries.',
+            userPrompt: 'Based on this analysis: {{ai-1.data.processed}}, create a 3-point executive summary with actionable recommendations.',
+            model: 'gpt-4o-mini',
+            maxTokens: 500,
+            temperature: 0.2,
+            integrationId: '', // Will need to be set by user
+            outputVariable: 'final_summary'
           },
           isValid: true,
         } as unknown as Record<string, unknown>,
@@ -959,7 +991,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     setNodes(testNodes);
     setEdges(testEdges);
     setWorkflowName('Test Workflow: SERP → AI Analysis → Summary');
-    setWorkflowDescription('Sample workflow demonstrating SERP analysis followed by AI processing');
+    setWorkflowDescription('Demo workflow: SERP data → AI analysis → Summary report. ⚠️ Requires DataForSEO and OpenAI integrations to be configured first!');
   };
 
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
@@ -1318,6 +1350,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       {/* Workflow Execution Panel */}
       <WorkflowExecutionPanel
         nodes={nodes}
+        edges={edges}
         open={showExecutionPanel}
         onClose={() => setShowExecutionPanel(false)}
       />
