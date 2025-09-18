@@ -176,7 +176,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+                  transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)',
                   transition: 'transform 0.3s ease',
                 }}
               >
@@ -307,6 +307,15 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
                 primaryTypographyProps={{ 
                   variant: 'body2',
                   fontWeight: item.active ? 600 : 400,
+                  noWrap: true,
+                }}
+                sx={{ 
+                  minWidth: 0,
+                  '& .MuiListItemText-primary': {
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }
                 }}
               />
             </ListItemButton>
@@ -404,7 +413,8 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       >
         <Box
           sx={{
-            width: '100%',
+            width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
+            minWidth: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
             height: '100%',
             backgroundColor: theme.palette.mode === 'dark' 
               ? '#1f2937'
@@ -418,6 +428,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               : '#e5e7eb'
             }`,
             overflow: 'hidden',
+            transition: 'width 0.3s ease, min-width 0.3s ease',
           }}
         >
           {sidebarContent}
@@ -437,7 +448,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
-        }}
+          }}
       >
         {/* Page Header - Fixed */}
         {pageHeader && (
