@@ -56,19 +56,29 @@ function AppRoutes() {
         path="/admin/*"
         element={
           <ProtectedRoute requiredRole="admin">
-            <AdminLayout>
-              <Routes>
-                <Route path="dashboard" element={<AdminDashboardPage />} />
-                <Route path="users" element={<UserManagementPage />} />
-                <Route path="agencies" element={<div>Agencies Management</div>} />
-                <Route path="businesses" element={<div>Businesses Management</div>} />
-                <Route path="workflows/*" element={<WorkflowsPage />} />
-                <Route path="integrations" element={<IntegrationsPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="settings/*" element={<div>System Settings</div>} />
-                <Route path="*" element={<Navigate to="/admin/dashboard" />} />
-              </Routes>
-            </AdminLayout>
+            <Routes>
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="users" element={<UserManagementPage />} />
+              <Route path="agencies" element={
+                <AdminLayout title="Agency Management" subtitle="Manage all agencies in the system">
+                  <div>Agencies Management</div>
+                </AdminLayout>
+              } />
+              <Route path="businesses" element={
+                <AdminLayout title="Business Management" subtitle="Manage all businesses in the system">
+                  <div>Businesses Management</div>
+                </AdminLayout>
+              } />
+              <Route path="workflows/*" element={<WorkflowsPage />} />
+              <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="settings/*" element={
+                <AdminLayout title="System Settings" subtitle="Configure platform settings">
+                  <div>System Settings</div>
+                </AdminLayout>
+              } />
+              <Route path="*" element={<Navigate to="/admin/dashboard" />} />
+            </Routes>
           </ProtectedRoute>
         }
       />

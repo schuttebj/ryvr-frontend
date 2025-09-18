@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -58,13 +58,14 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   const [collapsed, setCollapsed] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
+  const [justCollapsed, setJustCollapsed] = useState(false)
   
   const theme = useTheme()
   const { brandName, logo, isWhiteLabeled } = useWhiteLabel()
   const { user, logout } = useAuth()
   const { isOpen: isQuickActionOpen, openQuickActions, closeQuickActions } = useQuickActions()
 
-  const isExpanded = !collapsed || hovered
+  const isExpanded = !collapsed || (hovered && !justCollapsed)
   const sidebarWidth = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -79,6 +80,22 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
     handleUserMenuClose()
     await logout()
   }
+
+  const handleCollapse = () => {
+    setCollapsed(!collapsed)
+    if (!collapsed) {
+      // User is collapsing, prevent hover expansion for a brief moment
+      setJustCollapsed(true)
+      setTimeout(() => setJustCollapsed(false), 500)
+    }
+  }
+
+  // Reset hover when sidebar is collapsed
+  useEffect(() => {
+    if (collapsed) {
+      setHovered(false)
+    }
+  }, [collapsed])
 
   const TopBar = () => (
     <Box 
@@ -136,6 +153,20 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               }}
             >
               <PersonIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} placement="bottom">
+            <IconButton 
+              onClick={handleCollapse}
+              size="small"
+              sx={{
+                border: `1px solid ${theme.palette.mode === 'dark' ? '#374151' : '#e5e7eb'}`,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                },
+              }}
+            >
+              {isExpanded ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
         </Box>
@@ -326,29 +357,6 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       )}
       
       <NavigationItems />
-      
-      {/* Collapse Toggle */}
-      <Box sx={{ 
-        p: 1, 
-        display: 'flex', 
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}>
-        <Tooltip title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} placement="top">
-          <IconButton 
-            onClick={() => setCollapsed(!collapsed)}
-            size="small"
-            sx={{
-              backgroundColor: alpha(theme.palette.primary.main, 0.08),
-              '&:hover': {
-                backgroundColor: alpha(theme.palette.primary.main, 0.16),
-              },
-            }}
-          >
-            {isExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          </IconButton>
-        </Tooltip>
-      </Box>
       
       <UserSection />
     </Box>

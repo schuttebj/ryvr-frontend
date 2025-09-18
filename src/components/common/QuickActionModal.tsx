@@ -296,7 +296,7 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ open, onClos
         },
       }}
     >
-      <DialogContent sx={{ p: 0 }}>
+      <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '70vh' }}>
         {/* Search Input */}
         <Box sx={{ p: 3, pb: 0 }}>
           <TextField
@@ -314,14 +314,20 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ open, onClos
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
+                borderRadius: 1,
               },
             }}
           />
         </Box>
 
         {/* Results */}
-        <Box sx={{ p: 2, pt: 1 }}>
+        <Box sx={{ 
+          p: 2, 
+          pt: 1, 
+          maxHeight: '400px',
+          overflow: 'auto',
+          flex: 1,
+        }}>
           {filteredActions.length > 0 ? (
             <List sx={{ p: 0 }}>
               {filteredActions.map((action, index) => (
@@ -330,7 +336,7 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ open, onClos
                     selected={index === selectedIndex}
                     onClick={() => handleActionSelect(action)}
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: 1,
                       mb: 0.5,
                       border: '1px solid transparent',
                       '&.Mui-selected': {
@@ -387,12 +393,15 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ open, onClos
           )}
         </Box>
 
-        {/* Footer */}
+        {/* Fixed Footer */}
         <Box sx={{ 
           p: 2, 
-          pt: 0, 
+          pt: 1.5, 
           borderTop: `1px solid ${theme.palette.divider}`,
-          mt: 1,
+          backgroundColor: theme.palette.background.paper,
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 1,
         }}>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', gap: 2 }}>
             <span>↑↓ Navigate</span>

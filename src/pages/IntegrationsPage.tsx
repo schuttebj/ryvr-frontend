@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import AdminLayout from '../components/layout/AdminLayout';
 import {
   Box,
   Typography,
@@ -352,18 +353,11 @@ export default function IntegrationsPage() {
       });
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 600, mb: 1 }}>
-            Integrations
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Add and manage your API integrations for workflows
-          </Typography>
-        </Box>
-      </Box>
+    <AdminLayout 
+      title="Integrations"
+      subtitle="Add and manage your API integrations for workflows"
+    >
+      <Box>
 
       {/* Available Integrations */}
       <Box sx={{ mb: 4 }}>
@@ -737,6 +731,7 @@ export default function IntegrationsPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Box>
+    </AdminLayout>
   );
 } 

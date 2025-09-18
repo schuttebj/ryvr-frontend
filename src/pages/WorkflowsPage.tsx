@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import AdminLayout from '../components/layout/AdminLayout';
 import {
   Box,
   Typography,
@@ -174,20 +175,23 @@ export default function WorkflowsPage() {
     );
   }
 
+  const headerActions = (
+    <Button
+      startIcon={<AddIcon />}
+      variant="contained"
+      onClick={handleCreateWorkflow}
+    >
+      Create Workflow
+    </Button>
+  );
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          Workflows
-        </Typography>
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          onClick={handleCreateWorkflow}
-        >
-          Create Workflow
-        </Button>
-      </Box>
+    <AdminLayout 
+      title="Workflows"
+      subtitle="Create and manage automation workflows"
+      actions={headerActions}
+    >
+      <Box>
 
       <Grid container spacing={3}>
         {workflows.map((workflow) => (
@@ -278,6 +282,7 @@ export default function WorkflowsPage() {
       </Menu>
 
       {/* Create Workflow Dialog removed - now go directly to builder */}
-    </Box>
+      </Box>
+    </AdminLayout>
   );
 } 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import AdminLayout from '../components/layout/AdminLayout';
 import {
   Box,
   Card,
@@ -179,35 +180,33 @@ export default function UserManagementPage() {
     }
   };
 
+  const headerActions = (
+    <Button
+      variant="contained"
+      startIcon={<AddIcon />}
+      onClick={() => setCreateDialogOpen(true)}
+    >
+      Create User
+    </Button>
+  );
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress size={60} />
-      </Box>
+      <AdminLayout>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress size={60} />
+        </Box>
+      </AdminLayout>
     );
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            User Management
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage system users and their permissions
-          </Typography>
-        </Box>
-        
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          Create User
-        </Button>
-      </Box>
+    <AdminLayout 
+      title="User Management"
+      subtitle="Manage system users and their permissions"
+      actions={headerActions}
+    >
+      <Box>
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
@@ -396,6 +395,7 @@ export default function UserManagementPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+      </Box>
+    </AdminLayout>
   );
 }

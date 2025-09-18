@@ -23,7 +23,7 @@ export const QuickActionSearchBar: React.FC<QuickActionSearchBarProps> = ({
   if (!isExpanded) return null
 
   return (
-    <Box sx={{ px: 2, pb: 1 }}>
+    <Box sx={{ px: 2, py: 1 }}>
       <TextField
         fullWidth
         size="small"
@@ -34,8 +34,9 @@ export const QuickActionSearchBar: React.FC<QuickActionSearchBarProps> = ({
             backgroundColor: theme.palette.mode === 'dark' 
               ? 'rgba(255, 255, 255, 0.05)'
               : 'rgba(0, 0, 0, 0.02)',
-            borderRadius: 2,
+            borderRadius: 1,
             cursor: 'pointer',
+            transition: 'all 0.2s ease',
             '&:hover': {
               backgroundColor: theme.palette.mode === 'dark' 
                 ? 'rgba(255, 255, 255, 0.08)'
@@ -51,6 +52,7 @@ export const QuickActionSearchBar: React.FC<QuickActionSearchBarProps> = ({
           '& .MuiInputBase-input': {
             cursor: 'pointer',
             fontSize: '0.875rem',
+            fontWeight: 400,
           },
         }}
         InputProps={{

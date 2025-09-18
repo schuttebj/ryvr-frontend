@@ -1,11 +1,13 @@
 import { Box, Typography, Card, CardContent } from '@mui/material';
+import AdminLayout from '../components/layout/AdminLayout';
 
 export default function AnalyticsPage() {
   return (
-    <Box>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 600, mb: 4 }}>
-        Analytics
-      </Typography>
+    <AdminLayout 
+      title="Analytics"
+      subtitle="View platform analytics and insights"
+    >
+      <Box>
       
       <Card>
         <CardContent>
@@ -14,6 +16,7 @@ export default function AnalyticsPage() {
           </Typography>
         </CardContent>
       </Card>
-    </Box>
+      </Box>
+    </AdminLayout>
   );
 } 
