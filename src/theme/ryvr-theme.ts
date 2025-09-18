@@ -23,14 +23,14 @@ export interface WhiteLabelConfig {
   brandName?: string
 }
 
-// RYVR Brand Colors
+// RYVR Brand Colors - Muted/Flat Design Palette
 export const RYVR_COLORS: RyvrThemeColors = {
-  primary: '#5f5eff',      // Purple-blue for main brand actions
-  secondary: '#5a6678',    // Blue-gray for secondary elements
-  success: '#1affd5',      // Cyan-teal for success states
-  info: '#b8cdf8',         // Light blue for info states
-  lightBackground: '#f8f9fb', // Very light gray for light mode
-  darkBackground: '#2d3142',  // Dark blue-gray for dark mode
+  primary: '#6366f1',      // Muted indigo for main brand actions
+  secondary: '#6b7280',    // Neutral gray for secondary elements
+  success: '#10b981',      // Muted emerald for success states
+  info: '#8b5cf6',         // Muted purple for info states
+  lightBackground: '#f9fafb', // Very light gray for light mode
+  darkBackground: '#1f2937',  // Dark gray for dark mode
 }
 
 // Create base theme with RYVR colors
@@ -88,10 +88,8 @@ export const createRyvrTheme = (
         contrastText: '#ffffff',
       },
       background: {
-        default: isDark 
-          ? `linear-gradient(135deg, #0a0b0f 0%, #1a1d2e 10%, rgba(95, 94, 255, 0.08) 25%, #2d3142 40%, rgba(184, 205, 248, 0.05) 55%, rgba(26, 255, 213, 0.04) 70%, #1f2937 85%, #0a0b0f 100%)`
-          : `linear-gradient(135deg, #f8f9fb 0%, #e8eef7 10%, rgba(95, 94, 255, 0.03) 25%, #f0f4f8 40%, rgba(184, 205, 248, 0.08) 55%, rgba(26, 255, 213, 0.02) 70%, #e8eef7 85%, #f8f9fb 100%)`,
-        paper: 'transparent',
+        default: isDark ? '#111827' : '#f9fafb',
+        paper: isDark ? '#1f2937' : '#ffffff',
       },
       text: {
         primary: isDark ? 'rgba(255, 255, 255, 0.9)' : 'rgba(45, 49, 66, 0.9)',
@@ -186,86 +184,82 @@ export const createRyvrTheme = (
       },
     },
     shape: {
-      borderRadius: 16,
+      borderRadius: 8,
     },
     spacing: 8,
     components: {
       /* 
-       * CLEAN MODERN DESIGN SYSTEM:
+       * FLAT MODERN DESIGN SYSTEM:
        * 
-       * 🎨 Background: Subtle gradient over solid color base
-       *    - Light mode: Clean white with subtle gradient overlay
-       *    - Dark mode: Dark blue-gray (#2d3142) with subtle gradient
+       * 🎨 Background: Solid colors, no gradients
+       *    - Light mode: Clean white (#ffffff) with light gray borders
+       *    - Dark mode: Dark gray backgrounds with subtle borders
        * 
-       * 📦 Clean Components:
-       *    - Cards: Solid backgrounds with subtle shadows
-       *    - Buttons: Simple styling, gradients only for core CTAs
-       *    - Sidebar: Semi-transparent to show gradient
-       *    - Content area: Solid backgrounds
-       *    - Smaller border radius (8-10px)
-       *    - Smaller typography and button padding
+       * 📦 Flat Components:
+       *    - Cards: Solid backgrounds with light gray borders, NO shadows
+       *    - Buttons: Flat colors, minimal styling
+       *    - Sidebar: Clean solid background with borders
+       *    - Content area: Clean solid backgrounds
+       *    - Light gray borders (#e5e7eb for light, #374151 for dark)
+       *    - Consistent 8px border radius
        */
       
-      // Global CSS overrides for background and scrollbars
+      // Global CSS overrides for solid background
       MuiCssBaseline: {
         styleOverrides: {
           ...(() => {
             const scrollbarStyles = globalScrollbarStyles({ palette: { mode } } as Theme);
-            const gradientBackground = isDark 
-              ? 'linear-gradient(135deg, #2d3142 0%, #1a1d2e 25%, #0f172a 50%, #1e293b 75%, #2d3142 100%)'
-              : 'linear-gradient(135deg, #ffffff 0%, #f8f9fb 25%, #e8eef7 50%, #f0f4f8 75%, #ffffff 100%)';
+            const solidBackground = isDark ? '#111827' : '#f9fafb';
             
             return {
               ...scrollbarStyles,
               html: {
                 ...scrollbarStyles.html,
                 height: '100%',
-                background: gradientBackground,
-                backgroundAttachment: 'fixed',
+                backgroundColor: solidBackground,
               },
               body: {
                 ...scrollbarStyles.body,
                 height: '100%',
                 margin: 0,
                 padding: 0,
-                background: gradientBackground,
-                backgroundAttachment: 'fixed',
+                backgroundColor: solidBackground,
                 minHeight: '100vh',
               },
               '#root': {
                 height: '100%',
                 minHeight: '100vh',
+                backgroundColor: solidBackground,
               },
             };
           })(),
         },
       },
       
-      // Clean Button Design
+      // Flat Button Design
       MuiButton: {
         styleOverrides: {
           root: {
             borderRadius: 8,
             textTransform: 'none',
             fontWeight: 500,
-            fontSize: '0.8125rem',
-            padding: '6px 16px',
+            fontSize: '0.875rem',
+            padding: '8px 16px',
             boxShadow: 'none',
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            '&:hover': {
+              boxShadow: 'none',
+              transform: 'none',
+            },
           },
           contained: {
             backgroundColor: colors.primary,
             color: '#ffffff',
+            border: `1px solid ${colors.primary}`,
             '&:hover': {
               backgroundColor: darkenColor(colors.primary, 0.1),
-            },
-            // Core CTA variant with gradient
-            '&.MuiButton-containedPrimary.gradient-cta': {
-              background: 'linear-gradient(135deg, #5f5eff 0%, #1affd5 100%)',
-              boxShadow: `0 4px 12px rgba(${hexToRgb(colors.primary)}, 0.3)`,
-              '&:hover': {
-                boxShadow: `0 6px 16px rgba(${hexToRgb(colors.primary)}, 0.4)`,
-                transform: 'translateY(-2px)',
-              },
+              border: `1px solid ${darkenColor(colors.primary, 0.1)}`,
+              boxShadow: 'none',
             },
           },
           outlined: {
@@ -275,81 +269,79 @@ export const createRyvrTheme = (
             '&:hover': {
               backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
               borderColor: colors.primary,
+              boxShadow: 'none',
             },
           },
           text: {
             color: colors.primary,
+            border: 'none',
             '&:hover': {
-              backgroundColor: isDark ? 'rgba(95, 94, 255, 0.08)' : 'rgba(95, 94, 255, 0.04)',
+              backgroundColor: isDark ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.04)',
+              boxShadow: 'none',
             },
           },
         },
       },
       
-      // Clean Card Design
+      // Flat Card Design
       MuiCard: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#374151' : '#ffffff',
-            border: isDark ? '1px solid #4b5563' : '1px solid #e5e7eb',
-            borderRadius: 10,
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
+            borderRadius: 8,
             overflow: 'hidden',
-            boxShadow: isDark 
-              ? '0 2px 8px rgba(0, 0, 0, 0.2)'
-              : '0 2px 8px rgba(0, 0, 0, 0.06)',
+            boxShadow: 'none',
           },
         },
       },
       
-      // Clean Paper Design
+      // Flat Paper Design
       MuiPaper: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#374151' : '#ffffff',
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
             borderRadius: 8,
             overflow: 'hidden',
-            boxShadow: isDark 
-              ? '0 1px 4px rgba(0, 0, 0, 0.2)'
-              : '0 1px 4px rgba(0, 0, 0, 0.04)',
+            boxShadow: 'none',
+            border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
           },
           elevation1: {
-            boxShadow: isDark 
-              ? '0 2px 8px rgba(0, 0, 0, 0.25)'
-              : '0 2px 8px rgba(0, 0, 0, 0.06)',
+            boxShadow: 'none',
+            border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
           },
           elevation2: {
-            boxShadow: isDark 
-              ? '0 4px 12px rgba(0, 0, 0, 0.3)'
-              : '0 4px 12px rgba(0, 0, 0, 0.08)',
+            boxShadow: 'none',
+            border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
           },
           elevation3: {
-            boxShadow: isDark 
-              ? '0 8px 24px rgba(0, 0, 0, 0.35)'
-              : '0 8px 24px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'none',
+            border: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
           },
         },
       },
       
-      // Clean TextField Design
+      // Flat TextField Design
       MuiTextField: {
         styleOverrides: {
           root: {
             '& .MuiOutlinedInput-root': {
-              backgroundColor: isDark ? '#4b5563' : '#f9fafb',
+              backgroundColor: isDark ? '#1f2937' : '#ffffff',
               borderRadius: 8,
               fontSize: '0.875rem',
               '& fieldset': {
-                borderColor: isDark ? '#6b7280' : '#d1d5db',
+                borderColor: isDark ? '#374151' : '#e5e7eb',
+                borderWidth: '1px',
               },
               '&:hover': {
                 '& fieldset': {
-                  borderColor: isDark ? '#9ca3af' : '#9ca3af',
+                  borderColor: isDark ? '#4b5563' : '#d1d5db',
                 },
               },
               '&.Mui-focused': {
                 '& fieldset': {
                   borderColor: colors.primary,
-                  borderWidth: '2px',
+                  borderWidth: '1px',
                 },
               },
             },
@@ -360,119 +352,126 @@ export const createRyvrTheme = (
         },
       },
       
-      // Clean AppBar Design (minimal use - mostly sidebar navigation)
+      // Flat AppBar Design (minimal use - mostly sidebar navigation)
       MuiAppBar: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#374151' : '#ffffff',
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
             border: 'none',
+            borderBottom: isDark ? '1px solid #374151' : '1px solid #e5e7eb',
             color: isDark ? '#ffffff' : '#1f2937',
-            boxShadow: isDark 
-              ? '0 1px 4px rgba(0, 0, 0, 0.2)'
-              : '0 1px 4px rgba(0, 0, 0, 0.04)',
+            boxShadow: 'none',
           },
         },
       },
       
-      // Clean Chip Design
+      // Flat Chip Design
       MuiChip: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#4b5563' : '#f3f4f6',
-            border: `1px solid ${isDark ? '#6b7280' : '#d1d5db'}`,
+            backgroundColor: isDark ? '#374151' : '#f3f4f6',
+            border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
             borderRadius: 6,
             fontWeight: 500,
             fontSize: '0.75rem',
             color: isDark ? '#d1d5db' : '#374151',
-            height: 24,
+            height: 28,
+            boxShadow: 'none',
           },
           filled: {
-            backgroundColor: `rgba(${hexToRgb(colors.primary)}, 0.1)`,
+            backgroundColor: `rgba(${hexToRgb(colors.primary)}, 0.08)`,
             color: colors.primary,
-            border: `1px solid rgba(${hexToRgb(colors.primary)}, 0.2)`,
+            border: `1px solid rgba(${hexToRgb(colors.primary)}, 0.15)`,
             fontWeight: 500,
+            boxShadow: 'none',
           },
         },
       },
       
-      // Semi-transparent Sidebar Design
+      // Flat Sidebar Design
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark 
-              ? 'rgba(45, 49, 66, 0.9)'
-              : 'rgba(255, 255, 255, 0.85)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             border: 'none',
-            borderRight: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)'}`,
-            boxShadow: isDark 
-              ? '2px 0 8px rgba(0, 0, 0, 0.3)'
-              : '2px 0 8px rgba(0, 0, 0, 0.08)',
+            borderRight: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            boxShadow: 'none',
           },
         },
       },
       
-      // Clean Dialog Design
+      // Flat Dialog Design
       MuiDialog: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark ? '#374151' : '#ffffff',
-            border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-            borderRadius: 12,
-            boxShadow: isDark 
-              ? '0 16px 48px rgba(0, 0, 0, 0.4)'
-              : '0 16px 48px rgba(0, 0, 0, 0.12)',
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            borderRadius: 8,
+            boxShadow: 'none',
           },
         },
       },
       
-      // Clean Menu Design
+      // Flat Menu Design
       MuiMenu: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark ? '#374151' : '#ffffff',
-            border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
             borderRadius: 8,
-            boxShadow: isDark 
-              ? '0 8px 24px rgba(0, 0, 0, 0.3)'
-              : '0 8px 24px rgba(0, 0, 0, 0.1)',
+            boxShadow: 'none',
           },
         },
       },
       
-      // Clean List Items for Sidebar
+      // Flat List Items for Sidebar
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
-            margin: '2px 8px',
-            transition: 'all 0.2s ease',
+            borderRadius: 6,
+            margin: '1px 8px',
+            transition: 'all 0.15s ease',
             fontSize: '0.875rem',
+            minHeight: '40px',
             '&.Mui-selected': {
-              backgroundColor: `rgba(${hexToRgb(colors.primary)}, 0.1)`,
+              backgroundColor: `rgba(${hexToRgb(colors.primary)}, 0.08)`,
               color: colors.primary,
+              border: `1px solid rgba(${hexToRgb(colors.primary)}, 0.2)`,
               '&:hover': {
-                backgroundColor: `rgba(${hexToRgb(colors.primary)}, 0.15)`,
+                backgroundColor: `rgba(${hexToRgb(colors.primary)}, 0.12)`,
               },
             },
             '&:hover': {
               backgroundColor: isDark 
-                ? 'rgba(255, 255, 255, 0.08)'
-                : 'rgba(0, 0, 0, 0.04)',
+                ? 'rgba(255, 255, 255, 0.05)'
+                : 'rgba(0, 0, 0, 0.02)',
+              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            },
+            '& .MuiListItemIcon-root': {
+              minWidth: '36px',
+              color: 'inherit',
+            },
+            '& .MuiListItemText-root': {
+              '& .MuiTypography-root': {
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              },
             },
           },
         },
       },
       
-      // Clean Table Design
+      // Flat Table Design
       MuiTableContainer: {
         styleOverrides: {
           root: {
             ...createScrollbarStyles({ palette: { mode } } as Theme),
-            backgroundColor: isDark ? '#374151' : '#ffffff',
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
             borderRadius: 8,
-            border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
+            boxShadow: 'none',
           },
         },
       },
@@ -489,14 +488,15 @@ export const createRyvrTheme = (
         },
       },
       
-      // Clean Autocomplete Design
+      // Flat Autocomplete Design
       MuiAutocomplete: {
         styleOverrides: {
           paper: {
             ...createScrollbarStyles({ palette: { mode } } as Theme),
-            backgroundColor: isDark ? '#374151' : '#ffffff',
-            border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+            backgroundColor: isDark ? '#1f2937' : '#ffffff',
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
             borderRadius: 8,
+            boxShadow: 'none',
           },
           listbox: {
             ...createScrollbarStyles({ palette: { mode } } as Theme),

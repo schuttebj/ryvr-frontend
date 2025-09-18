@@ -99,8 +99,8 @@ export const WhiteLabelProvider: React.FC<WhiteLabelProviderProps> = ({ children
     
     if (whiteLabelConfig) {
       // Set white-label CSS variables
-      root.style.setProperty('--ryvr-primary-color', whiteLabelConfig.primaryColor || '#5f5eff')
-      root.style.setProperty('--ryvr-secondary-color', whiteLabelConfig.secondaryColor || '#5a6678')
+      root.style.setProperty('--ryvr-primary-color', whiteLabelConfig.primaryColor || '#6366f1')
+      root.style.setProperty('--ryvr-secondary-color', whiteLabelConfig.secondaryColor || '#6b7280')
       root.style.setProperty('--ryvr-font-family', whiteLabelConfig.fontFamily || 'Poppins, sans-serif')
       
       // Update favicon if provided
@@ -116,17 +116,17 @@ export const WhiteLabelProvider: React.FC<WhiteLabelProviderProps> = ({ children
         document.title = `${whiteLabelConfig.brandName} - Marketing Automation Platform`
       }
     } else {
-      // Reset to RYVR defaults
-      root.style.setProperty('--ryvr-primary-color', '#5f5eff')
-      root.style.setProperty('--ryvr-secondary-color', '#5a6678')
+      // Reset to RYVR defaults - updated muted colors
+      root.style.setProperty('--ryvr-primary-color', '#6366f1')
+      root.style.setProperty('--ryvr-secondary-color', '#6b7280')
       root.style.setProperty('--ryvr-font-family', 'Poppins, sans-serif')
       document.title = 'RYVR - Marketing Automation Platform'
     }
 
-    // Set theme mode variables
+    // Set theme mode variables - updated for flat design
     root.style.setProperty('--ryvr-mode', isDarkMode ? 'dark' : 'light')
-    root.style.setProperty('--ryvr-background', isDarkMode ? '#2d3142' : '#f8f9fb')
-    root.style.setProperty('--ryvr-surface', isDarkMode ? '#3a3d4a' : '#ffffff')
+    root.style.setProperty('--ryvr-background', isDarkMode ? '#111827' : '#f9fafb')
+    root.style.setProperty('--ryvr-surface', isDarkMode ? '#1f2937' : '#ffffff')
     root.style.setProperty('--ryvr-text-primary', isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(45, 49, 66, 0.9)')
     
     // Set theme attribute for CSS selectors

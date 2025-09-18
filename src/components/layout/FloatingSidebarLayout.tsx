@@ -354,17 +354,15 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
             width: '100%',
             height: '100%',
             backgroundColor: theme.palette.mode === 'dark' 
-              ? 'rgba(45, 49, 66, 0.95)'
-              : 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
+              ? '#1f2937'
+              : '#ffffff',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
             borderRadius: 3,
-            boxShadow: theme.palette.mode === 'dark'
-              ? '0 8px 32px rgba(0, 0, 0, 0.4)'
-              : '0 8px 32px rgba(0, 0, 0, 0.12)',
+            boxShadow: 'none',
             border: `1px solid ${theme.palette.mode === 'dark' 
-              ? 'rgba(255, 255, 255, 0.1)' 
-              : 'rgba(0, 0, 0, 0.06)'
+              ? '#374151' 
+              : '#e5e7eb'
             }`,
             overflow: 'hidden',
           }}
