@@ -85,6 +85,7 @@ class WorkflowApiService {
   // Update existing workflow
   async updateWorkflow(workflow: UpdateWorkflowRequest): Promise<Workflow> {
     const { id, ...data } = workflow
+
     return apiClient.put(`/workflows/${id}`, data)
   }
 

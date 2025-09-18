@@ -153,6 +153,7 @@ export enum WorkflowNodeType {
 
 // Standardized Node Response Interface
 export interface StandardNodeResponse {
+
   // Execution metadata
   executionId: string;
   nodeId: string;
@@ -163,10 +164,13 @@ export interface StandardNodeResponse {
   
   // Data payload
   data: {
+
     // Processed/transformed data for easy consumption
     processed: any;
+
     // Raw API response (original format)
     raw: any;
+
     // Extracted key fields for quick access
     summary: Record<string, any>;
   };
@@ -192,12 +196,16 @@ export interface StandardNodeResponse {
 
 // Enhanced data mapping interface
 export interface DataMappingConfig {
+
   // Source node ID
   sourceNodeId: string;
+
   // JSON path to the data (supports arrays with [*], specific indices [0], deep paths)
   jsonPath: string;
+
   // Optional transformation function
   transform?: 'array_to_string' | 'extract_urls' | 'first_item' | 'count' | 'join_with_comma';
+
   // Fallback value if path doesn't exist
   fallback?: any;
 }
@@ -210,6 +218,7 @@ export interface AvailableDataNode {
   executedAt: string;
   status: 'success' | 'error';
   dataStructure: DataStructureItem[];
+
   // Additional properties for compatibility
   id: string;
   data?: any;
