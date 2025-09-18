@@ -22,10 +22,13 @@ import {
   PersonOutlined as PersonIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
+  SearchOutlined as SearchIcon,
 } from '@mui/icons-material'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import { useAuth } from '../../contexts/AuthContext'
 import ColorModeToggle from '../theme/ColorModeToggle'
+import QuickActionModal from '../common/QuickActionModal'
+import { useQuickActions } from '../../hooks/useQuickActions'
 
 const COLLAPSED_WIDTH = 64
 const EXPANDED_WIDTH = 280
@@ -43,12 +46,14 @@ interface FloatingSidebarLayoutProps {
     onClick?: () => void
   }>
   headerContent?: React.ReactNode
+  pageHeader?: React.ReactNode
 }
 
 export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   children,
   navigationItems,
   headerContent,
+  pageHeader,
 }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [hovered, setHovered] = useState(false)
@@ -57,6 +62,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   const theme = useTheme()
   const { brandName, logo, isWhiteLabeled } = useWhiteLabel()
   const { user, logout } = useAuth()
+  const { isOpen: isQuickActionOpen, openQuickActions, closeQuickActions } = useQuickActions()
 
   const isExpanded = !collapsed || hovered
   const sidebarWidth = isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH
@@ -234,11 +240,16 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               sx={{
                 borderRadius: 2,
                 minHeight: 44,
+                border: '1px solid transparent',
                 '&.Mui-selected': {
                   backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                  borderColor: theme.palette.primary.main,
                   '&:hover': {
                     backgroundColor: alpha(theme.palette.primary.main, 0.16),
                   },
+                },
+                '&:hover:not(.Mui-selected)': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
                 },
               }}
             >
@@ -262,11 +273,16 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
                   borderRadius: 2,
                   minHeight: 44,
                   justifyContent: 'center',
+                  border: '1px solid transparent',
                   '&.Mui-selected': {
                     backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                    borderColor: theme.palette.primary.main,
                     '&:hover': {
                       backgroundColor: alpha(theme.palette.primary.main, 0.16),
                     },
+                  },
+                  '&:hover:not(.Mui-selected)': {
+                    backgroundColor: alpha(theme.palette.primary.main, 0.04),
                   },
                 }}
               >
@@ -296,7 +312,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       {/* Optional Header Content */}
       {headerContent && isExpanded && (
         <>
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ px: 0, py: 1 }}>
             {headerContent}
           </Box>
           <Divider />
@@ -305,20 +321,45 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       
       <NavigationItems />
       
-      {/* Collapse Toggle */}
-      <Box sx={{ p: 1, display: 'flex', justifyContent: isExpanded ? 'flex-end' : 'center' }}>
-        <IconButton 
-          onClick={() => setCollapsed(!collapsed)}
-          size="small"
-          sx={{
-            backgroundColor: alpha(theme.palette.primary.main, 0.08),
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.16),
-            },
-          }}
-        >
-          {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-        </IconButton>
+      {/* Quick Actions & Collapse Toggle */}
+      <Box sx={{ 
+        p: 1, 
+        display: 'flex', 
+        justifyContent: isExpanded ? 'space-between' : 'center',
+        alignItems: 'center',
+        gap: 1,
+      }}>
+        {isExpanded && (
+          <Tooltip title="Quick Actions (Ctrl+K)" placement="top">
+            <IconButton 
+              onClick={openQuickActions}
+              size="small"
+              sx={{
+                backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.primary.main, 0.16),
+                },
+              }}
+            >
+              <SearchIcon />
+            </IconButton>
+          </Tooltip>
+        )}
+        
+        <Tooltip title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} placement="top">
+          <IconButton 
+            onClick={() => setCollapsed(!collapsed)}
+            size="small"
+            sx={{
+              backgroundColor: alpha(theme.palette.primary.main, 0.08),
+              '&:hover': {
+                backgroundColor: alpha(theme.palette.primary.main, 0.16),
+              },
+            }}
+          >
+            {isExpanded ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          </IconButton>
+        </Tooltip>
       </Box>
       
       <UserSection />
@@ -370,10 +411,22 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
           flexGrow: 1,
           ml: `${sidebarWidth + (SIDEBAR_PADDING * 2)}px`,
           p: SIDEBAR_PADDING,
-          pt: SIDEBAR_PADDING,
           transition: 'margin-left 0.3s ease',
+          height: '100vh',
+          maxHeight: `calc(100vh - ${SIDEBAR_PADDING * 2}px)`,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
         }}
       >
+        {/* Page Header - Fixed */}
+        {pageHeader && (
+          <Box sx={{ flexShrink: 0 }}>
+            {pageHeader}
+          </Box>
+        )}
+        
+        {/* Scrollable Content */}
         <Box
           sx={{
             backgroundColor: theme.palette.mode === 'dark' 
@@ -385,13 +438,20 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               : '#e5e7eb'
             }`,
             p: 3,
-            minHeight: `calc(100vh - ${SIDEBAR_PADDING * 2}px)`,
+            flexGrow: 1,
+            overflow: 'auto',
             boxSizing: 'border-box',
           }}
         >
           {children}
         </Box>
       </Box>
+      
+      {/* Quick Action Modal */}
+      <QuickActionModal
+        open={isQuickActionOpen}
+        onClose={closeQuickActions}
+      />
     </Box>
   )
 }

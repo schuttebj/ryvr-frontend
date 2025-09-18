@@ -21,12 +21,21 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
 import { useAuth } from '../../contexts/AuthContext'
 import BusinessSelector from '../common/BusinessSelector'
+import PageHeader from './PageHeader'
 
 interface AdminLayoutProps {
   children: React.ReactNode
+  title?: string
+  subtitle?: string
+  actions?: React.ReactNode
 }
 
-export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ 
+  children, 
+  title = "System Overview", 
+  subtitle = "Monitor and manage your RYVR platform",
+  actions 
+}) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
@@ -131,10 +140,23 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     </Box>
   )
 
+  const pageHeaderContent = (
+    <PageHeader
+      title={title}
+      subtitle={subtitle}
+      breadcrumbs={[
+        { label: 'Home', href: '/admin' },
+        { label: 'Dashboard', current: true },
+      ]}
+      actions={actions}
+    />
+  )
+
   return (
     <FloatingSidebarLayout
       navigationItems={navigationItems}
       headerContent={headerContent}
+      pageHeader={pageHeaderContent}
     >
       {children}
     </FloatingSidebarLayout>

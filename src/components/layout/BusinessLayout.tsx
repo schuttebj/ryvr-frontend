@@ -22,6 +22,7 @@ import BaseLayout from './BaseLayout'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import BusinessSelector from '../common/BusinessSelector'
+import PageHeader from './PageHeader'
 
 interface BusinessLayoutProps {
   children: React.ReactNode

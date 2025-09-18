@@ -235,7 +235,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
   }
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ px: 2, py: 1 }}>
       <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
         {user?.role === 'admin' ? 'Select Business/Agency' : 
          user?.role === 'agency' ? 'Active Business' : 

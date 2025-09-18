@@ -11,12 +11,21 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
 import BusinessSelector from '../common/BusinessSelector'
+import PageHeader from './PageHeader'
 
 interface AgencyLayoutProps {
   children: React.ReactNode
+  title?: string
+  subtitle?: string
+  actions?: React.ReactNode
 }
 
-export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children }) => {
+export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ 
+  children, 
+  title = "Agency Dashboard", 
+  subtitle = "Manage your clients and campaigns",
+  actions 
+}) => {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -82,10 +91,23 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children }) => {
     <BusinessSelector variant="full" />
   )
 
+  const pageHeaderContent = (
+    <PageHeader
+      title={title}
+      subtitle={subtitle}
+      breadcrumbs={[
+        { label: 'Home', href: '/agency' },
+        { label: 'Dashboard', current: true },
+      ]}
+      actions={actions}
+    />
+  )
+
   return (
     <FloatingSidebarLayout
       navigationItems={navigationItems}
       headerContent={headerContent}
+      pageHeader={pageHeaderContent}
     >
       {children}
     </FloatingSidebarLayout>

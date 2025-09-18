@@ -17,6 +17,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { DashboardSkeleton } from '../components/common/SkeletonLoaders';
+import AdminLayout from '../components/layout/AdminLayout';
 import adminApi from '../services/adminApi';
 import { debugAuthState } from '../utils/auth';
 import {
@@ -182,42 +183,34 @@ export default function AdminDashboardPage() {
 
   const getHealthColor = (status: boolean) => status ? 'success' : 'error';
 
+  const headerActions = (
+    <Stack direction="row" spacing={2}>
+      <Button
+        variant="outlined"
+        startIcon={refreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
+        onClick={handleRefresh}
+        disabled={refreshing}
+      >
+        {refreshing ? 'Refreshing...' : 'Refresh'}
+      </Button>
+      
+      <Button
+        variant="text"
+        color="secondary"
+        onClick={async () => {
+          debugAuthState();
+          const result = await adminApi.debugAuth();
+          console.log('🔍 Auth Debug Result:', result);
+        }}
+      >
+        Debug Auth
+      </Button>
+    </Stack>
+  );
+
   return (
-    <Box>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            System Overview
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Monitor and manage your RYVR platform
-          </Typography>
-        </Box>
-        
-        <Stack direction="row" spacing={2}>
-          <Button
-            variant="outlined"
-            startIcon={refreshing ? <CircularProgress size={20} /> : <RefreshIcon />}
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </Button>
-          
-          <Button
-            variant="text"
-            color="secondary"
-            onClick={async () => {
-              debugAuthState();
-              const result = await adminApi.debugAuth();
-              console.log('🔍 Auth Debug Result:', result);
-            }}
-          >
-            Debug Auth
-          </Button>
-        </Stack>
-      </Box>
+    <AdminLayout actions={headerActions}>
+      <Box>
 
       {/* System Health */}
       {health && (
@@ -495,6 +488,7 @@ export default function AdminDashboardPage() {
           </Grid>
         </CardContent>
       </Card>
-    </Box>
+      </Box>
+    </AdminLayout>
   );
 }
