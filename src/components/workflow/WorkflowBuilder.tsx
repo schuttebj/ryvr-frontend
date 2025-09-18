@@ -42,7 +42,7 @@ import {
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import { Search as SearchIcon } from '@mui/icons-material';
@@ -527,7 +527,7 @@ const nodePaletteItems: NodePaletteItem[] = [
 ];
 
 export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [settingsNode, setSettingsNode] = useState<any>(null);
@@ -552,7 +552,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
   
   // Auto-save timer
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimer = useRef<number | null>(null);
   const lastSavedState = useRef<string>('');
 
   // Load existing workflow data when editing
@@ -666,10 +666,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     } else if (hasUnsavedChanges && autoSaveEnabled) {
       // Auto-save before closing
       handleAutoSave().then(() => {
-        router.push('/workflows');
+        navigate('/workflows');
       });
     } else {
-      router.push('/workflows');
+      navigate('/workflows');
     }
   };
 
@@ -678,7 +678,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       await handleAutoSave();
     }
     setShowCloseDialog(false);
-    router.push('/workflows');
+    navigate('/workflows');
   };
 
   const onConnect = useCallback(
@@ -811,20 +811,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         id: workflowId || 'temp',
         name: workflowName || 'Untitled Workflow',
         description: workflowDescription || '',
-        nodes: nodes.map(node => ({
-          id: node.id,
-          type: node.type || 'default',
-          position: node.position,
-          data: node.data
-        })),
-        edges: edges.map(edge => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          type: edge.type,
-          data: edge.data
-        })),
-        business_id: 'default-business', // TODO: Get from context/auth
+        nodes,
+        edges,
         isActive: false,
       };
 
@@ -834,8 +822,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       setValidationResult(validation);
       setShowValidationDialog(true);
       
-      if (validation.valid) {
-        setSnackbarMessage(`✅ Workflow validation passed!`);
+      if (validation.isValid) {
+        setSnackbarMessage(`✅ Workflow validation passed ${validation.warnings.length > 0 ? 'with warnings' : 'successfully'}!`);
       } else {
         setSnackbarMessage(`❌ Workflow validation failed with ${validation.errors.length} error(s)`);
       }
@@ -865,10 +853,14 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       
       if (result.success) {
         setSnackbarMessage('🚀 Workflow activated successfully!');
+        setValidationResult(result.validation);
         setWorkflowActive(true);
-        // Trigger a refresh of workflow status - onSave would need the full workflow object
+        // Trigger a refresh of workflow status
+        if (onSave) {
+          await onSave(result.workflow);
+        }
       } else {
-        setSnackbarMessage(`❌ Failed to activate: ${result.message || 'Unknown error'}`);
+        setSnackbarMessage(`❌ Failed to activate: ${result.error}`);
       }
       setSnackbarOpen(true);
       
@@ -893,9 +885,12 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       if (result.success) {
         setSnackbarMessage('⏸️ Workflow deactivated');
         setWorkflowActive(false);
-        // Trigger a refresh of workflow status - onSave would need the full workflow object
+        // Trigger a refresh of workflow status
+        if (onSave) {
+          await onSave(result.workflow);
+        }
       } else {
-        setSnackbarMessage(`❌ Failed to deactivate: ${result.message || 'Unknown error'}`);
+        setSnackbarMessage(`❌ Failed to deactivate: ${result.error}`);
       }
       setSnackbarOpen(true);
       

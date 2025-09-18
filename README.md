@@ -1,34 +1,107 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# RYVR Frontend
 
-## Getting Started
+React TypeScript frontend for the RYVR AI Marketing Automation Platform.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+- **React 18** with TypeScript for type safety
+- **Material-UI** with custom RYVR theme and branding
+- **Vite** for fast development and building
+- **React Router** for client-side routing
+- **React Query** for server state management
+- **Responsive design** optimized for desktop and mobile
+- **Professional UI/UX** with RYVR brand colors
+
+## Quick Start
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for production**
+   ```bash
+   npm run build
+   ```
+
+4. **Preview production build**
+   ```bash
+   npm run preview
+   ```
+
+## Access the Application
+
+- Development: http://localhost:5173
+- Production: Deployed on Vercel
+
+## RYVR Brand Colors
+
+- Primary Dark: `#2e3142`
+- Secondary Dark: `#5a6577`
+- Light Background: `#f8f9fb`
+- Brand Accent: `#5f5fff`
+- Light Accent: `#b8cdf8`
+
+## Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/      # Reusable React components
+│   ├── pages/           # Page components
+│   ├── contexts/        # React contexts (Auth, etc.)
+│   ├── hooks/           # Custom React hooks
+│   ├── services/        # API service functions
+│   ├── types/           # TypeScript type definitions
+│   ├── theme.ts         # Material-UI theme configuration
+│   ├── App.tsx          # Main application component
+│   └── main.tsx         # Application entry point
+├── public/              # Static assets
+├── index.html           # HTML template
+├── package.json         # Dependencies and scripts
+├── tsconfig.json        # TypeScript configuration
+├── vite.config.ts       # Vite configuration
+└── vercel.json          # Vercel deployment configuration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Pages
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Login** - User authentication
+- **Dashboard** - Main overview with analytics
+- **Clients** - Client management interface
+- **Workflows** - Workflow builder and management
+- **Integrations** - API integration management
+- **Analytics** - Detailed reporting and metrics
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Deployment
 
-## Learn More
+Configured for automatic deployment on Vercel. The `vercel.json` file contains all necessary configuration.
 
-To learn more about Next.js, take a look at the following resources:
+## Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```env
+VITE_API_URL=https://your-backend-url.com
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Development
 
-## Deploy on Vercel
+The frontend is configured to proxy API requests to the backend during development. Update `vite.config.ts` if you need to change the backend URL.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Technologies
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+- **React 18** - UI library
+- **TypeScript** - Type safety
+- **Material-UI** - Component library
+- **Vite** - Build tool
+- **React Router** - Routing
+- **React Query** - Data fetching
+- **Emotion** - CSS-in-JS styling
+
+## License
+
+Proprietary software. All rights reserved. 
