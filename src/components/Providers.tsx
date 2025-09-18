@@ -1,3 +1,5 @@
+'use client'
+
 // Type Imports
 import type { ChildrenType, Direction } from '@core/types'
 
@@ -11,21 +13,18 @@ import ReduxProvider from '@/redux-store/ReduxProvider'
 // Styled Component Imports
 import AppReactToastify from '@/libs/styles/AppReactToastify'
 
-// Util Imports
-import { getMode, getSettingsFromCookie, getSystemMode } from '@core/utils/serverHelpers'
-
 type Props = ChildrenType & {
   direction: Direction
 }
 
-const Providers = async (props: Props) => {
+const Providers = (props: Props) => {
   // Props
   const { children, direction } = props
 
-  // Vars
-  const mode = await getMode()
-  const settingsCookie = await getSettingsFromCookie()
-  const systemMode = await getSystemMode()
+  // Use default settings for client components
+  const mode = 'dark' // Default to dark mode as per your requirements
+  const settingsCookie = undefined // Let SettingsProvider handle defaults
+  const systemMode = 'dark' // Default system mode
 
   return (
     <AuthProvider>
