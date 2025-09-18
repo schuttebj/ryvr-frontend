@@ -10,18 +10,19 @@ import {
   Typography,
 } from '@mui/material'
 import {
-  Dashboard as DashboardIcon,
-  TrendingUp as AnalyticsIcon,
-  Assignment as ReportsIcon,
-  Schedule as ScheduleIcon,
-  Settings as SettingsIcon,
-  Support as SupportIcon,
-  Insights as InsightsIcon,
+  DashboardOutlined as DashboardIcon,
+  TrendingUpOutlined as AnalyticsIcon,
+  AssignmentOutlined as ReportsIcon,
+  ScheduleOutlined as ScheduleIcon,
+  SettingsOutlined as SettingsIcon,
+  SupportOutlined as SupportIcon,
+  InsightsOutlined as InsightsIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import BaseLayout from './BaseLayout'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
+import BusinessSelector from '../common/BusinessSelector'
 
 interface BusinessLayoutProps {
   children: React.ReactNode
@@ -85,43 +86,8 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({ children, title 
 
   const sidebar = (
     <Box>
-      {/* Business Info */}
-      <Box sx={{ p: 2 }}>
-        <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-          {isWhiteLabeled ? 'Your Business' : 'Business'}
-        </Typography>
-        
-        {user ? (
-          <Box>
-            <Typography variant="h6" sx={{ mb: 0.5 }}>
-              {user.full_name || 'Business Dashboard'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Business Dashboard
-            </Typography>
-            
-            {/* Business Status */}
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Chip 
-                label="Active" 
-                size="small" 
-                color="success" 
-                variant="outlined"
-              />
-              <Chip 
-                label="Standard" 
-                size="small" 
-                color="primary" 
-                variant="outlined"
-              />
-            </Box>
-          </Box>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            Please log in
-          </Typography>
-        )}
-      </Box>
+      {/* Business Selector */}
+      <BusinessSelector variant="full" />
       
       {/* Navigation */}
       <List sx={{ pt: 0 }}>

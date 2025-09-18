@@ -5,21 +5,22 @@ import {
   Chip,
 } from '@mui/material'
 import {
-  Dashboard as DashboardIcon,
-  People as PeopleIcon,
-  AccountTree as WorkflowsIcon,
-  Analytics as AnalyticsIcon,
-  Settings as SettingsIcon,
-  Extension as IntegrationIcon,
-  AdminPanelSettings as AdminIcon,
-  Payment as BillingIcon,
-  Security as SecurityIcon,
-  Support as SupportIcon,
-  Star as PremiumIcon,
+  DashboardOutlined as DashboardIcon,
+  PeopleOutlined as PeopleIcon,
+  AccountTreeOutlined as WorkflowsIcon,
+  AnalyticsOutlined as AnalyticsIcon,
+  SettingsOutlined as SettingsIcon,
+  ExtensionOutlined as IntegrationIcon,
+  AdminPanelSettingsOutlined as AdminIcon,
+  PaymentOutlined as BillingIcon,
+  SecurityOutlined as SecurityIcon,
+  SupportOutlined as SupportIcon,
+  StarOutlined as PremiumIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
 import { useAuth } from '../../contexts/AuthContext'
+import BusinessSelector from '../common/BusinessSelector'
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -125,24 +126,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </Box>
       </Box>
       
-      {/* Quick Stats */}
-      <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-          Quick Stats
-        </Typography>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography variant="body2">Active Users</Typography>
-          <Typography variant="body2" fontWeight={600}>1,247</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-          <Typography variant="body2">Agencies</Typography>
-          <Typography variant="body2" fontWeight={600}>89</Typography>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Typography variant="body2">Active Workflows</Typography>
-          <Typography variant="body2" fontWeight={600}>2,156</Typography>
-        </Box>
-      </Box>
+      {/* Business/Agency Selector */}
+      <BusinessSelector variant="full" />
     </Box>
   )
 

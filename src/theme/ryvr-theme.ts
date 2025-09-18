@@ -264,19 +264,20 @@ export const createRyvrTheme = (
           },
           outlined: {
             backgroundColor: 'transparent',
-            border: `1px solid ${isDark ? '#4b5563' : '#d1d5db'}`,
+            border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
             color: isDark ? '#d1d5db' : '#374151',
             '&:hover': {
               backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-              borderColor: colors.primary,
+              borderColor: isDark ? '#4b5563' : '#d1d5db',
               boxShadow: 'none',
             },
           },
           text: {
             color: colors.primary,
-            border: 'none',
+            border: `1px solid transparent`,
             '&:hover': {
               backgroundColor: isDark ? 'rgba(99, 102, 241, 0.08)' : 'rgba(99, 102, 241, 0.04)',
+              border: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
               boxShadow: 'none',
             },
           },

@@ -146,11 +146,6 @@ export default function AdminDashboardPage() {
     <Card 
       sx={{ 
         height: '100%',
-        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-        '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-        }
       }}
     >
       <CardContent>

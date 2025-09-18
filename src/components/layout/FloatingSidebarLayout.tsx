@@ -17,9 +17,9 @@ import {
   alpha,
 } from '@mui/material'
 import {
-  Settings as SettingsIcon,
-  Logout as LogoutIcon,
-  Person as PersonIcon,
+  SettingsOutlined as SettingsIcon,
+  LogoutOutlined as LogoutIcon,
+  PersonOutlined as PersonIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material'
@@ -74,73 +74,71 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
     await logout()
   }
 
-  const BrandLogo = () => (
+  const TopBar = () => (
     <Box 
       sx={{ 
         display: 'flex', 
         alignItems: 'center', 
-        justifyContent: isExpanded ? 'flex-start' : 'center',
+        justifyContent: 'space-between',
         py: 2, 
         px: isExpanded ? 3 : 1.5,
         transition: 'all 0.3s ease',
       }}
     >
-      {isWhiteLabeled && logo ? (
-        <img 
-          src={logo} 
-          alt={brandName}
-          style={{ 
-            height: 32, 
-            maxWidth: isExpanded ? 120 : 32, 
-            objectFit: 'contain',
-            transition: 'all 0.3s ease',
-          }}
-        />
-      ) : (
-        <Typography
-          variant="h5"
-          sx={{
-            fontFamily: '"Yellowtail", cursive',
-            color: 'primary.main',
-            fontWeight: 400,
-            fontSize: isExpanded ? '1.5rem' : '1rem',
-            transition: 'all 0.3s ease',
-          }}
-        >
-          {isExpanded ? 'RYVR' : 'R'}
-        </Typography>
+      {/* Brand Logo */}
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {isWhiteLabeled && logo ? (
+          <img 
+            src={logo} 
+            alt={brandName}
+            style={{ 
+              height: 32, 
+              maxWidth: isExpanded ? 120 : 32, 
+              objectFit: 'contain',
+              transition: 'all 0.3s ease',
+            }}
+          />
+        ) : (
+          <Typography
+            variant="h5"
+            sx={{
+              fontFamily: '"Yellowtail", cursive',
+              color: 'primary.main',
+              fontWeight: 400,
+              fontSize: isExpanded ? '2rem' : '1.2rem',
+              transition: 'all 0.3s ease',
+            }}
+          >
+            {isExpanded ? 'Ryvr' : 'R'}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Top Bar Icons */}
+      {isExpanded && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ColorModeToggle />
+          <Tooltip title="Account Settings">
+            <IconButton 
+              size="small" 
+              onClick={handleUserMenuOpen}
+              sx={{
+                border: `1px solid ${theme.palette.mode === 'dark' ? '#374151' : '#e5e7eb'}`,
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                },
+              }}
+            >
+              <PersonIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       )}
     </Box>
   )
 
   const UserSection = () => (
     <Box sx={{ p: isExpanded ? 2 : 1, mt: 'auto' }}>
-      {/* Dark Mode Toggle */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: isExpanded ? 'flex-start' : 'center',
-          mb: 2 
-        }}
-      >
-        {isExpanded ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-            <Typography variant="body2" sx={{ flexGrow: 1 }}>
-              Dark Mode
-            </Typography>
-            <ColorModeToggle />
-          </Box>
-        ) : (
-          <Tooltip title="Toggle Dark Mode" placement="right">
-            <Box>
-              <ColorModeToggle />
-            </Box>
-          </Tooltip>
-        )}
-      </Box>
-
-      <Divider sx={{ mb: 2 }} />
-
       {/* User Profile */}
       <Box 
         sx={{ 
@@ -178,12 +176,6 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               {user?.email}
             </Typography>
           </Box>
-        )}
-        
-        {isExpanded && (
-          <IconButton size="small">
-            <SettingsIcon fontSize="small" />
-          </IconButton>
         )}
       </Box>
 
@@ -298,7 +290,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
         position: 'relative',
       }}
     >
-      <BrandLogo />
+      <TopBar />
       <Divider />
       
       {/* Optional Header Content */}
@@ -358,7 +350,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               : '#ffffff',
             backdropFilter: 'none',
             WebkitBackdropFilter: 'none',
-            borderRadius: 3,
+            borderRadius: '12px',
             boxShadow: 'none',
             border: `1px solid ${theme.palette.mode === 'dark' 
               ? '#374151' 
@@ -377,12 +369,28 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
         sx={{
           flexGrow: 1,
           ml: `${sidebarWidth + (SIDEBAR_PADDING * 2)}px`,
-          p: 3,
-          pt: SIDEBAR_PADDING + 1.5,
+          p: SIDEBAR_PADDING,
+          pt: SIDEBAR_PADDING,
           transition: 'margin-left 0.3s ease',
         }}
       >
-        {children}
+        <Box
+          sx={{
+            backgroundColor: theme.palette.mode === 'dark' 
+              ? '#1f2937'
+              : '#ffffff',
+            borderRadius: '12px',
+            border: `1px solid ${theme.palette.mode === 'dark' 
+              ? '#374151' 
+              : '#e5e7eb'
+            }`,
+            p: 3,
+            minHeight: `calc(100vh - ${SIDEBAR_PADDING * 2}px)`,
+            boxSizing: 'border-box',
+          }}
+        >
+          {children}
+        </Box>
       </Box>
     </Box>
   )

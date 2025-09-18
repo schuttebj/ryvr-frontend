@@ -2,25 +2,21 @@ import React from 'react'
 import {
   Box,
   Typography,
-  Select,
-  MenuItem,
-  FormControl,
-  Chip,
-  Button,
 } from '@mui/material'
 import {
-  Dashboard as DashboardIcon,
-  Business as BusinessIcon,
-  AccountTree as WorkflowsIcon,
-  Analytics as AnalyticsIcon,
-  Settings as SettingsIcon,
-  People as PeopleIcon,
-  Extension as IntegrationIcon,
-  Add as AddIcon,
+  DashboardOutlined as DashboardIcon,
+  BusinessOutlined as BusinessIcon,
+  AccountTreeOutlined as WorkflowsIcon,
+  AnalyticsOutlined as AnalyticsIcon,
+  SettingsOutlined as SettingsIcon,
+  PeopleOutlined as PeopleIcon,
+  ExtensionOutlined as IntegrationIcon,
+  AddOutlined as AddIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
 import { useAuth } from '../../contexts/AuthContext'
+import BusinessSelector from '../common/BusinessSelector'
 
 interface AgencyLayoutProps {
   children: React.ReactNode
@@ -30,84 +26,12 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
-  // TODO: Add business/agency context when implementing multi-tenant architecture
-  const userBusinesses: any[] = []
-  const switchBusiness = (business: any) => { console.log('Switch business:', business) }
-
-  const handleBusinessChange = (businessId: string) => {
-    const business = userBusinesses.find(b => b.id === businessId)
-    if (business) {
-      switchBusiness(business)
-    }
-  }
-
-  const handleAddBusiness = () => {
-    navigate('/agency/businesses/new')
-  }
 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)
   }
 
-  const BusinessSelector = () => (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-        Active Business
-      </Typography>
-      
-      {user ? (
-        <FormControl fullWidth size="small">
-           <Select
-             value={user?.id ? String(user.id) : ''}
-             onChange={(e) => handleBusinessChange(e.target.value)}
-             displayEmpty
-             sx={{
-               '& .MuiSelect-select': {
-                 display: 'flex',
-                 alignItems: 'center',
-                 gap: 1,
-               },
-             }}
-           >
-             <MenuItem value={user?.id ? String(user.id) : ''}>
-               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                 <BusinessIcon fontSize="small" color="primary" />
-                 <Box sx={{ flexGrow: 1 }}>
-                   <Typography variant="body2" noWrap>
-                     {user?.full_name || 'Default Business'}
-                   </Typography>
-                   <Typography variant="caption" color="text.secondary" noWrap>
-                     Agency Dashboard
-                   </Typography>
-                 </Box>
-                 <Chip 
-                   label="Active" 
-                   size="small" 
-                   color="success" 
-                   variant="outlined"
-                 />
-               </Box>
-             </MenuItem>
-           </Select>
-        </FormControl>
-      ) : (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Please log in to manage businesses
-        </Typography>
-      )}
-      
-      <Button
-        fullWidth
-        variant="outlined"
-        size="small"
-        startIcon={<AddIcon />}
-        onClick={handleAddBusiness}
-        sx={{ mt: 1 }}
-      >
-        Add Business
-      </Button>
-    </Box>
-  )
+  // Using the new BusinessSelector component instead
 
   const navigationItems = [
     {
@@ -162,7 +86,7 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children }) => {
   ]
 
   const headerContent = (
-    <BusinessSelector />
+    <BusinessSelector variant="full" />
   )
 
   return (
