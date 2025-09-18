@@ -10,7 +10,6 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
-import { useAuth } from '../../contexts/AuthContext'
 import BusinessSelector from '../common/BusinessSelector'
 
 interface AgencyLayoutProps {
