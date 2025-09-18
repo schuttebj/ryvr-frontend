@@ -21,7 +21,6 @@ import {
   LogoutOutlined as LogoutIcon,
   PersonOutlined as PersonIcon,
   ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import { useAuth } from '../../contexts/AuthContext'
@@ -32,7 +31,8 @@ import { useQuickActions } from '../../hooks/useQuickActions'
 
 const COLLAPSED_WIDTH = 64
 const EXPANDED_WIDTH = 280
-const SIDEBAR_PADDING = 16
+const SIDEBAR_PADDING = 16 // Pixel value for positioning
+const CONTENT_SPACING = 2 // Material-UI spacing units (2 * 8px = 16px)
 
 interface FloatingSidebarLayoutProps {
   children: React.ReactNode
@@ -166,7 +166,17 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
                 },
               }}
             >
-              {isExpanded ? <ChevronLeftIcon fontSize="small" /> : <ChevronRightIcon fontSize="small" />}
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transform: isExpanded ? 'rotate(0deg)' : 'rotate(180deg)',
+                  transition: 'transform 0.3s ease',
+                }}
+              >
+                <ChevronLeftIcon fontSize="small" />
+              </Box>
             </IconButton>
           </Tooltip>
         </Box>
@@ -406,7 +416,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
         sx={{
           flexGrow: 1,
           ml: `${sidebarWidth + (SIDEBAR_PADDING * 2)}px`,
-          p: SIDEBAR_PADDING,
+          p: CONTENT_SPACING,
           transition: 'margin-left 0.3s ease',
           height: '100vh',
           maxHeight: `calc(100vh - ${SIDEBAR_PADDING * 2}px)`,
@@ -433,7 +443,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               ? '#374151' 
               : '#e5e7eb'
             }`,
-            p: 2,
+            p: 1,
             flexGrow: 1,
             overflow: 'auto',
             boxSizing: 'border-box',
