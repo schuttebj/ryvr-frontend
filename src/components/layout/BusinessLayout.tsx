@@ -10,8 +10,6 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
-import { useAuth } from '../../contexts/AuthContext'
-import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import BusinessSelector from '../common/BusinessSelector'
 import PageHeader from './PageHeader'
 
@@ -30,8 +28,6 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
-  const { brandName, isWhiteLabeled } = useWhiteLabel()
 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)
