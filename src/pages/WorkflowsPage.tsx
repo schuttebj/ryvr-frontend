@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import AdminLayout from '../components/layout/AdminLayout';
+import AgencyLayout from '../components/layout/AgencyLayout';
+import BusinessLayout from '../components/layout/BusinessLayout';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Box,
   Typography,
@@ -39,6 +42,7 @@ interface WorkflowSummary {
 }
 
 export default function WorkflowsPage() {
+  const { user } = useAuth();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
@@ -158,6 +162,20 @@ export default function WorkflowsPage() {
     return isActive ? '#4caf50' : '#ff9800';
   };
 
+  // Get the appropriate layout component based on user role
+  const getLayoutComponent = () => {
+    if (user?.role === 'admin') return AdminLayout;
+    if (user?.role === 'agency_owner' || user?.role === 'agency_manager' || user?.role === 'agency_viewer') return AgencyLayout;
+    return BusinessLayout; // For individual_user, business_owner, business_user
+  };
+
+  // Get the appropriate breadcrumb base path based on user role
+  const getBasePath = () => {
+    if (user?.role === 'admin') return '/admin/workflows';
+    if (user?.role === 'agency_owner' || user?.role === 'agency_manager' || user?.role === 'agency_viewer') return '/agency/workflows';
+    return '/business/workflows';
+  };
+
   const getStatusIcon = (isActive: boolean) => {
     return isActive ? <CheckCircleIcon /> : <EditIcon />;
   };
@@ -167,11 +185,21 @@ export default function WorkflowsPage() {
   };
 
   if (showBuilder) {
+    const LayoutComponent = getLayoutComponent();
     return (
-      <WorkflowBuilder
-        onSave={handleWorkflowSave}
-        workflowId={editingWorkflowId || undefined}
-      />
+      <LayoutComponent 
+        title={editingWorkflowId ? "Edit Workflow" : "Create Workflow"}
+        subtitle="Design your automation workflow"
+        breadcrumbs={[
+          { label: 'Workflows', href: getBasePath() },
+          { label: editingWorkflowId ? 'Edit' : 'Create', current: true }
+        ]}
+      >
+        <WorkflowBuilder
+          onSave={handleWorkflowSave}
+          workflowId={editingWorkflowId || undefined}
+        />
+      </LayoutComponent>
     );
   }
 
@@ -185,8 +213,10 @@ export default function WorkflowsPage() {
     </Button>
   );
 
+  const LayoutComponent = getLayoutComponent();
+  
   return (
-    <AdminLayout 
+    <LayoutComponent 
       title="Workflows"
       subtitle="Create and manage automation workflows"
       actions={headerActions}
@@ -283,6 +313,6 @@ export default function WorkflowsPage() {
 
       {/* Create Workflow Dialog removed - now go directly to builder */}
       </Box>
-    </AdminLayout>
+    </LayoutComponent>
   );
 } 

@@ -249,7 +249,20 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ open, onClos
   }, [open, filteredActions, selectedIndex, onClose])
 
   const handleActionSelect = (action: QuickAction) => {
-    navigate(action.path)
+    let path = action.path;
+    
+    // Handle role-based path routing for specific actions
+    if (action.id === 'workflow-builder') {
+      if (user?.role === 'admin') {
+        path = '/admin/workflows/builder';
+      } else if (user?.role === 'agency_owner' || user?.role === 'agency_manager' || user?.role === 'agency_viewer') {
+        path = '/agency/workflows/builder';
+      } else {
+        path = '/business/workflows/builder';
+      }
+    }
+    
+    navigate(path)
     onClose()
     setSearchQuery('')
   }

@@ -14,6 +14,7 @@ import {
   Tooltip,
   Snackbar,
   CircularProgress,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -528,6 +529,7 @@ const nodePaletteItems: NodePaletteItem[] = [
 
 export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderProps) {
   const navigate = useNavigate();
+  const theme = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [settingsNode, setSettingsNode] = useState<any>(null);
@@ -552,7 +554,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
   
   // Auto-save timer
-  const autoSaveTimer = useRef<number | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const lastSavedState = useRef<string>('');
 
   // Load existing workflow data when editing
@@ -666,10 +668,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     } else if (hasUnsavedChanges && autoSaveEnabled) {
       // Auto-save before closing
       handleAutoSave().then(() => {
-        navigate('/workflows');
+        navigate('/admin/workflows');
       });
     } else {
-      navigate('/workflows');
+      navigate('/admin/workflows');
     }
   };
 
@@ -678,7 +680,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       await handleAutoSave();
     }
     setShowCloseDialog(false);
-    navigate('/workflows');
+    router.push('/workflows');
   };
 
   const onConnect = useCallback(
@@ -811,8 +813,20 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         id: workflowId || 'temp',
         name: workflowName || 'Untitled Workflow',
         description: workflowDescription || '',
-        nodes,
-        edges,
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type || 'default',
+          position: node.position,
+          data: node.data
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          data: edge.data
+        })),
+        business_id: 'default-business', // TODO: Get from context/auth
         isActive: false,
       };
 
@@ -822,8 +836,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       setValidationResult(validation);
       setShowValidationDialog(true);
       
-      if (validation.isValid) {
-        setSnackbarMessage(`✅ Workflow validation passed ${validation.warnings.length > 0 ? 'with warnings' : 'successfully'}!`);
+      if (validation.valid) {
+        setSnackbarMessage(`✅ Workflow validation passed!`);
       } else {
         setSnackbarMessage(`❌ Workflow validation failed with ${validation.errors.length} error(s)`);
       }
@@ -853,14 +867,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       
       if (result.success) {
         setSnackbarMessage('🚀 Workflow activated successfully!');
-        setValidationResult(result.validation);
         setWorkflowActive(true);
-        // Trigger a refresh of workflow status
-        if (onSave) {
-          await onSave(result.workflow);
-        }
+        // Trigger a refresh of workflow status - onSave would need the full workflow object
       } else {
-        setSnackbarMessage(`❌ Failed to activate: ${result.error}`);
+        setSnackbarMessage(`❌ Failed to activate: ${result.message || 'Unknown error'}`);
       }
       setSnackbarOpen(true);
       
@@ -885,12 +895,9 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       if (result.success) {
         setSnackbarMessage('⏸️ Workflow deactivated');
         setWorkflowActive(false);
-        // Trigger a refresh of workflow status
-        if (onSave) {
-          await onSave(result.workflow);
-        }
+        // Trigger a refresh of workflow status - onSave would need the full workflow object
       } else {
-        setSnackbarMessage(`❌ Failed to deactivate: ${result.error}`);
+        setSnackbarMessage(`❌ Failed to deactivate: ${result.message || 'Unknown error'}`);
       }
       setSnackbarOpen(true);
       
@@ -1007,9 +1014,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
           top: isFullscreen ? 0 : 'auto',
           left: isFullscreen ? 0 : 'auto',
           width: isFullscreen ? '100vw' : '100%',
-          height: isFullscreen ? '100vh' : 'calc(100vh - 120px)',
+          height: isFullscreen ? '100vh' : '100%',
+          minHeight: isFullscreen ? '100vh' : '600px',
           zIndex: isFullscreen ? 9999 : 'auto',
-          backgroundColor: 'white',
+          backgroundColor: theme.palette.background.default,
           display: 'flex',
         }}
       >
@@ -1017,9 +1025,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         <Paper sx={{
           width: 280,
           borderRadius: 0,
-          borderRight: '1px solid #e0e0e0',
+          borderRight: `1px solid ${theme.palette.divider}`,
           overflow: 'auto',
-          flexShrink: 0
+          flexShrink: 0,
+          backgroundColor: theme.palette.background.paper,
         }}>
           <Box sx={{ p: 2 }}>
             <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
@@ -1143,13 +1152,13 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                         p: 2,
                         mb: 1,
                         cursor: 'grab',
-                        border: '1px solid #e0e0e0',
+                        border: `1px solid ${theme.palette.divider}`,
                         borderLeft: `4px solid ${item.color || getNodeColor(item.type)}`,
                         borderRadius: '4px',
                         backgroundColor: `${(item.color || getNodeColor(item.type))}08`, // Very subtle 3% tint
                         '&:hover': {
                           backgroundColor: `${(item.color || getNodeColor(item.type))}15`, // Slightly more visible on hover (8% tint)
-                          borderColor: '#d0d0d0',
+                          borderColor: theme.palette.divider,
                           borderLeftColor: item.color || getNodeColor(item.type),
                           boxShadow: `0 2px 8px ${(item.color || getNodeColor(item.type))}20`,
                           transform: 'translateY(-1px)',
@@ -1189,9 +1198,13 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             onNodeClick={onNodeClick}
             nodeTypes={nodeTypes}
             fitView
-            style={{ background: '#fafafa' }}
+            style={{ background: theme.palette.background.default }}
           >
-            <Background />
+            <Background 
+              color={theme.palette.mode === 'dark' ? '#374151' : '#e5e7eb'}
+              gap={20}
+              size={1}
+            />
             <Controls />
             <MiniMap />
             
@@ -1219,7 +1232,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                   <IconButton
                     onClick={() => setIsFullscreen(!isFullscreen)}
                     size="small"
-                    sx={{ backgroundColor: 'white', '&:hover': { backgroundColor: '#f5f5f5' } }}
+                    sx={{ 
+                      backgroundColor: theme.palette.background.paper, 
+                      '&:hover': { backgroundColor: theme.palette.action.hover } 
+                    }}
                   >
                     {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
                   </IconButton>
@@ -1229,7 +1245,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                   <IconButton
                     onClick={handleClose}
                     size="small"
-                    sx={{ backgroundColor: 'white', '&:hover': { backgroundColor: '#f5f5f5' } }}
+                    sx={{ 
+                      backgroundColor: theme.palette.background.paper, 
+                      '&:hover': { backgroundColor: theme.palette.action.hover } 
+                    }}
                   >
                     <CloseIcon />
                   </IconButton>
@@ -1241,7 +1260,9 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             {autoSaveEnabled && (
               <Panel position="bottom-right">
                 <Box sx={{ 
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                  backgroundColor: theme.palette.mode === 'dark' 
+                    ? 'rgba(31, 41, 55, 0.9)' 
+                    : 'rgba(255, 255, 255, 0.9)', 
                   padding: '4px 8px', 
                   borderRadius: 1,
                   fontSize: '12px',
@@ -1265,7 +1286,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
           width: 400,
           zIndex: 10000, // Higher than fullscreen builder
           borderRadius: 0,
-          borderLeft: '1px solid #e0e0e0',
+          borderLeft: `1px solid ${theme.palette.divider}`,
           overflow: 'auto'
         }}>
           <NodeSettingsPanel
