@@ -1,9 +1,5 @@
 import React from 'react'
 import {
-  Box,
-  Typography,
-} from '@mui/material'
-import {
   DashboardOutlined as DashboardIcon,
   BusinessOutlined as BusinessIcon,
   AccountTreeOutlined as WorkflowsIcon,
@@ -11,7 +7,6 @@ import {
   SettingsOutlined as SettingsIcon,
   PeopleOutlined as PeopleIcon,
   ExtensionOutlined as IntegrationIcon,
-  AddOutlined as AddIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -25,7 +20,6 @@ interface AgencyLayoutProps {
 export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)

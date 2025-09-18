@@ -6,7 +6,6 @@ import {
   ListItemIcon,
   ListItemText,
   Box,
-  Chip,
   Typography,
 } from '@mui/material'
 import {

@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LoginGlassBackground } from '../components/common/GlassBackground';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -96,28 +95,34 @@ export default function LoginPage() {
   };
 
   return (
-    <LoginGlassBackground>
-      <Container component="main">
-        <Box
-          sx={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: theme.palette.mode === 'dark'
+          ? '#111827'
+          : '#f9fafb',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        p: 2,
+      }}
+    >
+      <Container component="main" maxWidth="sm">
         <Paper
-          elevation={theme.palette.mode === 'dark' ? 8 : 10}
           sx={{
             p: 4,
-            borderRadius: 3,
-            background: theme.palette.background.paper,
-            backdropFilter: 'blur(10px)',
+            borderRadius: '12px',
+            backgroundColor: theme.palette.mode === 'dark'
+              ? '#1f2937'
+              : '#ffffff',
+            border: `1px solid ${theme.palette.mode === 'dark'
+              ? '#374151'
+              : '#e5e7eb'
+            }`,
+            boxShadow: 'none',
             width: '100%',
             maxWidth: 400,
-            border: theme.palette.mode === 'dark' 
-              ? `1px solid ${theme.palette.divider}`
-              : 'none',
+            mx: 'auto',
           }}
         >
           <Box sx={{ textAlign: 'center', mb: 4 }}>
@@ -131,7 +136,7 @@ export default function LoginPage() {
                 mb: 1,
               }}
             >
-              RYVR
+              Ryvr
             </Typography>
             <Typography 
               variant="body1" 
@@ -186,18 +191,11 @@ export default function LoginPage() {
                 fontSize: '1.1rem',
                 fontWeight: 600,
                 fontFamily: theme.typography.fontFamily,
-                borderRadius: 2,
+                borderRadius: '8px',
                 textTransform: 'none',
-                background: loading 
-                  ? theme.palette.action.disabled
-                  : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                boxShadow: 'none',
                 '&:hover': {
-                  background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
-                  boxShadow: `0 4px 12px ${theme.palette.primary.main}40`,
-                },
-                '&:disabled': {
-                  background: theme.palette.action.disabled,
-                  color: theme.palette.action.disabled,
+                  boxShadow: 'none',
                 },
               }}
             >
@@ -214,8 +212,7 @@ export default function LoginPage() {
             </Typography>
           </Box>
         </Paper>
-        </Box>
       </Container>
-    </LoginGlassBackground>
+    </Box>
   );
 } 

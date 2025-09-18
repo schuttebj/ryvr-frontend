@@ -16,6 +16,7 @@ import {
   Stack,
   CircularProgress,
 } from '@mui/material';
+import { DashboardSkeleton } from '../components/common/SkeletonLoaders';
 import adminApi from '../services/adminApi';
 import { debugAuthState } from '../utils/auth';
 import {
@@ -124,11 +125,7 @@ export default function AdminDashboardPage() {
   };
 
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
-        <CircularProgress size={60} />
-      </Box>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {

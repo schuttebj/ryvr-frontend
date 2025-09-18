@@ -6,13 +6,11 @@ import {
   MenuItem,
   Typography,
   Chip,
-  Avatar,
   Divider,
   Button,
-  ListItemIcon,
-  ListItemText,
   SelectChangeEvent,
 } from '@mui/material'
+import { BusinessSelectorSkeleton } from './SkeletonLoaders'
 import {
   BusinessOutlined as BusinessIcon,
   AddOutlined as AddIcon,
@@ -192,13 +190,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
   }
 
   if (loading) {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          Loading businesses...
-        </Typography>
-      </Box>
-    )
+    return <BusinessSelectorSkeleton />
   }
 
   if (variant === 'compact') {

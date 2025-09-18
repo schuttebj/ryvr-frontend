@@ -489,6 +489,32 @@ export const createRyvrTheme = (
         },
       },
       
+      // Flat Skeleton Design
+      MuiSkeleton: {
+        styleOverrides: {
+          root: {
+            backgroundColor: isDark 
+              ? 'rgba(255, 255, 255, 0.08)'
+              : 'rgba(0, 0, 0, 0.08)',
+            borderRadius: 6,
+            '&::after': {
+              background: isDark
+                ? 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent)'
+                : 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent)',
+            },
+          },
+          rectangular: {
+            borderRadius: 8,
+          },
+          circular: {
+            // Keep default circular radius
+          },
+          text: {
+            borderRadius: 4,
+          },
+        },
+      },
+      
       // Flat Autocomplete Design
       MuiAutocomplete: {
         styleOverrides: {
