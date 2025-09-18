@@ -42,7 +42,7 @@ import {
   Panel,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import { Search as SearchIcon } from '@mui/icons-material';
@@ -527,7 +527,7 @@ const nodePaletteItems: NodePaletteItem[] = [
 ];
 
 export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [settingsNode, setSettingsNode] = useState<any>(null);
@@ -666,10 +666,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     } else if (hasUnsavedChanges && autoSaveEnabled) {
       // Auto-save before closing
       handleAutoSave().then(() => {
-        navigate('/workflows');
+        router.push('/workflows');
       });
     } else {
-      navigate('/workflows');
+      router.push('/workflows');
     }
   };
 
@@ -678,7 +678,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       await handleAutoSave();
     }
     setShowCloseDialog(false);
-    navigate('/workflows');
+    router.push('/workflows');
   };
 
   const onConnect = useCallback(
