@@ -16,7 +16,7 @@ import {
   Stack,
   CircularProgress,
 } from '@mui/material';
-import { DashboardSkeleton } from '../components/common/SkeletonLoaders';
+import { LayoutSkeleton } from '../components/common/SkeletonLoaders';
 import AdminLayout from '../components/layout/AdminLayout';
 import adminApi from '../services/adminApi';
 import { debugAuthState } from '../utils/auth';
@@ -126,7 +126,7 @@ export default function AdminDashboardPage() {
   };
 
   if (loading) {
-    return <DashboardSkeleton />;
+    return <LayoutSkeleton />;
   }
 
   if (error) {

@@ -160,7 +160,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               <PersonIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} placement="bottom">
+          <Tooltip title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"} placement="bottom">
             <IconButton 
               onClick={handleCollapse}
               size="small"
@@ -468,7 +468,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               ? '#374151' 
               : '#e5e7eb'
             }`,
-            p: 1,
+            p: 2,
             flexGrow: 1,
             overflow: 'auto',
             boxSizing: 'border-box',

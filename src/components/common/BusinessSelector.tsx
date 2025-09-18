@@ -236,11 +236,6 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
 
   return (
     <Box sx={{ px: 2, py: 1 }}>
-      <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-        {user?.role === 'admin' ? 'Select Business/Agency' : 
-         user?.role === 'agency' ? 'Active Business' : 
-         'Your Business'}
-      </Typography>
       
       <FormControl fullWidth size="small">
         <Select
