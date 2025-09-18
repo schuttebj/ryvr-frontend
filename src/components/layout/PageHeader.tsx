@@ -5,7 +5,6 @@ import {
   Breadcrumbs,
   Link,
   useTheme,
-  Stack,
 } from '@mui/material'
 import {
   NavigateNext as NavigateNextIcon,
@@ -27,9 +26,7 @@ interface PageHeaderProps {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
-  subtitle,
   breadcrumbs,
-  actions,
 }) => {
   const theme = useTheme()
 
@@ -48,11 +45,22 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         mb: 2,
       }}
     >
-      {/* Breadcrumbs */}
+      {/* Title */}
+      <Typography 
+        variant="h4" 
+        fontWeight="bold" 
+        sx={{ 
+          mb: breadcrumbs && breadcrumbs.length > 0 ? 2 : 0,
+          fontSize: '1.7rem' // 15% smaller than default h4 (2rem)
+        }}
+      >
+        {title}
+      </Typography>
+
+      {/* Breadcrumbs Below Title */}
       {breadcrumbs && breadcrumbs.length > 0 && (
         <Breadcrumbs
           separator={<NavigateNextIcon fontSize="small" />}
-          sx={{ mb: 2 }}
         >
           {breadcrumbs.map((item, index) => (
             item.current ? (
@@ -84,31 +92,6 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           ))}
         </Breadcrumbs>
       )}
-
-      {/* Title and Actions */}
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-        <Box>
-          <Typography 
-            variant="h4" 
-            fontWeight="bold" 
-            gutterBottom={!!subtitle}
-            sx={{ mb: subtitle ? 1 : 0 }}
-          >
-            {title}
-          </Typography>
-          {subtitle && (
-            <Typography variant="body1" color="text.secondary">
-              {subtitle}
-            </Typography>
-          )}
-        </Box>
-        
-        {actions && (
-          <Stack direction="row" spacing={2} alignItems="center">
-            {actions}
-          </Stack>
-        )}
-      </Box>
     </Box>
   )
 }

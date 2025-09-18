@@ -109,7 +109,12 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       }}
     >
       {/* Brand Logo */}
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center',
+        justifyContent: isExpanded ? 'flex-start' : 'center',
+        width: '100%'
+      }}>
         {isWhiteLabeled && logo ? (
           <img 
             src={logo} 
@@ -185,7 +190,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   )
 
   const UserSection = () => (
-    <Box sx={{ px: 2, py: 1, mt: 'auto' }}>
+    <Box sx={{ px: 2, py: 1 }}>
       {/* User Profile */}
       <Box 
         sx={{ 
@@ -271,7 +276,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   )
 
   const NavigationItems = () => (
-    <List sx={{ flexGrow: 1, px: 1 }}>
+    <List sx={{ px: 1 }}>
       {navigationItems.map((item) => (
         <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
           {isExpanded ? (
@@ -366,8 +371,17 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
         </>
       )}
       
-      <NavigationItems />
+      {/* Scrollable Navigation Section */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <NavigationItems />
+      </Box>
       
+      {/* Fixed User Section at Bottom */}
       <UserSection />
     </Box>
   )
@@ -415,11 +429,11 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
         component="main"
         sx={{
           flexGrow: 1,
-          ml: `${sidebarWidth + (SIDEBAR_PADDING * 2)}px`,
+          ml: `${sidebarWidth + SIDEBAR_PADDING}px`,
           p: CONTENT_SPACING,
           transition: 'margin-left 0.3s ease',
           height: '100vh',
-          maxHeight: `calc(100vh - ${SIDEBAR_PADDING * 2}px)`,
+          maxHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',

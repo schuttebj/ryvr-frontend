@@ -1,8 +1,6 @@
 import React from 'react'
 import {
   Box,
-  Typography,
-  Chip,
 } from '@mui/material'
 import {
   DashboardOutlined as DashboardIcon,
@@ -11,15 +9,12 @@ import {
   AnalyticsOutlined as AnalyticsIcon,
   SettingsOutlined as SettingsIcon,
   ExtensionOutlined as IntegrationIcon,
-  AdminPanelSettingsOutlined as AdminIcon,
   PaymentOutlined as BillingIcon,
   SecurityOutlined as SecurityIcon,
   SupportOutlined as SupportIcon,
-  StarOutlined as PremiumIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
-import { useAuth } from '../../contexts/AuthContext'
 import BusinessSelector from '../common/BusinessSelector'
 import PageHeader from './PageHeader'
 
@@ -38,7 +33,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const { user } = useAuth()
 
   const isActive = (path: string) => {
     return location.pathname.startsWith(path)
@@ -112,28 +106,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   const headerContent = (
     <Box>
-      {/* Admin Info */}
-      <Box sx={{ mb: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <AdminIcon color="primary" />
-          <Typography variant="overline" color="primary" sx={{ fontWeight: 600 }}>
-            System Admin
-          </Typography>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary">
-          {user?.first_name} {user?.last_name}
-        </Typography>
-        
-        <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-          <Chip 
-            label="Super Admin" 
-            size="small" 
-            color="primary" 
-            icon={<PremiumIcon />}
-          />
-        </Box>
-      </Box>
       
       {/* Business/Agency Selector */}
       <BusinessSelector variant="full" />
