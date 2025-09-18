@@ -23,7 +23,7 @@ import { i18n } from '@configs/i18n'
 import { getSystemMode } from '@core/utils/serverHelpers'
 
 // Style Imports
-import '@/app/globals.css'
+import '../globals.css'
 
 // Generated Icon CSS Imports
 import '@assets/iconify-icons/generated-icons.css'

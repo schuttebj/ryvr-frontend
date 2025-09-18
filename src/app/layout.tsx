@@ -11,7 +11,7 @@ import type { Metadata } from 'next'
 import { i18n } from '@configs/i18n'
 
 // CSS Imports
-import '@/globals.css'
+import './globals.css'
 
 // Font
 const inter = Inter({ subsets: ['latin'] })
