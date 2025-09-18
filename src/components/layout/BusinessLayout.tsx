@@ -1,14 +1,5 @@
 import React from 'react'
 import {
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Box,
-  Typography,
-} from '@mui/material'
-import {
   DashboardOutlined as DashboardIcon,
   TrendingUpOutlined as AnalyticsIcon,
   AssignmentOutlined as ReportsIcon,
@@ -18,7 +9,7 @@ import {
   InsightsOutlined as InsightsIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
-import BaseLayout from './BaseLayout'
+import FloatingSidebarLayout from './FloatingSidebarLayout'
 import { useAuth } from '../../contexts/AuthContext'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import BusinessSelector from '../common/BusinessSelector'
@@ -27,9 +18,16 @@ import PageHeader from './PageHeader'
 interface BusinessLayoutProps {
   children: React.ReactNode
   title?: string
+  subtitle?: string
+  actions?: React.ReactNode
 }
 
-export const BusinessLayout: React.FC<BusinessLayoutProps> = ({ children, title }) => {
+export const BusinessLayout: React.FC<BusinessLayoutProps> = ({ 
+  children, 
+  title = "Business Dashboard", 
+  subtitle = "Manage your business operations",
+  actions 
+}) => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
@@ -45,113 +43,76 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({ children, title 
       icon: <DashboardIcon />,
       path: '/business/dashboard',
       active: isActive('/business/dashboard'),
+      onClick: () => navigate('/business/dashboard'),
     },
     {
       label: 'Analytics',
       icon: <AnalyticsIcon />,
       path: '/business/analytics',
       active: isActive('/business/analytics'),
+      onClick: () => navigate('/business/analytics'),
     },
     {
       label: 'Reports',
       icon: <ReportsIcon />,
       path: '/business/reports',
       active: isActive('/business/reports'),
+      onClick: () => navigate('/business/reports'),
     },
     {
       label: 'Insights',
       icon: <InsightsIcon />,
       path: '/business/insights',
       active: isActive('/business/insights'),
+      onClick: () => navigate('/business/insights'),
     },
     {
       label: 'Schedule',
       icon: <ScheduleIcon />,
       path: '/business/schedule',
       active: isActive('/business/schedule'),
+      onClick: () => navigate('/business/schedule'),
     },
     {
       label: 'Settings',
       icon: <SettingsIcon />,
       path: '/business/settings',
       active: isActive('/business/settings'),
+      onClick: () => navigate('/business/settings'),
     },
     {
       label: 'Support',
       icon: <SupportIcon />,
       path: '/business/support',
       active: isActive('/business/support'),
+      onClick: () => navigate('/business/support'),
     },
   ]
 
-  const sidebar = (
-    <Box>
-      {/* Business Selector */}
-      <BusinessSelector variant="full" />
-      
-      {/* Navigation */}
-      <List sx={{ pt: 0 }}>
-        {navigationItems.map((item) => (
-          <ListItem key={item.label} disablePadding>
-            <ListItemButton
-              selected={item.active}
-              onClick={() => navigate(item.path)}
-              sx={{
-                '&.Mui-selected': {
-                  bgcolor: 'primary.light',
-                  color: 'primary.contrastText',
-                  '&:hover': {
-                    bgcolor: 'primary.main',
-                  },
-                },
-              }}
-            >
-              <ListItemIcon
-                sx={{
-                  color: item.active ? 'inherit' : 'text.secondary',
-                }}
-              >
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-      
-      {/* White-label Attribution (if applicable) */}
-      {isWhiteLabeled && (
-        <Box sx={{ p: 2, mt: 'auto' }}>
-          <Typography 
-            variant="caption" 
-            color="text.secondary" 
-            sx={{ textAlign: 'center', display: 'block' }}
-          >
-            Powered by {brandName}
-          </Typography>
-        </Box>
-      )}
-    </Box>
+  const headerContent = (
+    <BusinessSelector variant="full" />
   )
 
-  const headerActions = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      {user && (
-        <Typography variant="body2" color="text.secondary">
-          {user.full_name || user.email}
-        </Typography>
-      )}
-    </Box>
+  const pageHeaderContent = (
+    <PageHeader
+      title={title}
+      subtitle={subtitle}
+      breadcrumbs={[
+        { label: 'Home', href: '/business' },
+        { label: 'Dashboard', current: true },
+      ]}
+      actions={actions}
+    />
   )
 
   return (
-    <BaseLayout
-      sidebar={sidebar}
-      title={title}
-      headerActions={headerActions}
+    <FloatingSidebarLayout
+      navigationItems={navigationItems}
+      headerContent={headerContent}
+      pageHeader={pageHeaderContent}
     >
       {children}
-    </BaseLayout>
+    </FloatingSidebarLayout>
   )
 }
 
