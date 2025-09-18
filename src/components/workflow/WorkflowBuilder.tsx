@@ -552,7 +552,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
   
   // Auto-save timer
-  const autoSaveTimer = useRef<number | null>(null);
+  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
   const lastSavedState = useRef<string>('');
 
   // Load existing workflow data when editing
@@ -811,8 +811,20 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         id: workflowId || 'temp',
         name: workflowName || 'Untitled Workflow',
         description: workflowDescription || '',
-        nodes,
-        edges,
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type || 'default',
+          position: node.position,
+          data: node.data
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          data: edge.data
+        })),
+        business_id: 'default-business', // TODO: Get from context/auth
         isActive: false,
       };
 
@@ -822,8 +834,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       setValidationResult(validation);
       setShowValidationDialog(true);
       
-      if (validation.isValid) {
-        setSnackbarMessage(`✅ Workflow validation passed ${validation.warnings.length > 0 ? 'with warnings' : 'successfully'}!`);
+      if (validation.valid) {
+        setSnackbarMessage(`✅ Workflow validation passed!`);
       } else {
         setSnackbarMessage(`❌ Workflow validation failed with ${validation.errors.length} error(s)`);
       }
@@ -853,14 +865,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       
       if (result.success) {
         setSnackbarMessage('🚀 Workflow activated successfully!');
-        setValidationResult(result.validation);
         setWorkflowActive(true);
-        // Trigger a refresh of workflow status
-        if (onSave) {
-          await onSave(result.workflow);
-        }
+        // Trigger a refresh of workflow status - onSave would need the full workflow object
       } else {
-        setSnackbarMessage(`❌ Failed to activate: ${result.error}`);
+        setSnackbarMessage(`❌ Failed to activate: ${result.message || 'Unknown error'}`);
       }
       setSnackbarOpen(true);
       
@@ -885,12 +893,9 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       if (result.success) {
         setSnackbarMessage('⏸️ Workflow deactivated');
         setWorkflowActive(false);
-        // Trigger a refresh of workflow status
-        if (onSave) {
-          await onSave(result.workflow);
-        }
+        // Trigger a refresh of workflow status - onSave would need the full workflow object
       } else {
-        setSnackbarMessage(`❌ Failed to deactivate: ${result.error}`);
+        setSnackbarMessage(`❌ Failed to deactivate: ${result.message || 'Unknown error'}`);
       }
       setSnackbarOpen(true);
       

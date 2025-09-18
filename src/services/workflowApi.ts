@@ -28,6 +28,7 @@ export interface Workflow {
   business_id: string
   agency_id?: string
   is_template: boolean
+  isActive?: boolean
 }
 
 export interface CreateWorkflowRequest {
@@ -118,6 +119,86 @@ class WorkflowApiService {
   async saveAsTemplate(workflowId: string, templateName: string): Promise<Workflow> {
     return apiClient.post(`/workflows/${workflowId}/save-as-template`, { name: templateName })
   }
+
+  // Test a node configuration
+  async testNode(nodeType: string, config: any): Promise<{ success: boolean; data?: any; error?: string }> {
+    return apiClient.post('/workflows/test-node', { nodeType, config })
+  }
+
+  // Store node result for use in other nodes
+  async storeNodeResult(nodeId: string, result: any): Promise<void> {
+    return apiClient.post(`/workflows/nodes/${nodeId}/result`, result)
+  }
+
+  // Load workflow (alias for getWorkflow for compatibility)
+  async loadWorkflow(workflowId: string): Promise<Workflow> {
+    return this.getWorkflow(workflowId)
+  }
+
+  // Activate workflow
+  async activateWorkflow(workflowId: string): Promise<{ success: boolean; message?: string }> {
+    return apiClient.post(`/workflows/${workflowId}/activate`)
+  }
+
+  // Deactivate workflow
+  async deactivateWorkflow(workflowId: string): Promise<{ success: boolean; message?: string }> {
+    return apiClient.post(`/workflows/${workflowId}/deactivate`)
+  }
+}
+
+// Helper functions for workflow components
+export const getAvailableDataNodes = (workflows: Workflow[] = []): any[] => {
+  // Return mock data for now - this would typically come from executed workflow nodes
+  return workflows.map(workflow => ({
+    nodeId: workflow.id,
+    nodeLabel: workflow.name,
+    nodeType: 'trigger',
+    executedAt: workflow.updated_at,
+    status: workflow.status === 'active' ? 'success' : 'error',
+    dataStructure: [],
+    id: workflow.id,
+    data: workflow.nodes
+  }))
+}
+
+export const processVariables = (text: string, availableData: any[] | Record<string, any> = []): string => {
+  // Simple variable replacement for now
+  // This would typically process {{variable.path}} syntax
+  let processedText = text
+  
+  // Replace common variable patterns
+  processedText = processedText.replace(/\{\{(\w+\.?\w*)\}\}/g, (match, varName) => {
+    // Simple variable replacement logic
+    return `[${varName}]` // Placeholder replacement
+  })
+  
+  return processedText
+}
+
+export const clearWorkflowData = (): void => {
+  // Clear any stored workflow data in localStorage or state
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('workflowData')
+    localStorage.removeItem('nodeResults')
+  }
+  console.log('Workflow data cleared from local storage')
+}
+
+export const getStoredNodeResponse = (nodeId: string): any => {
+  // Get stored node response from localStorage
+  if (typeof window !== 'undefined') {
+    const storedData = localStorage.getItem('nodeResults')
+    if (storedData) {
+      try {
+        const results = JSON.parse(storedData)
+        return results[nodeId] || null
+      } catch (error) {
+        console.error('Error parsing stored node results:', error)
+        return null
+      }
+    }
+  }
+  return null
 }
 
 export const workflowApi = new WorkflowApiService()

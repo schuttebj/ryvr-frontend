@@ -152,12 +152,12 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
       const startTime = Date.now();
 
       // Use the proper workflowApi.executeWorkflow that follows edges
-      const workflowResult = await workflowApi.executeWorkflow(workflowData);
+      const workflowResult = await workflowApi.executeWorkflow(workflowData.id, workflowData);
 
       const endTime = Date.now();
       const totalDuration = endTime - startTime;
 
-      if (workflowResult.success) {
+      if (workflowResult.status === 'completed') {
         addLogMessage(`🎉 Workflow execution completed successfully in ${totalDuration}ms!`);
 
         // Update execution steps based on the results
@@ -215,13 +215,13 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
           addLogMessage('⚠️ No results returned from workflow execution');
         }
       } else {
-        addLogMessage(`💥 Workflow execution failed: ${workflowResult.error}`);
+        addLogMessage(`💥 Workflow execution failed: ${workflowResult.error_message || 'Unknown error'}`);
         
         // Mark all steps as failed if overall workflow failed
         setExecutionSteps(prev => prev.map(step => ({
           ...step,
           status: 'failed',
-          error: workflowResult.error,
+          error: workflowResult.error_message,
           endTime: new Date(),
           progress: 0
         })));

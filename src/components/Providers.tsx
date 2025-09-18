@@ -23,7 +23,7 @@ const Providers = (props: Props) => {
 
   // Use default settings for client components
   const mode = 'dark' // Default to dark mode as per your requirements
-  const settingsCookie = undefined // Let SettingsProvider handle defaults
+  const settingsCookie = null // Let SettingsProvider handle defaults
   const systemMode = 'dark' // Default system mode
 
   return (

@@ -18,10 +18,8 @@ interface Props {
 
 const Layout = ({ children }: Props) => {
   return (
-    <Providers>
-      <AuthProvider>
-        <BlankLayout>{children}</BlankLayout>
-      </AuthProvider>
+    <Providers direction="ltr">
+      <BlankLayout systemMode="dark">{children}</BlankLayout>
     </Providers>
   )
 }

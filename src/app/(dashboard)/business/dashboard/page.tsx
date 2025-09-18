@@ -15,7 +15,7 @@ import {
 import {
   TrendingUp,
   Visibility,
-  MouseIcon,
+  Mouse,
   Schedule
 } from '@mui/icons-material'
 
@@ -128,7 +128,7 @@ function BusinessDashboard() {
           <StatCard
             title="Click-through Rate"
             value="3.2%"
-            icon={MouseIcon}
+            icon={Mouse}
             color="success"
             trend="+0.8% vs last month"
           />

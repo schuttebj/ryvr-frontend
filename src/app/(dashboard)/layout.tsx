@@ -3,8 +3,8 @@
 // React Imports
 import { ReactNode } from 'react'
 
-// Layout Component Imports
-import LayoutWrapper from '@layouts/LayoutWrapper'
+// MUI Imports
+import { Box, Container } from '@mui/material'
 
 // Providers Import
 import Providers from '@components/Providers'
@@ -15,8 +15,19 @@ interface Props {
 
 const Layout = ({ children }: Props) => {
   return (
-    <Providers>
-      <LayoutWrapper>{children}</LayoutWrapper>
+    <Providers direction="ltr">
+      <Box sx={{ 
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        color: 'text.primary'
+      }}>
+        <Container maxWidth={false} sx={{ 
+          p: 3,
+          maxWidth: '1440px'
+        }}>
+          {children}
+        </Container>
+      </Box>
     </Providers>
   )
 }
