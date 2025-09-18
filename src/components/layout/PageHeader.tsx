@@ -44,7 +44,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           ? '#374151' 
           : '#e5e7eb'
         }`,
-        p: 3,
+        p: 2,
         mb: 2,
       }}
     >

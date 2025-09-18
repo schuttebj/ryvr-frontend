@@ -22,12 +22,12 @@ import {
   PersonOutlined as PersonIcon,
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
-  SearchOutlined as SearchIcon,
 } from '@mui/icons-material'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import { useAuth } from '../../contexts/AuthContext'
 import ColorModeToggle from '../theme/ColorModeToggle'
 import QuickActionModal from '../common/QuickActionModal'
+import QuickActionSearchBar from '../common/QuickActionSearchBar'
 import { useQuickActions } from '../../hooks/useQuickActions'
 
 const COLLAPSED_WIDTH = 64
@@ -144,7 +144,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   )
 
   const UserSection = () => (
-    <Box sx={{ p: isExpanded ? 2 : 1, mt: 'auto' }}>
+    <Box sx={{ px: 2, py: 1, mt: 'auto' }}>
       {/* User Profile */}
       <Box 
         sx={{ 
@@ -309,6 +309,12 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       <TopBar />
       <Divider />
       
+      {/* Quick Action Search Bar */}
+      <QuickActionSearchBar 
+        onOpen={openQuickActions}
+        isExpanded={isExpanded}
+      />
+      
       {/* Optional Header Content */}
       {headerContent && isExpanded && (
         <>
@@ -321,31 +327,13 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       
       <NavigationItems />
       
-      {/* Quick Actions & Collapse Toggle */}
+      {/* Collapse Toggle */}
       <Box sx={{ 
         p: 1, 
         display: 'flex', 
-        justifyContent: isExpanded ? 'space-between' : 'center',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 1,
       }}>
-        {isExpanded && (
-          <Tooltip title="Quick Actions (Ctrl+K)" placement="top">
-            <IconButton 
-              onClick={openQuickActions}
-              size="small"
-              sx={{
-                backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                '&:hover': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.16),
-                },
-              }}
-            >
-              <SearchIcon />
-            </IconButton>
-          </Tooltip>
-        )}
-        
         <Tooltip title={isExpanded ? "Collapse Sidebar" : "Expand Sidebar"} placement="top">
           <IconButton 
             onClick={() => setCollapsed(!collapsed)}
@@ -437,7 +425,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
               ? '#374151' 
               : '#e5e7eb'
             }`,
-            p: 3,
+            p: 2,
             flexGrow: 1,
             overflow: 'auto',
             boxSizing: 'border-box',

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BusinessLayout from '../components/layout/BusinessLayout';
 import {
   Box,
   Grid,
@@ -32,7 +33,6 @@ import {
   CheckCircle as SuccessIcon,
   Speed as PerformanceIcon,
 } from '@mui/icons-material';
-import { BusinessGlassBackground } from '../components/common/GlassBackground';
 
 interface Business {
   id: number;
@@ -215,17 +215,17 @@ export default function BusinessDashboardPage() {
 
   if (loading) {
     return (
-      <BusinessGlassBackground>
+      <BusinessLayout>
         <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
           <CircularProgress size={60} />
         </Box>
-      </BusinessGlassBackground>
+      </BusinessLayout>
     );
   }
 
   if (error) {
     return (
-      <BusinessGlassBackground>
+      <BusinessLayout>
         <Box p={3}>
           <Alert severity="error">
             {error}
@@ -234,7 +234,7 @@ export default function BusinessDashboardPage() {
             </Button>
           </Alert>
         </Box>
-      </BusinessGlassBackground>
+      </BusinessLayout>
     );
   }
 
@@ -285,37 +285,32 @@ export default function BusinessDashboardPage() {
     </Card>
   );
 
+  const headerActions = (
+    <Stack direction="row" spacing={2}>
+      <Button
+        variant="outlined"
+        startIcon={<AddIcon />}
+        onClick={() => navigate('/business/workflows/create')}
+      >
+        Create Workflow
+      </Button>
+      <Button
+        variant="contained"
+        startIcon={<AnalyticsIcon />}
+        onClick={() => navigate('/business/analytics')}
+      >
+        View Analytics
+      </Button>
+    </Stack>
+  );
+
   return (
-    <BusinessGlassBackground>
-      <Box p={3}>
-        {/* Header with Business Selector */}
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-          <Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-              Business Dashboard
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Monitor your business performance and manage workflows
-            </Typography>
-          </Box>
-          
-          <Stack direction="row" spacing={2}>
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => navigate('/business/workflows/create')}
-            >
-              Create Workflow
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AnalyticsIcon />}
-              onClick={() => navigate('/business/analytics')}
-            >
-              View Analytics
-            </Button>
-          </Stack>
-        </Box>
+    <BusinessLayout
+      title="Business Dashboard"
+      subtitle="Monitor your business performance and manage workflows"
+      actions={headerActions}
+    >
+      <Box>
 
         {/* Business Selector */}
         {businesses.length > 1 && (
@@ -553,6 +548,6 @@ export default function BusinessDashboardPage() {
           </>
         )}
       </Box>
-    </BusinessGlassBackground>
+    </BusinessLayout>
   );
 }

@@ -22,8 +22,8 @@ interface AgencyLayoutProps {
 
 export const AgencyLayout: React.FC<AgencyLayoutProps> = ({ 
   children, 
-  title = "Agency Dashboard", 
-  subtitle = "Manage your clients and campaigns",
+  title, 
+  subtitle,
   actions 
 }) => {
   const navigate = useNavigate()
@@ -91,7 +91,7 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({
     <BusinessSelector variant="full" />
   )
 
-  const pageHeaderContent = (
+  const pageHeaderContent = title ? (
     <PageHeader
       title={title}
       subtitle={subtitle}
@@ -101,7 +101,7 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({
       ]}
       actions={actions}
     />
-  )
+  ) : undefined
 
   return (
     <FloatingSidebarLayout

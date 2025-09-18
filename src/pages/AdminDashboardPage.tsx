@@ -209,7 +209,11 @@ export default function AdminDashboardPage() {
   );
 
   return (
-    <AdminLayout actions={headerActions}>
+    <AdminLayout 
+      title="System Overview"
+      subtitle="Monitor and manage your RYVR platform"
+      actions={headerActions}
+    >
       <Box>
 
       {/* System Health */}

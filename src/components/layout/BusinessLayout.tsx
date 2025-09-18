@@ -22,8 +22,8 @@ interface BusinessLayoutProps {
 
 export const BusinessLayout: React.FC<BusinessLayoutProps> = ({ 
   children, 
-  title = "Business Dashboard", 
-  subtitle = "Manage your business operations",
+  title, 
+  subtitle,
   actions 
 }) => {
   const navigate = useNavigate()
@@ -89,7 +89,7 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({
     <BusinessSelector variant="full" />
   )
 
-  const pageHeaderContent = (
+  const pageHeaderContent = title ? (
     <PageHeader
       title={title}
       subtitle={subtitle}
@@ -99,7 +99,7 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({
       ]}
       actions={actions}
     />
-  )
+  ) : undefined
 
   return (
     <FloatingSidebarLayout

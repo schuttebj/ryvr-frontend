@@ -5,8 +5,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WhiteLabelProvider } from './theme/WhiteLabelProvider';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/layout/AdminLayout';
-import AgencyLayout from './components/layout/AgencyLayout';
-import BusinessLayout from './components/layout/BusinessLayout';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -80,21 +78,19 @@ function AppRoutes() {
         path="/agency/*"
         element={
           <ProtectedRoute requiredRole={['agency_owner', 'agency_manager', 'agency_viewer']}>
-            <AgencyLayout>
-              <Routes>
-                <Route path="dashboard" element={<AgencyDashboardPage />} />
-                <Route path="businesses" element={<ClientsPage />} />
-                <Route path="businesses/new" element={<div>Add New Business</div>} />
-                <Route path="workflows/*" element={<WorkflowsPage />} />
-                <Route path="workflows/builder" element={<FlowTestPage />} />
-                <Route path="runs" element={<WorkflowRunsPage />} />
-                <Route path="integrations" element={<IntegrationsPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="team" element={<div>Team Management</div>} />
-                <Route path="settings" element={<div>Agency Settings</div>} />
-                <Route path="*" element={<Navigate to="/agency/dashboard" />} />
-              </Routes>
-            </AgencyLayout>
+            <Routes>
+              <Route path="dashboard" element={<AgencyDashboardPage />} />
+              <Route path="businesses" element={<ClientsPage />} />
+              <Route path="businesses/new" element={<div>Add New Business</div>} />
+              <Route path="workflows/*" element={<WorkflowsPage />} />
+              <Route path="workflows/builder" element={<FlowTestPage />} />
+              <Route path="runs" element={<WorkflowRunsPage />} />
+              <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="team" element={<div>Team Management</div>} />
+              <Route path="settings" element={<div>Agency Settings</div>} />
+              <Route path="*" element={<Navigate to="/agency/dashboard" />} />
+            </Routes>
           </ProtectedRoute>
         }
       />
@@ -104,20 +100,18 @@ function AppRoutes() {
         path="/business/*"
         element={
           <ProtectedRoute requiredRole={['individual_user', 'business_owner', 'business_user']}>
-            <BusinessLayout>
-              <Routes>
-                <Route path="dashboard" element={<BusinessDashboardPage />} />
-                <Route path="workflows/*" element={<WorkflowsPage />} />
-                <Route path="workflows/builder" element={<FlowTestPage />} />
-                <Route path="integrations" element={<IntegrationsPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="onboarding" element={<div>Business Onboarding</div>} />
-                <Route path="schedule" element={<div>Content Schedule</div>} />
-                <Route path="settings" element={<div>Business Settings</div>} />
-                <Route path="support" element={<div>Support Center</div>} />
-                <Route path="*" element={<Navigate to="/business/dashboard" />} />
-              </Routes>
-            </BusinessLayout>
+            <Routes>
+              <Route path="dashboard" element={<BusinessDashboardPage />} />
+              <Route path="workflows/*" element={<WorkflowsPage />} />
+              <Route path="workflows/builder" element={<FlowTestPage />} />
+              <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="onboarding" element={<div>Business Onboarding</div>} />
+              <Route path="schedule" element={<div>Content Schedule</div>} />
+              <Route path="settings" element={<div>Business Settings</div>} />
+              <Route path="support" element={<div>Support Center</div>} />
+              <Route path="*" element={<Navigate to="/business/dashboard" />} />
+            </Routes>
           </ProtectedRoute>
         }
       />

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import AgencyLayout from '../components/layout/AgencyLayout';
 import {
   Box,
   Grid,
@@ -225,27 +226,23 @@ export default function AgencyDashboardPage() {
     </Card>
   );
 
+  const headerActions = (
+    <Button
+      variant="contained"
+      startIcon={<AddIcon />}
+      onClick={() => navigate('/agency/businesses/new')}
+    >
+      Add Business
+    </Button>
+  );
+
   return (
-    <Box>
-      {/* Header with Business Selector */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Agency Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage your client businesses and monitor performance
-          </Typography>
-        </Box>
-        
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/agency/businesses/new')}
-        >
-          Add Business
-        </Button>
-      </Box>
+    <AgencyLayout
+      title="Agency Dashboard"
+      subtitle="Manage your client businesses and monitor performance"
+      actions={headerActions}
+    >
+      <Box>
 
       {/* Business Selector */}
       <Card sx={{ mb: 4 }}>
@@ -516,6 +513,7 @@ export default function AgencyDashboardPage() {
           </Card>
         </>
       )}
-    </Box>
+      </Box>
+    </AgencyLayout>
   );
 }

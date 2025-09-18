@@ -32,8 +32,8 @@ interface AdminLayoutProps {
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ 
   children, 
-  title = "System Overview", 
-  subtitle = "Monitor and manage your RYVR platform",
+  title, 
+  subtitle,
   actions 
 }) => {
   const navigate = useNavigate()
@@ -140,7 +140,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
     </Box>
   )
 
-  const pageHeaderContent = (
+  const pageHeaderContent = title ? (
     <PageHeader
       title={title}
       subtitle={subtitle}
@@ -150,7 +150,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       ]}
       actions={actions}
     />
-  )
+  ) : undefined
 
   return (
     <FloatingSidebarLayout
