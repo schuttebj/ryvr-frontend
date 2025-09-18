@@ -1,5 +1,8 @@
 'use client'
 
+// Disable static generation - render on client only
+export const dynamic = 'force-dynamic'
+
 // MUI Imports
 import { 
   Grid, 

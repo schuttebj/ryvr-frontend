@@ -222,6 +222,7 @@ export interface AvailableDataNode {
   // Additional properties for compatibility
   id: string;
   data?: any;
+
   // Comprehensive structure including processed, raw, summary, and metadata
   completeStructure?: {
     processed: {

@@ -245,8 +245,6 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     setTestResult(null);
     
     try {
-      let result;
-      
       // Import the workflow API for testing
       const { workflowApi } = await import('../../services/workflowApi');
       
@@ -257,7 +255,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         formData.config;
       
       // Test the node with its current configuration
-      result = await workflowApi.testNode(formData.type, testConfig);
+      const result = await workflowApi.testNode(formData.type, testConfig);
       
       // Store successful test results automatically for use in other nodes
       if (result.success && result.data) {

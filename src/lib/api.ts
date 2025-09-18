@@ -138,6 +138,7 @@ class ApiClient {
     }
 
     const data = await response.json();
+
     return data;
   }
 
@@ -211,6 +212,7 @@ class ApiClient {
   // Analytics methods
   async getAnalytics(timeframe?: string): Promise<any> {
     const params = timeframe ? `?timeframe=${timeframe}` : '';
+
     return this.get<any>(`/api/analytics${params}`);
   }
 }

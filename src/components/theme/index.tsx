@@ -47,35 +47,60 @@ const CustomThemeProvider = (props: Props) => {
   const { settings } = useSettings()
   const isDark = useMedia('(prefers-color-scheme: dark)', systemMode === 'dark')
 
+  // Default settings fallback for SSR
+  const safeSettings = settings || {
+    mode: 'dark' as const,
+    skin: 'default' as const,
+    primaryColor: '#5f5eff' as string,
+    layout: 'vertical',
+    layoutPadding: 24,
+    compactContentWidth: 1440,
+    navbar: {
+      type: 'fixed',
+      contentWidth: 'compact',
+      floating: false,
+      detached: true,
+      blur: true
+    },
+    contentWidth: 'compact',
+    footer: {
+      type: 'static',
+      contentWidth: 'compact'
+    },
+    navbarContentWidth: 'compact',
+    footerContentWidth: 'compact'
+  }
+
   if (isServer) {
     currentMode = systemMode
   } else {
-    if (settings.mode === 'system') {
+    if (safeSettings.mode === 'system') {
       currentMode = isDark ? 'dark' : 'light'
     } else {
-      currentMode = settings.mode as SystemMode
+      currentMode = safeSettings.mode as SystemMode
     }
   }
 
   // Merge the primary color scheme override with the core theme
   const theme = useMemo(() => {
+    const primaryColor: string = safeSettings.primaryColor || '#5f5eff'
     const newTheme = {
       colorSchemes: {
         light: {
           palette: {
             primary: {
-              main: settings.primaryColor,
-              light: lighten(settings.primaryColor as string, 0.2),
-              dark: darken(settings.primaryColor as string, 0.1)
+              main: primaryColor,
+              light: lighten(primaryColor, 0.2),
+              dark: darken(primaryColor, 0.1)
             }
           }
         },
         dark: {
           palette: {
             primary: {
-              main: settings.primaryColor,
-              light: lighten(settings.primaryColor as string, 0.2),
-              dark: darken(settings.primaryColor as string, 0.1)
+              main: primaryColor,
+              light: lighten(primaryColor, 0.2),
+              dark: darken(primaryColor, 0.1)
             }
           }
         }
@@ -85,12 +110,12 @@ const CustomThemeProvider = (props: Props) => {
       }
     }
 
-    const coreTheme = deepmerge(defaultCoreTheme(settings, currentMode, direction), newTheme)
+    const coreTheme = deepmerge(defaultCoreTheme(safeSettings, currentMode, direction), newTheme)
 
     return createTheme(coreTheme)
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.primaryColor, settings.skin, currentMode])
+  }, [safeSettings.primaryColor, safeSettings.skin, currentMode])
 
   return (
     <AppRouterCacheProvider
