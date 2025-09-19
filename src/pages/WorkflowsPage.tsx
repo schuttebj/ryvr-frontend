@@ -169,12 +169,6 @@ export default function WorkflowsPage() {
     return BusinessLayout; // For individual_user, business_owner, business_user
   };
 
-  // Get the appropriate breadcrumb base path based on user role
-  const getBasePath = () => {
-    if (user?.role === 'admin') return '/admin/workflows';
-    if (user?.role === 'agency_owner' || user?.role === 'agency_manager' || user?.role === 'agency_viewer') return '/agency/workflows';
-    return '/business/workflows';
-  };
 
   const getStatusIcon = (isActive: boolean) => {
     return isActive ? <CheckCircleIcon /> : <EditIcon />;
