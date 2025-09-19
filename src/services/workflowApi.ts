@@ -2918,10 +2918,10 @@ export const workflowApi = {
   // WORKFLOW V2 API METHODS (New Schema Support)
   // =============================================================================
 
-  // Create workflow template with V2 schema
+  // Create workflow template with V2 schema (now default)
   createWorkflowTemplateV2: async (template: WorkflowTemplateV2): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
     try {
-      const response = await fetch(`/api/workflows/v2/templates`, {
+      const response = await fetch(`/api/workflows/templates`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -2958,7 +2958,7 @@ export const workflowApi = {
       if (filters?.skip) params.append('skip', filters.skip.toString());
       if (filters?.limit) params.append('limit', filters.limit.toString());
 
-      const response = await fetch(`/api/workflows/v2/templates?${params.toString()}`);
+      const response = await fetch(`/api/workflows/templates?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2976,7 +2976,7 @@ export const workflowApi = {
   // Get specific workflow template
   getWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
     try {
-      const response = await fetch(`/api/workflows/v2/templates/${templateId}`);
+      const response = await fetch(`/api/workflows/templates/${templateId}`);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2994,7 +2994,7 @@ export const workflowApi = {
   // Validate workflow template
   validateWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; validation?: any; error?: string }> => {
     try {
-      const response = await fetch(`/api/workflows/v2/templates/${templateId}/validate`, {
+      const response = await fetch(`/api/workflows/templates/${templateId}/validate`, {
         method: 'POST'
       });
 
@@ -3014,7 +3014,7 @@ export const workflowApi = {
   // Execute workflow template
   executeWorkflowV2: async (templateId: number, executionRequest: ExecutionRequest): Promise<{ success: boolean; execution?: any; error?: string }> => {
     try {
-      const response = await fetch(`/api/workflows/v2/templates/${templateId}/execute`, {
+      const response = await fetch(`/api/workflows/templates/${templateId}/execute`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -3038,7 +3038,7 @@ export const workflowApi = {
   // Get execution status
   getExecutionStatusV2: async (executionId: number): Promise<{ success: boolean; execution?: WorkflowExecutionV2; error?: string }> => {
     try {
-      const response = await fetch(`/api/workflows/v2/executions/${executionId}`);
+      const response = await fetch(`/api/workflows/executions/${executionId}`);
 
       if (!response.ok) {
         const errorData = await response.json();
