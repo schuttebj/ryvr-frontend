@@ -554,7 +554,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(workflowId || null);
   
   // Auto-save timer
-  const autoSaveTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveTimer = useRef<number | null>(null);
   const lastSavedState = useRef<string>('');
 
   // Load existing workflow data when editing
@@ -680,7 +680,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       await handleAutoSave();
     }
     setShowCloseDialog(false);
-    router.push('/workflows');
+    navigate('/admin/workflows');
   };
 
   const onConnect = useCallback(
@@ -836,7 +836,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       setValidationResult(validation);
       setShowValidationDialog(true);
       
-      if (validation.valid) {
+      if (validation.isValid) {
         setSnackbarMessage(`✅ Workflow validation passed!`);
       } else {
         setSnackbarMessage(`❌ Workflow validation failed with ${validation.errors.length} error(s)`);
@@ -870,7 +870,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         setWorkflowActive(true);
         // Trigger a refresh of workflow status - onSave would need the full workflow object
       } else {
-        setSnackbarMessage(`❌ Failed to activate: ${result.message || 'Unknown error'}`);
+        setSnackbarMessage(`❌ Failed to activate: ${result.error || 'Unknown error'}`);
       }
       setSnackbarOpen(true);
       
@@ -897,7 +897,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         setWorkflowActive(false);
         // Trigger a refresh of workflow status - onSave would need the full workflow object
       } else {
-        setSnackbarMessage(`❌ Failed to deactivate: ${result.message || 'Unknown error'}`);
+        setSnackbarMessage(`❌ Failed to deactivate: ${result.error || 'Unknown error'}`);
       }
       setSnackbarOpen(true);
       

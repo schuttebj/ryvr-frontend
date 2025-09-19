@@ -190,10 +190,6 @@ export default function WorkflowsPage() {
       <LayoutComponent 
         title={editingWorkflowId ? "Edit Workflow" : "Create Workflow"}
         subtitle="Design your automation workflow"
-        breadcrumbs={[
-          { label: 'Workflows', href: getBasePath() },
-          { label: editingWorkflowId ? 'Edit' : 'Create', current: true }
-        ]}
       >
         <WorkflowBuilder
           onSave={handleWorkflowSave}
