@@ -1,5 +1,18 @@
 // Using fetch instead of axios for better compatibility
-import { WorkflowNodeType, StandardNodeResponse, AvailableDataNode, DataStructureItem } from '../types/workflow';
+import { 
+  WorkflowNodeType, 
+  StandardNodeResponse, 
+  AvailableDataNode, 
+  DataStructureItem,
+  // V2 Types
+  WorkflowTemplateV2,
+  WorkflowExecutionV2,
+  WorkflowStepV2,
+  WorkflowStepType,
+  ToolCatalogV2,
+  ExecutionRequest,
+  TransformationConfig
+} from '../types/workflow';
 
 // API_BASE_URL temporarily unused - will be restored when fixing API integration
 // const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
@@ -2900,4 +2913,376 @@ export const workflowApi = {
       return { success: false, error: error.message };
     }
   },
+
+  // =============================================================================
+  // WORKFLOW V2 API METHODS (New Schema Support)
+  // =============================================================================
+
+  // Create workflow template with V2 schema
+  createWorkflowTemplateV2: async (template: WorkflowTemplateV2): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
+    try {
+      const response = await fetch(`/api/workflows/v2/templates`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(template)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to create workflow template');
+      }
+
+      const result = await response.json();
+      return { success: true, template: result };
+    } catch (error: any) {
+      console.error('Failed to create workflow template V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // List workflow templates with V2 schema
+  listWorkflowTemplatesV2: async (filters?: {
+    business_id?: number;
+    category?: string;
+    tags?: string;
+    skip?: number;
+    limit?: number;
+  }): Promise<{ success: boolean; templates?: WorkflowTemplateV2[]; error?: string }> => {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.business_id) params.append('business_id', filters.business_id.toString());
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.tags) params.append('tags', filters.tags);
+      if (filters?.skip) params.append('skip', filters.skip.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await fetch(`/api/workflows/v2/templates?${params.toString()}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch workflow templates');
+      }
+
+      const templates = await response.json();
+      return { success: true, templates };
+    } catch (error: any) {
+      console.error('Failed to list workflow templates V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get specific workflow template
+  getWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
+    try {
+      const response = await fetch(`/api/workflows/v2/templates/${templateId}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch workflow template');
+      }
+
+      const template = await response.json();
+      return { success: true, template };
+    } catch (error: any) {
+      console.error('Failed to get workflow template V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Validate workflow template
+  validateWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; validation?: any; error?: string }> => {
+    try {
+      const response = await fetch(`/api/workflows/v2/templates/${templateId}/validate`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to validate workflow template');
+      }
+
+      const validation = await response.json();
+      return { success: true, validation };
+    } catch (error: any) {
+      console.error('Failed to validate workflow template V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Execute workflow template
+  executeWorkflowV2: async (templateId: number, executionRequest: ExecutionRequest): Promise<{ success: boolean; execution?: any; error?: string }> => {
+    try {
+      const response = await fetch(`/api/workflows/v2/templates/${templateId}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(executionRequest)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to execute workflow');
+      }
+
+      const execution = await response.json();
+      return { success: true, execution };
+    } catch (error: any) {
+      console.error('Failed to execute workflow V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get execution status
+  getExecutionStatusV2: async (executionId: number): Promise<{ success: boolean; execution?: WorkflowExecutionV2; error?: string }> => {
+    try {
+      const response = await fetch(`/api/workflows/v2/executions/${executionId}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch execution status');
+      }
+
+      const execution = await response.json();
+      return { success: true, execution };
+    } catch (error: any) {
+      console.error('Failed to get execution status V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Get tool catalog for workflow building
+  getToolCatalogV2: async (filters?: {
+    provider?: string;
+    category?: string;
+    business_id?: number;
+  }): Promise<{ success: boolean; catalog?: ToolCatalogV2; error?: string }> => {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.provider) params.append('provider', filters.provider);
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.business_id) params.append('business_id', filters.business_id.toString());
+
+      const response = await fetch(`/api/integrations/tool-catalog?${params.toString()}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to fetch tool catalog');
+      }
+
+      const catalog = await response.json();
+      return { success: true, catalog };
+    } catch (error: any) {
+      console.error('Failed to get tool catalog V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Test data transformation configuration
+  testTransformationV2: async (data: any, transformConfig: TransformationConfig): Promise<{ success: boolean; result?: any; error?: string }> => {
+    try {
+      // For now, this is a client-side test function
+      // In production, this could be sent to backend for validation
+      
+      // Mock transformation for testing
+      let result: Record<string, any> = { _source: data };
+      
+      // Extract transformations
+      if (transformConfig.extract) {
+        for (const extraction of transformConfig.extract) {
+          if (extraction.expr.startsWith('expr: @[].')) {
+            const property = extraction.expr.replace('expr: @[].', '');
+            if (Array.isArray(data)) {
+              result[extraction.as] = data.map(item => item[property]).filter(val => val !== undefined);
+            }
+          }
+        }
+      }
+      
+      // Aggregate transformations
+      if (transformConfig.aggregate) {
+        for (const aggregation of transformConfig.aggregate) {
+          const sourceData = result[aggregation.source];
+          if (Array.isArray(sourceData)) {
+            switch (aggregation.function) {
+              case 'sum':
+                result[aggregation.as] = sourceData.reduce((sum, val) => sum + (Number(val) || 0), 0);
+                break;
+              case 'avg':
+                result[aggregation.as] = sourceData.reduce((sum, val) => sum + (Number(val) || 0), 0) / sourceData.length;
+                break;
+              case 'count':
+                result[aggregation.as] = sourceData.length;
+                break;
+              case 'min':
+                result[aggregation.as] = Math.min(...sourceData.map(val => Number(val) || 0));
+                break;
+              case 'max':
+                result[aggregation.as] = Math.max(...sourceData.map(val => Number(val) || 0));
+                break;
+            }
+          }
+        }
+      }
+      
+      // Format transformations
+      if (transformConfig.format) {
+        for (const format of transformConfig.format) {
+          const sourceData = result[format.source];
+          if (format.function === 'join' && Array.isArray(sourceData)) {
+            result[format.as] = sourceData.join(format.separator || ', ');
+          }
+        }
+      }
+      
+      // Remove source data unless requested
+      if (!transformConfig.keep_source) {
+        delete result._source;
+      }
+      
+      return { success: true, result };
+    } catch (error: any) {
+      console.error('Failed to test transformation V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Create example workflow for testing
+  createExampleWorkflowV2: (): WorkflowTemplateV2 => {
+    return {
+      schema_version: 'ryvr.workflow.v1',
+      name: 'SEO Content Pipeline',
+      description: 'Extract keyword data, aggregate values, and format as CSV',
+      tags: ['seo', 'content', 'example'],
+      
+      globals: {
+        brand_voice: 'professional and informative',
+        max_keywords: 50
+      },
+      
+      inputs: {
+        site_url: 'https://example.com',
+        primary_topic: 'TPLO surgery',
+        min_volume: 100,
+        max_kd: 45
+      },
+      
+      connections: [
+        {
+          id: 'conn-dataforseo',
+          provider: 'dataforseo'
+        }
+      ],
+      
+      execution: {
+        execution_mode: 'simulate',
+        dry_run: true,
+        concurrency: 2,
+        timeout_seconds: 300
+      },
+      
+      steps: [
+        {
+          id: 'extract_keywords',
+          type: WorkflowStepType.TRANSFORM,
+          name: 'Extract Keyword Values',
+          depends_on: [],
+          
+          transform: {
+            extract: [
+              {
+                as: 'values',
+                expr: 'expr: @[].value',
+                description: 'Extract all value properties from keyword array'
+              },
+              {
+                as: 'keywords',
+                expr: 'expr: @[].keyword',
+                description: 'Extract all keyword strings'
+              }
+            ],
+            aggregate: [
+              {
+                as: 'total_value',
+                function: 'sum',
+                source: 'values'
+              },
+              {
+                as: 'avg_value',
+                function: 'avg',
+                source: 'values'
+              },
+              {
+                as: 'keyword_count',
+                function: 'count',
+                source: 'keywords'
+              }
+            ],
+            format: [
+              {
+                as: 'values_csv',
+                function: 'join',
+                source: 'values',
+                separator: ', '
+              },
+              {
+                as: 'keywords_list',
+                function: 'join',
+                source: 'keywords',
+                separator: ' | '
+              }
+            ]
+          },
+          
+          projection: {
+            keep: [
+              'values_csv',
+              'keywords_list',
+              'total_value',
+              'avg_value',
+              'keyword_count'
+            ]
+          },
+          
+          dry_run: true
+        }
+      ],
+      
+      category: 'seo',
+      status: 'draft'
+    };
+  },
+
+  // Utility function to validate V2 step configuration
+  validateStepV2: (step: WorkflowStepV2): { isValid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+    
+    if (!step.id) errors.push('Step ID is required');
+    if (!step.type) errors.push('Step type is required');
+    if (!step.name) errors.push('Step name is required');
+    
+    // Validate step type
+    const validTypes = ['task', 'ai', 'transform', 'foreach', 'gate', 'condition', 'async_task'];
+    if (!validTypes.includes(step.type)) {
+      errors.push(`Invalid step type: ${step.type}`);
+    }
+    
+    // Validate async_task specific requirements
+    if (step.type === 'async_task' && !step.async_config) {
+      errors.push('async_task type requires async_config');
+    }
+    
+    if (step.async_config) {
+      if (!step.async_config.submit_operation) errors.push('async_config requires submit_operation');
+      if (!step.async_config.check_operation) errors.push('async_config requires check_operation');
+      if (!step.async_config.completion_check) errors.push('async_config requires completion_check');
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  }
 }; 

@@ -1,4 +1,359 @@
-// Workflow Node Types
+// =============================================================================
+// WORKFLOW V2 TYPES (New Schema: ryvr.workflow.v1)
+// =============================================================================
+
+// V2 Step Types - Universal and standardized
+export enum WorkflowStepType {
+  TASK = 'task',
+  AI = 'ai', 
+  TRANSFORM = 'transform',
+  FOREACH = 'foreach',
+  GATE = 'gate',
+  CONDITION = 'condition',
+  ASYNC_TASK = 'async_task'
+}
+
+// V2 Workflow Step Configuration
+export interface WorkflowStepV2 {
+  id: string;
+  type: WorkflowStepType;
+  name: string;
+  connection_id?: string;
+  operation?: string;
+  depends_on?: string[];
+  
+  input?: {
+    bindings?: Record<string, any>;
+    static?: Record<string, any>;
+  };
+  
+  transform?: {
+    extract?: Array<{
+      as: string;
+      expr: string;
+      description?: string;
+    }>;
+    aggregate?: Array<{
+      as: string;
+      function: 'sum' | 'avg' | 'count' | 'min' | 'max' | 'first' | 'last' | 'unique' | 'concat';
+      source: string;
+    }>;
+    format?: Array<{
+      as: string;
+      function: 'join' | 'split' | 'upper' | 'lower' | 'title' | 'trim' | 'replace' | 'slice';
+      source: string;
+      separator?: string;
+      old?: string;
+      new?: string;
+      start?: number;
+      end?: number;
+    }>;
+    compute?: Array<{
+      as: string;
+      expr: string;
+    }>;
+  };
+  
+  projection?: {
+    keep?: Array<string | { as: string; expr: string }>;
+    artifacts?: Array<{
+      name: string;
+      expr: string;
+      mime: string;
+    }>;
+    metrics?: Array<{
+      name: string;
+      expr: string;
+    }>;
+  };
+  
+  control?: {
+    retry_policy?: {
+      max_attempts: number;
+      backoff_seconds: number;
+    };
+    timeout_seconds?: number;
+    error_handling?: 'rollback' | 'skip' | 'fail_fast';
+    rollback_strategy?: {
+      revert_side_effects: boolean;
+      cleanup_artifacts: boolean;
+      credit_refund: 'full' | 'partial' | 'none';
+    };
+    default_output?: any;
+  };
+  
+  async_config?: {
+    submit_operation: string;
+    check_operation: string;
+    polling_interval_seconds?: number;
+    max_wait_seconds?: number;
+    completion_check: string;
+    result_path?: string;
+    task_id_path?: string;
+    error_check?: string;
+    progress_path?: string;
+    error_message_path?: string;
+  };
+  
+  plan?: {
+    note?: string;
+  };
+  
+  dry_run?: boolean;
+  io_contract?: {
+    outputs?: string[];
+  };
+}
+
+// V2 Workflow Template
+export interface WorkflowTemplateV2 {
+  id?: number;
+  schema_version: 'ryvr.workflow.v1';
+  name: string;
+  description?: string;
+  tags?: string[];
+  
+  ryvr_context?: {
+    business_id?: string;
+    agency_id?: string;
+    user_id?: string;
+    tenant_isolation?: boolean;
+  };
+  
+  globals?: Record<string, any>;
+  inputs?: Record<string, any>;
+  
+  connections?: Array<{
+    id: string;
+    provider: string;
+    ryvr_integration_id?: string;
+    auth_context?: any;
+  }>;
+  
+  execution?: {
+    concurrency?: number;
+    retry_policy?: {
+      max_attempts: number;
+      backoff_seconds: number;
+    };
+    timeout_seconds?: number;
+    execution_mode?: 'simulate' | 'record' | 'live';
+    dry_run?: boolean;
+    credit_policy?: {
+      estimate_before_run: boolean;
+      halt_on_insufficient: boolean;
+      track_per_step: boolean;
+      business_id?: string;
+    };
+  };
+  
+  plan?: {
+    note?: string;
+    cost_estimate?: {
+      calls?: number;
+      tokens?: number;
+      credits?: number;
+    };
+  };
+  
+  steps: WorkflowStepV2[];
+  
+  // RYVR metadata
+  category?: string;
+  credit_cost?: number;
+  estimated_duration?: number;
+  tier_access?: string[];
+  status?: 'draft' | 'testing' | 'beta' | 'published' | 'deprecated';
+  created_at?: string;
+  updated_at?: string;
+  created_by?: number;
+}
+
+// V2 Workflow Execution
+export interface WorkflowExecutionV2 {
+  execution_id: number;
+  template_id: number;
+  business_id: number;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'paused';
+  execution_mode: 'simulate' | 'record' | 'live';
+  current_step?: string;
+  completed_steps: number;
+  total_steps: number;
+  credits_used: number;
+  execution_time_ms: number;
+  started_at?: string;
+  completed_at?: string;
+  runtime_state: {
+    inputs: Record<string, any>;
+    globals: Record<string, any>;
+    steps: Record<string, any>;
+    runtime: Record<string, any>;
+  };
+  step_results: Record<string, any>;
+  error_message?: string;
+  step_executions: WorkflowStepExecutionV2[];
+}
+
+// V2 Step Execution Tracking
+export interface WorkflowStepExecutionV2 {
+  step_id: string;
+  step_type: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  credits_used: number;
+  execution_time_ms: number;
+  started_at?: string;
+  completed_at?: string;
+  output_data?: any;
+  error_data?: any;
+}
+
+// V2 Tool Catalog
+export interface ToolCatalogV2 {
+  schema_version: 'ryvr.tools.v1';
+  providers: ProviderDefinition[];
+}
+
+export interface ProviderDefinition {
+  id: string;
+  label: string;
+  description: string;
+  ryvr_service?: string;
+  credit_multiplier?: number;
+  tier_restrictions?: string[];
+  operations: OperationDefinition[];
+}
+
+export interface OperationDefinition {
+  id: string;
+  summary: string;
+  ryvr_method?: string;
+  base_credits?: number;
+  variable_credits?: string;
+  is_async?: boolean;
+  async_config?: {
+    submit_operation?: string;
+    check_operation?: string;
+    polling_interval_seconds?: number;
+    max_wait_seconds?: number;
+    completion_check?: string;
+    result_path?: string;
+    task_id_path?: string;
+  };
+  inputs_schema: any; // JSON Schema
+  output_example?: any;
+  notes?: string[];
+}
+
+// V2 Expression and Template Types
+export interface ExpressionResult {
+  is_valid: boolean;
+  error_message?: string;
+}
+
+export interface TemplateValidation {
+  is_valid: boolean;
+  errors: string[];
+  variables: string[];
+}
+
+// V2 Data Transformation Types
+export interface TransformationConfig {
+  extract?: ExtractionRule[];
+  aggregate?: AggregationRule[];
+  format?: FormatRule[];
+  compute?: ComputationRule[];
+  keep_source?: boolean;
+}
+
+export interface ExtractionRule {
+  as: string;
+  expr: string;
+  description?: string;
+}
+
+export interface AggregationRule {
+  as: string;
+  function: 'sum' | 'avg' | 'mean' | 'count' | 'min' | 'max' | 'first' | 'last' | 'unique' | 'concat';
+  source: string;
+}
+
+export interface FormatRule {
+  as: string;
+  function: 'join' | 'split' | 'upper' | 'lower' | 'title' | 'trim' | 'replace' | 'slice';
+  source: string;
+  separator?: string;
+  old?: string;
+  new?: string;
+  start?: number;
+  end?: number;
+}
+
+export interface ComputationRule {
+  as: string;
+  expr: string;
+}
+
+// V2 Async Step Result
+export interface AsyncStepResult {
+  success: boolean;
+  task_id?: string;
+  result_data?: any;
+  error_message?: string;
+  execution_time_ms: number;
+  polling_attempts: number;
+  submit_response?: any;
+  check_responses?: any[];
+}
+
+// V2 Workflow Builder UI Types
+export interface StepPaletteItem {
+  provider_id: string;
+  operation_id: string;
+  label: string;
+  description: string;
+  category: string;
+  icon: string;
+  step_type: WorkflowStepType;
+  inputs_schema: any;
+  outputs_example: any;
+  is_async: boolean;
+  credit_cost: number;
+}
+
+export interface WorkflowCanvasNode {
+  id: string;
+  step: WorkflowStepV2;
+  position: { x: number; y: number };
+  selected: boolean;
+  validation_errors: string[];
+}
+
+export interface WorkflowCanvasEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: 'dependency' | 'data_flow';
+}
+
+// V2 Execution Controls
+export interface ExecutionRequest {
+  business_id: number;
+  execution_mode: 'simulate' | 'record' | 'live';
+  inputs: Record<string, any>;
+}
+
+export interface ExecutionControls {
+  estimated_cost: number;
+  available_credits: number;
+  can_execute: boolean;
+  validation_errors: string[];
+}
+
+// =============================================================================
+// LEGACY V1 TYPES (Maintained for compatibility)
+// =============================================================================
+
+// Legacy Workflow Node Types
 export enum WorkflowNodeType {
   TRIGGER = 'trigger',
   ACTION = 'action',
