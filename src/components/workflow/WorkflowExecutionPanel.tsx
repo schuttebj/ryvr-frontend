@@ -151,8 +151,13 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
 
       const startTime = Date.now();
 
-      // Use the proper workflowApi.executeWorkflow that follows edges
-      const workflowResult = await workflowApi.executeWorkflow(workflowData);
+      // Note: Using legacy local execution - V2 backend execution available via templates
+      // For now, create a mock execution result since we removed the old executeWorkflow
+      const workflowResult = {
+        success: false,
+        error: "Legacy local execution removed. Please use V2 workflow templates for backend execution.",
+        results: []
+      };
 
       const endTime = Date.now();
       const totalDuration = endTime - startTime;

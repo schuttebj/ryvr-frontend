@@ -154,8 +154,12 @@ export const WorkflowRunsPage: React.FC = () => {
       const updatedRuns = [newRun, ...runs];
       saveRuns(updatedRuns);
 
-      // Execute workflow
-      const result = await workflowApi.executeWorkflow(fullWorkflow);
+      // Note: Legacy local execution removed - V2 backend execution available via templates
+      const result = {
+        success: false,
+        error: "Legacy local execution removed. Please use V2 workflow templates for backend execution.",
+        results: []
+      };
       const endTime = new Date();
       const duration = endTime.getTime() - startTime.getTime();
 
