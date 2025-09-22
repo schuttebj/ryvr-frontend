@@ -48,6 +48,7 @@ import { useNavigate } from 'react-router-dom';
 import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import { Search as SearchIcon } from '@mui/icons-material';
 import NodeSettingsPanel from './NodeSettingsPanel';
+import VariableSelector from './VariableSelector';
 import ValidationResultsDialog from './ValidationResultsDialog';
 import WorkflowExecutionPanel from './WorkflowExecutionPanel';
 import BaseNode from './BaseNode';
@@ -547,6 +548,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [activating, setActivating] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [workflowActive, setWorkflowActive] = useState(false);
+  const [variableSelectorOpen, setVariableSelectorOpen] = useState(false);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -1305,6 +1307,18 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                   </Button>
                 </Tooltip>
                 
+                <Tooltip title="Open Data Browser">
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => setVariableSelectorOpen(true)}
+                    sx={{ minWidth: 'auto', px: 1 }}
+                    startIcon={<SearchIcon />}
+                  >
+                    Data
+                  </Button>
+                </Tooltip>
+                
                 <Tooltip title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>
                   <IconButton
                     onClick={() => setIsFullscreen(!isFullscreen)}
@@ -1352,6 +1366,35 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
           </ReactFlow>
         </Box>
       </Box>
+
+      {/* Variable Selector Panel - Above Settings */}
+      {variableSelectorOpen && (
+        <Paper sx={{
+          position: 'fixed',
+          right: settingsNode ? 420 : 20, // Position to the left of settings panel if open
+          top: 20,
+          height: 'calc(100vh - 40px)',
+          width: 350,
+          zIndex: 60000, // Higher than settings panel
+          borderRadius: 2,
+          border: `1px solid ${theme.palette.divider}`,
+          overflow: 'hidden',
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
+            : '0 4px 20px rgba(0, 0, 0, 0.1)',
+        }}>
+          <VariableSelector
+            open={variableSelectorOpen}
+            onClose={() => setVariableSelectorOpen(false)}
+            onInsert={(variable) => {
+              // Insert variable functionality can be enhanced
+              console.log('Variable selected:', variable);
+              setVariableSelectorOpen(false);
+            }}
+            position="panel"
+          />
+        </Paper>
+      )}
 
       {/* Right Settings Panel */}
       {settingsNode && (

@@ -18,6 +18,15 @@ import {
   Paper,
   Badge,
   Divider,
+  useTheme,
+  Stack,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  ListItemButton,
+  Breadcrumbs,
+  Link,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -36,109 +45,41 @@ interface VariableSelectorProps {
   onClose: () => void;
   onInsert: (variable: string) => void;
   availableData?: Record<string, any>;
+  position?: 'dialog' | 'panel';
+  sx?: any;
 }
 
 export default function VariableSelector({
   open,
   onClose,
   onInsert,
+  availableData,
+  position = 'dialog',
+  sx = {},
 }: VariableSelectorProps) {
+  const theme = useTheme();
   const [selectedFormat, setSelectedFormat] = useState<'single' | 'list' | 'json' | 'range'>('single');
   const [selectedPath, setSelectedPath] = useState('');
-  
+  const [navigationPath, setNavigationPath] = useState<string[]>([]);
+  const [currentData, setCurrentData] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [realNodeData, setRealNodeData] = useState<any[]>([]);
+  const [rangeStart, setRangeStart] = useState(0);
+  const [rangeEnd, setRangeEnd] = useState(0);
+
   // Enhanced setSelectedPath with logging
   const setSelectedPathWithLogging = (path: string) => {
     console.log('🎯 Setting selected path:', path);
     setSelectedPath(path);
   };
 
-  // Convert the last array index in a path to wildcard
-  const convertToWildcardPath = (path: string): string => {
-    // Find the last occurrence of [number] and replace with [*]
-    // Example: items[0].domain → items[*].domain
-    // Handle multiple arrays: results[0].items[1].domain → results[0].items[*].domain
-    const parts = path.split('.');
-    const lastPart = parts[parts.length - 1]; // The property name (e.g., "domain")
-    const pathWithoutLastPart = parts.slice(0, -1).join('.'); // Everything before the property
-    
-    // Replace the last [number] with [*] in the path before the property
-    const wildcardPathWithoutProperty = pathWithoutLastPart.replace(/\[(\d+)\]([^\[]*)$/, '[*]$2');
-    
-    return `${wildcardPathWithoutProperty}.${lastPart}`;
-  };
-  const [rangeStart, setRangeStart] = useState(0);
-  const [rangeEnd, setRangeEnd] = useState(4);
-  const [realNodeData, setRealNodeData] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Component to display individual node data
-  const NodeDataDisplay = ({ nodeId }: { nodeId: string }) => {
-    const [nodeData, setNodeData] = useState<any>(null);
-    
-    useEffect(() => {
-      const loadNodeData = async () => {
-        try {
-          const workflowApi = await import('../../services/workflowApi');
-          const fullResponse = workflowApi.getStoredNodeResponse(nodeId);
-          setNodeData(fullResponse);
-        } catch (error) {
-          console.warn(`Failed to load data for node ${nodeId}:`, error);
-          setNodeData(null);
-        }
-      };
-      loadNodeData();
-    }, [nodeId]);
-
-    if (!nodeData) {
-      return (
-        <Alert severity="warning" sx={{ m: 2 }}>
-          <Typography variant="body2">
-            No test data available for this node. Click "Test Node" in node settings to generate data.
-          </Typography>
-        </Alert>
-      );
-    }
-
-    // Show all data sections with proper path prefixes
-    return (
-      <Box>
-        {nodeData.data?.processed && (
-          <>
-            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-              📊 Processed Data:
-            </Typography>
-            {renderDataTree(nodeData.data.processed, `${nodeId}.data.processed`, nodeId, 0)}
-          </>
-        )}
-        
-        {nodeData.data?.raw && (
-          <>
-            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-              🔗 Raw API Data:
-            </Typography>
-            {renderDataTree(nodeData.data.raw, `${nodeId}.data.raw`, nodeId, 0)}
-          </>
-        )}
-        
-        {nodeData.data?.summary && (
-          <>
-            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
-              📋 Summary:
-            </Typography>
-            {renderDataTree(nodeData.data.summary, `${nodeId}.data.summary`, nodeId, 0)}
-          </>
-        )}
-      </Box>
-    );
-  };
-
-  // Load real executed node data when dialog opens
+  // Load real node data when component opens
   useEffect(() => {
     if (open) {
-      const loadData = async () => {
+      const loadRealNodeData = async () => {
         try {
-          const workflowApi = await import('../../services/workflowApi');
-          const availableNodes = workflowApi.getAvailableDataNodes();
+          const { getAvailableDataNodes } = await import('../../services/workflowApi');
+          const availableNodes = getAvailableDataNodes();
           setRealNodeData(availableNodes);
           console.log('🔄 VariableSelector loaded node data:', availableNodes);
         } catch (error) {
@@ -146,490 +87,334 @@ export default function VariableSelector({
           setRealNodeData([]);
         }
       };
-      loadData();
+      loadRealNodeData();
     }
   }, [open]);
 
-  // Use real data if available
-  const hasRealData = realNodeData.length > 0;
+  const hasRealData = realNodeData && realNodeData.length > 0;
 
-  // Generate variable based on selections
-  const generateVariable = () => {
-    if (!selectedPath) return '';
-    
-    let variable = '';
-    
-    switch (selectedFormat) {
-      case 'single':
-        variable = `{{${selectedPath}}}`;
-        break;
-      case 'list':
-          variable = `{{${selectedPath}|list}}`;
-        break;
-      case 'json':
-          variable = `{{${selectedPath}|json}}`;
-        break;
-      case 'range':
-        variable = `{{${selectedPath}|range:${rangeStart}-${rangeEnd}}}`;
-        break;
-      default:
-        variable = `{{${selectedPath}}}`;
-    }
-    
-    console.log('🎨 Generated variable:', variable, 'from path:', selectedPath, 'with format:', selectedFormat);
-    return variable;
+  // Navigate through object properties (Zapier-like)
+  const navigateToProperty = (property: string, value: any) => {
+    const newPath = [...navigationPath, property];
+    setNavigationPath(newPath);
+    setCurrentData(value);
   };
 
-  // Handle inserting the variable
-  const handleInsert = () => {
-    const variable = generateVariable();
-    if (variable) {
-      onInsert(variable);
-      onClose();
+  // Navigate back in breadcrumb
+  const navigateBack = (index: number) => {
+    const newPath = navigationPath.slice(0, index + 1);
+    setNavigationPath(newPath);
+    
+    // Navigate to the data at that path
+    let data = realNodeData;
+    for (const pathSegment of newPath) {
+      data = data?.[pathSegment];
     }
+    setCurrentData(data);
   };
 
-  // Filter data based on search term
-  const filterDataBySearch = (data: any, path: string = ''): boolean => {
-    if (!searchTerm) return true;
+  // Get filtered properties for current data
+  const getFilteredProperties = (data: any) => {
+    if (!data || typeof data !== 'object') return [];
     
-    const searchLower = searchTerm.toLowerCase();
+    const properties = Object.keys(data);
+    if (!searchTerm) return properties;
     
-    // Check if current path matches search
-    if (path.toLowerCase().includes(searchLower)) return true;
-    
-    // Check if any property values match search
-    if (typeof data === 'string' && data.toLowerCase().includes(searchLower)) return true;
-    if (typeof data === 'number' && data.toString().includes(searchTerm)) return true;
-    
-    // Recursively check nested objects/arrays
-    if (typeof data === 'object' && data !== null) {
-      if (Array.isArray(data)) {
-        return data.some((item, index) => filterDataBySearch(item, `${path}[${index}]`));
-      } else {
-        return Object.entries(data).some(([key, value]) => {
-          const newPath = path ? `${path}.${key}` : key;
-          return filterDataBySearch(value, newPath);
-        });
-      }
-    }
-    
-    return false;
+    return properties.filter(prop => 
+      prop.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   };
 
-  // Render actual data tree with property names and values (simplified display names)
-  const renderDataTree = (data: any, currentPath: string = '', nodeId: string = '', level: number = 0, visited: Set<any> = new Set()): React.ReactNode => {
-    // Prevent infinite recursion with circular references instead of depth limits
-    if (visited.has(data)) {
-      return (
-        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic', ml: level * 1 }}>
-          [Circular Reference] - {currentPath}
-        </Typography>
-      );
-    }
-    
-    if (typeof data === 'object' && data !== null) {
-      visited.add(data);
-    }
-    
-    if (Array.isArray(data)) {
-      return (
-        <Box sx={{ ml: level * 2 }}>
-          {/* Array selector for all items */}
-          <Box sx={{ mb: 1 }}>
-            <Chip
-              size="small"
-              label={`SELECT ALL [*] (${data.length} items)`}
-              variant="filled"
-              color="warning"
-              sx={{ 
-                fontSize: '0.8rem', 
-                cursor: 'pointer', 
-                mr: 1,
-                fontWeight: 'bold',
-                backgroundColor: 'orange',
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'darkorange'
-                }
-              }}
-              onClick={() => {
-                console.log('🌟 Wildcard clicked! Setting path:', `${currentPath}[*]`);
-                setSelectedPathWithLogging(`${currentPath}[*]`);
-              }}
-              icon={<ListIcon fontSize="small" />}
-            />
-            <Typography variant="caption" color="text.secondary">
-              Array with {data.length} items
-            </Typography>
-          </Box>
-          
-          {/* Show first few array items */}
-          {data.slice(0, 3).map((item, index) => (
-            <Accordion key={index} sx={{ mb: 1, ml: 1 }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Chip
-              size="small"
-                    label={`${currentPath.replace(nodeId + '.', '')}[${index}]`}
-                    variant="outlined"
-                    color="primary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log('📍 Individual item clicked! Setting path:', `${currentPath}[${index}]`);
-                      setSelectedPathWithLogging(`${currentPath}[${index}]`);
-                    }}
-                    sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
-                  />
-                  <Typography variant="caption" color="text.secondary">
-                    {typeof item === 'object' && item !== null
-                      ? `${Array.isArray(item) ? 'Array' : 'Object'} with ${Object.keys(item).length} properties`
-                      : String(item).substring(0, 50) + (String(item).length > 50 ? '...' : '')
-                    }
-                  </Typography>
-          </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                {renderDataTree(item, `${currentPath}[${index}]`, nodeId, level + 1, new Set(visited))}
-              </AccordionDetails>
-            </Accordion>
-          ))}
-          
-          {data.length > 3 && (
-            <Box sx={{ ml: 2, mt: 1 }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                ... and {data.length - 3} more items
-              </Typography>
-              <Box sx={{ mt: 0.5 }}>
-                <Chip
-                  label="Select All [*]"
-                  size="small"
-                  variant="outlined"
-                  onClick={() => {
-                    const wildcardPath = `${currentPath}[*]`;
-                    const simplifiedPath = wildcardPath.replace(/^[^.]+\.data\./, '');
-                    setSelectedPathWithLogging(simplifiedPath);
-                  }}
-                  sx={{ 
-                    fontSize: '0.7rem', 
-                    cursor: 'pointer',
-                    color: 'primary.main',
-                    borderColor: 'primary.main',
-                    '&:hover': {
-                      backgroundColor: 'primary.light',
-                      color: 'white'
-                    }
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
-        </Box>
-      );
-    } else if (typeof data === 'object' && data !== null) {
-      return (
-        <Box sx={{ ml: level * 1 }}>
-          {Object.entries(data)
-            .sort(([a], [b]) => {
-              // Sort to put important keys first
-              const importantKeys = ['id', 'name', 'title', 'url', 'keyword', 'content', 'type', 'status'];
-              const aImportant = importantKeys.indexOf(a);
-              const bImportant = importantKeys.indexOf(b);
-              if (aImportant !== -1 && bImportant !== -1) return aImportant - bImportant;
-              if (aImportant !== -1) return -1;
-              if (bImportant !== -1) return 1;
-              return a.localeCompare(b);
-            })
-            .filter(([key, value]) => {
-              const newPath = currentPath ? `${currentPath}.${key}` : key;
-              return filterDataBySearch(value, newPath);
-            })
-            .map(([key, value]) => {
-              const newPath = currentPath ? `${currentPath}.${key}` : key;
-              const displayPath = newPath.replace(nodeId + '.', ''); // Remove nodeId from display
-              const isObject = typeof value === 'object' && value !== null;
-              const isArray = Array.isArray(value);
-            
-            return (
-              <Box key={key} sx={{ mb: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Chip
-                      size="small"
-                      label={`${key}`}
-                      variant="outlined"
-                      color={isArray ? 'secondary' : isObject ? 'info' : 'primary'}
-                      sx={{ fontSize: '0.7rem', cursor: 'pointer', minWidth: 'auto' }}
-                      onClick={() => setSelectedPathWithLogging(newPath)}
-                      icon={isArray ? <ListIcon fontSize="small" /> : isObject ? <JsonIcon fontSize="small" /> : <CodeIcon fontSize="small" />}
-                    />
-                    
-                    {/* Add "Get All" button for properties that can be wildcarded */}
-                    {!isArray && !isObject && /\[\d+\]/.test(newPath) && (
-                      <Chip
-                        size="small"
-                        label="Get All"
-                        variant="filled"
-                        color="warning"
-                        sx={{ 
-                          fontSize: '0.65rem', 
-                          cursor: 'pointer',
-                          height: '20px',
-                          backgroundColor: 'orange',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: 'darkorange'
-                          }
-                        }}
-                        onClick={() => {
-                          // Convert the last array index to wildcard
-                          const wildcardPath = convertToWildcardPath(newPath);
-                          console.log('🌟 Get All clicked! Converting:', newPath, '→', wildcardPath);
-                          setSelectedPathWithLogging(wildcardPath);
-                        }}
-                      />
-                    )}
-                    
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', color: 'text.primary', fontSize: '0.8rem' }}>
-                      {displayPath}
-                    </Typography>
-                    
-                    {!isObject && (
-                      <Typography variant="caption" color="text.secondary" sx={{ 
-                        fontFamily: 'monospace',
-                        maxWidth: 250,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        fontSize: '0.7rem'
-                      }}>
-                        = {String(value)}
-                      </Typography>
-                    )}
-                    
-                    {isObject && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                        {isArray ? `[${(value as any[]).length} items]` : `{${Object.keys(value).length} props}`}
-                      </Typography>
-                  )}
-                </Box>
-                  
-                  {isObject && (
-                    <Box sx={{ ml: 2, pl: 1, borderLeft: '1px solid', borderColor: 'divider', mt: 1 }}>
-                      {renderDataTree(value, newPath, nodeId, level + 1, new Set(visited))}
-                  </Box>
-                )}
-              </Box>
-            );
-          })}
-        </Box>
-      );
-    } else {
-      return (
-        <Box sx={{ ml: level * 2 }}>
-          <Chip
-            size="small"
-            label={currentPath}
-            variant="outlined"
-            color="primary"
-            sx={{ fontSize: '0.7rem', cursor: 'pointer' }}
-            onClick={() => setSelectedPathWithLogging(currentPath)}
-          />
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 1, fontFamily: 'monospace' }}>
-            = {String(data)}
+  // Get property type for display
+  const getPropertyType = (value: any): string => {
+    if (Array.isArray(value)) return 'array';
+    if (value === null) return 'null';
+    return typeof value;
+  };
+
+  // Get property preview
+  const getPropertyPreview = (value: any): string => {
+    if (value === null) return 'null';
+    if (Array.isArray(value)) return `[${value.length} items]`;
+    if (typeof value === 'object') return `{${Object.keys(value).length} props}`;
+    if (typeof value === 'string') return value.length > 50 ? `"${value.substring(0, 50)}..."` : `"${value}"`;
+    return String(value);
+  };
+
+  // Create variable path from navigation
+  const createVariablePath = (property?: string) => {
+    const fullPath = property ? [...navigationPath, property] : navigationPath;
+    return fullPath.join('.');
+  };
+
+  // Enhanced content component
+  const VariableSelectorContent = () => (
+    <Box sx={{ 
+      height: position === 'panel' ? '100%' : 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: theme.palette.background.paper,
+      ...sx
+    }}>
+      {/* Header */}
+      <Box sx={{ 
+        p: 2, 
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <DataIcon color="primary" />
+            {position === 'panel' ? 'Data Browser' : 'Variable Selector'}
           </Typography>
-        </Box>
-      );
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="h6">Variable Selector</Typography>
-          <IconButton onClick={onClose} size="small">
+          <IconButton 
+            onClick={onClose}
+            size="small"
+            sx={{ color: 'grey.500' }}
+          >
             <CloseIcon />
           </IconButton>
         </Box>
-      </DialogTitle>
-      
-      <DialogContent dividers>
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            <strong>Select data from tested nodes:</strong> Click any property name to select it for your variable. 
-            Test nodes to automatically make their data available here.
-          </Typography>
-        </Alert>
 
-        {/* Search Box */}
-        {hasRealData && (
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" sx={{ mb: 2 }}>
-              Search Properties
-            </Typography>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Type to search property names or values..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ mb: 2 }}
-              InputProps={{
-                startAdornment: (
-                  <Box sx={{ mr: 1, color: 'text.secondary' }}>🔍</Box>
-                ),
+        {/* Search */}
+        <TextField
+          placeholder="Search properties..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          size="small"
+          fullWidth
+          sx={{ mb: 2 }}
+        />
+
+        {/* Breadcrumb Navigation */}
+        {navigationPath.length > 0 && (
+          <Breadcrumbs sx={{ mb: 2 }}>
+            <Link 
+              component="button" 
+              onClick={() => {
+                setNavigationPath([]);
+                setCurrentData(realNodeData);
               }}
-            />
-          </Box>
+              sx={{ 
+                color: theme.palette.primary.main,
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' }
+              }}
+            >
+              Root
+            </Link>
+            {navigationPath.map((segment, index) => (
+              <Link
+                key={index}
+                component="button"
+                onClick={() => navigateBack(index)}
+                sx={{ 
+                  color: index === navigationPath.length - 1 
+                    ? theme.palette.text.primary 
+                    : theme.palette.primary.main,
+                  textDecoration: 'none',
+                  '&:hover': { textDecoration: 'underline' }
+                }}
+              >
+                {segment}
+              </Link>
+            ))}
+          </Breadcrumbs>
         )}
+      </Box>
 
-        {/* Format Selection */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 2 }}>
-            Variable Format
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Chip
-              icon={<CodeIcon />}
-              label="Single Value"
-              onClick={() => setSelectedFormat('single')}
-              color={selectedFormat === 'single' ? 'primary' : 'default'}
-              variant={selectedFormat === 'single' ? 'filled' : 'outlined'}
-            />
-            <Chip
-              icon={<ListIcon />}
-              label="Comma-separated List"
-              onClick={() => setSelectedFormat('list')}
-              color={selectedFormat === 'list' ? 'primary' : 'default'}
-              variant={selectedFormat === 'list' ? 'filled' : 'outlined'}
-            />
-            <Chip
-              icon={<JsonIcon />}
-              label="JSON Format"
-              onClick={() => setSelectedFormat('json')}
-              color={selectedFormat === 'json' ? 'primary' : 'default'}
-              variant={selectedFormat === 'json' ? 'filled' : 'outlined'}
-            />
-            <Chip
-              icon={<FilterIcon />}
-              label="Array Range"
-              onClick={() => setSelectedFormat('range')}
-              color={selectedFormat === 'range' ? 'primary' : 'default'}
-              variant={selectedFormat === 'range' ? 'filled' : 'outlined'}
-            />
-          </Box>
-        </Box>
-
-        {/* Range Controls */}
-        {selectedFormat === 'range' && (
-          <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center' }}>
-            <TextField
-              type="number"
-              label="Start Index"
-              value={rangeStart}
-              onChange={(e) => setRangeStart(parseInt(e.target.value) || 0)}
-              size="small"
-              inputProps={{ min: 0 }}
-            />
-            <Typography variant="body2">to</Typography>
-            <TextField
-              type="number"
-              label="End Index"
-              value={rangeEnd}
-              onChange={(e) => setRangeEnd(parseInt(e.target.value) || 0)}
-              size="small"
-              inputProps={{ min: 0 }}
-            />
-          </Box>
-        )}
-
-        {/* Available Data from Tested Nodes */}
+      {/* Content */}
+      <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
         {hasRealData ? (
           <Box>
-            <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <DataIcon color="primary" />
-              Available Node Data ({realNodeData.length} nodes tested)
-            </Typography>
-            
-            {realNodeData.map((node) => (
-              <Accordion key={node.nodeId} sx={{ mb: 2 }} defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                    <CheckCircle color="success" fontSize="small" />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                      {node.nodeId}
-                    </Typography>
-                    <Badge badgeContent="TESTED" color="success" sx={{ ml: 'auto' }} />
-                    <Typography variant="caption" color="text.secondary">
-                      {node.nodeType} • {new Date(node.executedAt).toLocaleString()}
-                    </Typography>
-                  </Box>
-          </AccordionSummary>
-          <AccordionDetails>
-                  <Paper sx={{ p: 2, maxHeight: 500, overflow: 'auto', bgcolor: 'grey.50' }}>
-                    {/* Show the actual processed data directly */}
-                    <NodeDataDisplay nodeId={node.nodeId} />
-            </Paper>
-          </AccordionDetails>
-        </Accordion>
-            ))}
+            {navigationPath.length === 0 ? (
+              // Root level - show nodes
+              <List dense>
+                {realNodeData.map((node) => (
+                  <ListItemButton
+                    key={node.nodeId}
+                    onClick={() => navigateToProperty(node.nodeId, node)}
+                    sx={{ 
+                      borderRadius: 1,
+                      mb: 1,
+                      backgroundColor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255,255,255,0.05)' 
+                        : 'rgba(0,0,0,0.02)',
+                      '&:hover': {
+                        backgroundColor: theme.palette.mode === 'dark' 
+                          ? 'rgba(255,255,255,0.1)' 
+                          : 'rgba(0,0,0,0.04)',
+                      }
+                    }}
+                  >
+                    <ListItemIcon>
+                      <CheckCircle color="success" fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={node.nodeId}
+                      secondary="Click to explore data"
+                    />
+                  </ListItemButton>
+                ))}
+              </List>
+            ) : (
+              // Property level - show object properties
+              <List dense>
+                {getFilteredProperties(currentData).map((property) => {
+                  const value = currentData[property];
+                  const type = getPropertyType(value);
+                  const preview = getPropertyPreview(value);
+                  const isExpandable = (typeof value === 'object' && value !== null);
+                  
+                  return (
+                    <ListItemButton
+                      key={property}
+                      onClick={() => {
+                        if (isExpandable) {
+                          navigateToProperty(property, value);
+                        } else {
+                          // Select this property
+                          const fullPath = createVariablePath(property);
+                          setSelectedPathWithLogging(fullPath);
+                        }
+                      }}
+                      sx={{ 
+                        borderRadius: 1,
+                        mb: 0.5,
+                        backgroundColor: selectedPath === createVariablePath(property)
+                          ? theme.palette.primary.main + '20'
+                          : 'transparent',
+                        '&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' 
+                            ? 'rgba(255,255,255,0.1)' 
+                            : 'rgba(0,0,0,0.04)',
+                        }
+                      }}
+                    >
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                              {property}
+                            </Typography>
+                            <Chip 
+                              label={type} 
+                              size="small" 
+                              variant="outlined"
+                              sx={{ 
+                                height: 20, 
+                                fontSize: '0.7rem',
+                                color: theme.palette.text.secondary 
+                              }} 
+                            />
+                          </Box>
+                        }
+                        secondary={
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: theme.palette.text.secondary,
+                              fontFamily: 'monospace' 
+                            }}
+                          >
+                            {preview}
+                          </Typography>
+                        }
+                      />
+                      {isExpandable && (
+                        <ListItemIcon sx={{ minWidth: 'auto' }}>
+                          <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />
+                        </ListItemIcon>
+                      )}
+                    </ListItemButton>
+                  );
+                })}
+              </List>
+            )}
           </Box>
         ) : (
-          <Alert severity="info">
+          <Alert severity="info" sx={{ m: 2 }}>
             <Typography variant="body2">
-              <strong>No tested nodes found.</strong><br/>
-              Test nodes in your workflow by clicking the "Test Node" button in node settings. 
-              Test results will automatically appear here for use in other nodes.
+              No workflow data available. Run some workflow steps to see data here.
             </Typography>
           </Alert>
         )}
 
-        {/* Generated Variable Preview */}
+        {/* Selected Variable Preview */}
         {selectedPath && (
-          <Box sx={{ mt: 3 }}>
-            <Divider sx={{ mb: 2 }} />
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Generated Variable
+          <Paper sx={{ 
+            p: 2, 
+            mt: 2,
+            backgroundColor: theme.palette.mode === 'dark' 
+              ? 'rgba(95, 95, 255, 0.1)' 
+              : 'rgba(95, 95, 255, 0.05)',
+            border: `1px solid ${theme.palette.primary.main}30`
+          }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: theme.palette.primary.main }}>
+              Selected Variable
             </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'primary.50', mb: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                  {generateVariable()}
-                </Typography>
-                <Tooltip title="Copy variable">
-                  <IconButton
-                    size="small"
-                    onClick={() => navigator.clipboard.writeText(generateVariable())}
-                  >
-                    <CopyIcon />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Paper>
-            
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Variable Preview
-            </Typography>
-            <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
-              <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                This variable will be replaced with actual data from <strong>{selectedPath}</strong> when the workflow runs.
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" sx={{ 
+                fontFamily: 'monospace', 
+                fontWeight: 'bold',
+                color: theme.palette.text.primary 
+              }}>
+                {`{{${selectedPath}}}`}
               </Typography>
-            </Paper>
-          </Box>
+              <Tooltip title="Copy variable">
+                <IconButton
+                  size="small"
+                  onClick={() => navigator.clipboard.writeText(`{{${selectedPath}}}`)}
+                >
+                  <CopyIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          </Paper>
         )}
-      </DialogContent>
-      
-      <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button 
-          onClick={handleInsert} 
-          variant="contained" 
-          disabled={!selectedPath}
-          startIcon={<CodeIcon />}
-        >
-          Insert Variable
-        </Button>
-      </DialogActions>
+      </Box>
+
+      {/* Actions */}
+      {position === 'dialog' && (
+        <Box sx={{ 
+          p: 2, 
+          borderTop: `1px solid ${theme.palette.divider}`,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          gap: 1
+        }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button 
+            onClick={() => {
+              if (selectedPath) {
+                onInsert(`{{${selectedPath}}}`);
+                onClose();
+              }
+            }} 
+            variant="contained" 
+            disabled={!selectedPath}
+            startIcon={<CodeIcon />}
+          >
+            Insert Variable
+          </Button>
+        </Box>
+      )}
+    </Box>
+  );
+
+  if (position === 'panel') {
+    return open ? <VariableSelectorContent /> : null;
+  }
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      sx={{ zIndex: 999999 }}
+    >
+      <VariableSelectorContent />
     </Dialog>
   );
-} 
+}
