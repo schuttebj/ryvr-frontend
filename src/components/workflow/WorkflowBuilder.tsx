@@ -1200,13 +1200,90 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             fitView
             style={{ background: theme.palette.background.default }}
           >
+            {/* Custom CSS for ReactFlow Controls and Dropdown visibility */}
+            <style>
+              {`
+                /* Global override for Material-UI dropdown z-index */
+                .MuiPopover-root, .MuiMenu-root, .MuiSelect-root .MuiPopover-paper {
+                  z-index: 999999 !important;
+                }
+                .MuiBackdrop-root {
+                  z-index: 999998 !important;
+                }
+                
+                ${theme.palette.mode === 'dark' ? `
+                  .react-flow__controls button {
+                    background-color: #4a5568 !important;
+                    border: 1px solid #718096 !important;
+                    color: #e2e8f0 !important;
+                  }
+                  .react-flow__controls button:hover {
+                    background-color: #5a6578 !important;
+                    border-color: #81909f !important;
+                  }
+                  .react-flow__controls button svg {
+                    fill: #e2e8f0 !important;
+                  }
+                  .react-flow__minimap {
+                    background-color: #2d3748 !important;
+                  }
+                  .react-flow__minimap-mask {
+                    fill: rgba(255, 255, 255, 0.1) !important;
+                  }
+                  .react-flow__minimap-node {
+                    fill: #4a5568 !important;
+                  }
+                ` : `
+                  .react-flow__controls button {
+                    background-color: #ffffff !important;
+                    border: 1px solid #e2e8f0 !important;
+                    color: #4a5568 !important;
+                  }
+                  .react-flow__controls button:hover {
+                    background-color: #f7fafc !important;
+                    border-color: #cbd5e0 !important;
+                  }
+                  .react-flow__controls button svg {
+                    fill: #4a5568 !important;
+                  }
+                `}
+              `}
+            </style>
             <Background 
               color={theme.palette.mode === 'dark' ? '#374151' : '#e5e7eb'}
               gap={20}
               size={1}
             />
-            <Controls />
-            <MiniMap />
+            <Controls 
+              style={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#2d3748' : '#ffffff',
+                borderRadius: '8px',
+                boxShadow: theme.palette.mode === 'dark' 
+                  ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+              showZoom={true}
+              showFitView={true}
+              showInteractive={true}
+            />
+            <MiniMap 
+              style={{
+                backgroundColor: theme.palette.mode === 'dark' ? '#2d3748' : '#ffffff',
+                borderRadius: '8px',
+                boxShadow: theme.palette.mode === 'dark' 
+                  ? '0 4px 12px rgba(0, 0, 0, 0.4)' 
+                  : '0 2px 8px rgba(0, 0, 0, 0.1)',
+                border: `1px solid ${theme.palette.divider}`,
+              }}
+              nodeColor={(node) => {
+                if (node.type) {
+                  return theme.palette.mode === 'dark' ? '#5f5eff' : '#5f5eff';
+                }
+                return theme.palette.mode === 'dark' ? '#4a5568' : '#cbd5e0';
+              }}
+              maskColor={theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}
+            />
             
             {/* Top Controls Panel */}
             <Panel position="top-right">
@@ -1284,10 +1361,20 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
           top: 0,
           height: '100vh',
           width: 400,
-          zIndex: 10000, // Higher than fullscreen builder
+          zIndex: 50000, // Much higher z-index to ensure dropdown visibility
           borderRadius: 0,
           borderLeft: `1px solid ${theme.palette.divider}`,
-          overflow: 'auto'
+          overflow: 'auto',
+          // Ensure dropdown menus can appear above this panel
+          '& .MuiSelect-root': {
+            zIndex: 999999
+          },
+          '& .MuiPopover-root': {
+            zIndex: 999999
+          },
+          '& .MuiMenu-root': {
+            zIndex: 999999
+          }
         }}>
           <NodeSettingsPanel
             node={settingsNode}

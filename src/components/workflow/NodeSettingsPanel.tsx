@@ -92,22 +92,30 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     PaperProps: {
       style: { 
         maxHeight: 300, 
-        zIndex: 99999, // Extremely high z-index to ensure visibility above all other elements
-        position: 'fixed' as const // Changed to fixed to avoid parent container issues
+        zIndex: 999999, // Extremely high z-index 
+        position: 'absolute' as const // Use absolute positioning
       },
       sx: {
-        zIndex: 99999, // Material-UI also respects sx zIndex - much higher value
+        zIndex: 999999, // Consistent z-index value
+        backgroundColor: theme.palette.background.paper, // Theme-aware background
         '& .MuiMenuItem-root': {
-          zIndex: 99999,
-          backgroundColor: 'background.paper', // Ensure proper background
+          backgroundColor: 'transparent',
+          color: theme.palette.text.primary,
           '&:hover': {
-            backgroundColor: 'action.hover'
+            backgroundColor: theme.palette.action.hover
+          },
+          '&.Mui-selected': {
+            backgroundColor: theme.palette.action.selected,
+            '&:hover': {
+              backgroundColor: theme.palette.action.selected
+            }
           }
         }
       }
     },
-    // Use portal to render dropdown outside the panel's DOM tree
-    disablePortal: false,
+    // Render dropdown using portal to escape z-index context
+    disablePortal: true,
+    // Position dropdown relative to trigger
     anchorOrigin: {
       vertical: 'bottom' as const,
       horizontal: 'left' as const,
@@ -116,23 +124,29 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
       vertical: 'top' as const,
       horizontal: 'left' as const,
     },
-    // Additional props to ensure proper z-index handling
+    // Menu list styling
     MenuListProps: {
       sx: {
-        zIndex: 99999,
-        position: 'relative',
+        zIndex: 999999,
+        maxHeight: '300px',
         '& .MuiMenuItem-root': {
-          zIndex: 99999,
-          minHeight: 48, // Ensure proper click target size
-          padding: '8px 16px'
+          minHeight: 48,
+          padding: '12px 16px',
+          fontSize: '0.875rem'
         }
       }
     },
-    // Force high z-index for the container
+    // Additional container styling
     slotProps: {
       paper: {
         sx: {
-          zIndex: 10100
+          zIndex: 999999,
+          boxShadow: theme.palette.mode === 'dark' 
+            ? '0 8px 24px rgba(0, 0, 0, 0.4)' 
+            : '0 4px 16px rgba(0, 0, 0, 0.1)',
+          border: `1px solid ${theme.palette.divider}`,
+          borderRadius: '8px',
+          mt: 1
         }
       }
     }
