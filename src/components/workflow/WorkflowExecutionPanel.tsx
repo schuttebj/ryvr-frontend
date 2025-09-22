@@ -32,6 +32,7 @@ import {
   TableRow,
   Avatar,
   Tooltip,
+  useTheme,
 } from '@mui/material';
 import {
   PlayArrow as PlayIcon,
@@ -73,6 +74,7 @@ interface WorkflowExecutionPanelProps {
 }
 
 export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: WorkflowExecutionPanelProps) {
+  const theme = useTheme();
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionSteps, setExecutionSteps] = useState<WorkflowExecutionStep[]>([]);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
@@ -412,8 +414,12 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
                   <React.Fragment key={step.nodeId}>
                     <ListItem 
                       sx={{ 
-                        backgroundColor: currentStepIndex === index ? '#f0f8ff' : 'transparent',
-                        borderLeft: `4px solid ${currentStepIndex === index ? '#1976d2' : getNodeColor(step.nodeType)}`,
+                        backgroundColor: currentStepIndex === index 
+                          ? theme.palette.mode === 'dark' 
+                            ? 'rgba(95, 95, 255, 0.1)' // RYVR primary with low opacity 
+                            : 'rgba(95, 95, 255, 0.05)' 
+                          : 'transparent',
+                        borderLeft: `4px solid ${currentStepIndex === index ? '#5f5eff' : getNodeColor(step.nodeType)}`, // Use RYVR primary brand color
                         borderRadius: 1,
                         mb: 1
                       }}
@@ -477,7 +483,15 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
                               <Typography variant="subtitle2" sx={{ mb: 1 }}>
                                 🔍 Execution Result
                               </Typography>
-                              <Paper sx={{ p: 2, backgroundColor: '#f8f9fa', overflow: 'auto', maxHeight: 300 }}>
+                              <Paper sx={{ 
+                                p: 2, 
+                                backgroundColor: theme.palette.mode === 'dark' 
+                                  ? 'rgba(255, 255, 255, 0.05)' 
+                                  : 'rgba(0, 0, 0, 0.03)', 
+                                overflow: 'auto', 
+                                maxHeight: 300,
+                                border: `1px solid ${theme.palette.divider}`
+                              }}>
                                 <pre style={{ fontSize: '0.75rem', margin: 0, whiteSpace: 'pre-wrap' }}>
                                   {JSON.stringify(step.result, null, 2)}
                                 </pre>
@@ -526,7 +540,15 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
                             <Typography variant="body2">View Result Data</Typography>
                           </AccordionSummary>
                           <AccordionDetails>
-                            <Paper sx={{ p: 1, backgroundColor: '#f8f9fa', overflow: 'auto', maxHeight: 200 }}>
+                            <Paper sx={{ 
+                              p: 1, 
+                              backgroundColor: theme.palette.mode === 'dark' 
+                                ? 'rgba(255, 255, 255, 0.05)' 
+                                : 'rgba(0, 0, 0, 0.03)', 
+                              overflow: 'auto', 
+                              maxHeight: 200,
+                              border: `1px solid ${theme.palette.divider}`
+                            }}>
                               <pre style={{ fontSize: '0.7rem', margin: 0, whiteSpace: 'pre-wrap' }}>
                                 {JSON.stringify(result.result, null, 2)}
                               </pre>
@@ -669,7 +691,14 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
           {/* Logs Tab */}
           {activeTab === 3 && (
             <Box sx={{ height: '100%', overflow: 'auto', p: 2 }}>
-              <Paper sx={{ p: 2, height: '100%', backgroundColor: '#f8f9fa' }}>
+              <Paper sx={{ 
+                p: 2, 
+                height: '100%', 
+                backgroundColor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.05)' 
+                  : 'rgba(0, 0, 0, 0.03)',
+                border: `1px solid ${theme.palette.divider}`
+              }}>
                 <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <DataIcon />
                   Execution Logs

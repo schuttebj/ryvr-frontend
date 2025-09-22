@@ -20,6 +20,7 @@ import {
   AccordionDetails,
   Link,
   Tooltip,
+  useTheme,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -68,6 +69,7 @@ interface NodeSettingsPanelProps {
 }
 
 export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: NodeSettingsPanelProps) {
+  const theme = useTheme();
   const [formData, setFormData] = useState<WorkflowNodeData>(
     node?.data || {
       id: '',
@@ -90,13 +92,17 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     PaperProps: {
       style: { 
         maxHeight: 300, 
-        zIndex: 10100, // Much higher than NodeSettingsPanel (10000)
-        position: 'absolute' as const
+        zIndex: 99999, // Extremely high z-index to ensure visibility above all other elements
+        position: 'fixed' as const // Changed to fixed to avoid parent container issues
       },
       sx: {
-        zIndex: 10100, // Material-UI also respects sx zIndex
+        zIndex: 99999, // Material-UI also respects sx zIndex - much higher value
         '& .MuiMenuItem-root': {
-          zIndex: 10100
+          zIndex: 99999,
+          backgroundColor: 'background.paper', // Ensure proper background
+          '&:hover': {
+            backgroundColor: 'action.hover'
+          }
         }
       }
     },
@@ -113,10 +119,12 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     // Additional props to ensure proper z-index handling
     MenuListProps: {
       sx: {
-        zIndex: 10100,
+        zIndex: 99999,
         position: 'relative',
         '& .MuiMenuItem-root': {
-          zIndex: 10100
+          zIndex: 99999,
+          minHeight: 48, // Ensure proper click target size
+          padding: '8px 16px'
         }
       }
     },
@@ -1173,7 +1181,15 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             </FormControl>
 
             {formData.config?.clientId && (
-              <Box sx={{ p: 2, backgroundColor: '#f5f5f5', borderRadius: 1, mb: 2 }}>
+              <Box sx={{ 
+                p: 2, 
+                backgroundColor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.05)' 
+                  : 'rgba(0, 0, 0, 0.03)', 
+                borderRadius: 1, 
+                mb: 2,
+                border: `1px solid ${theme.palette.divider}`
+              }}>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 'bold' }}>
                   📊 Available Data:
                 </Typography>
@@ -1283,7 +1299,16 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               {testResult.message}
             </Alert>
             {testResult.success && testResult.data && (
-              <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1, maxHeight: 200, overflow: 'auto' }}>
+              <Box sx={{ 
+                bgcolor: theme.palette.mode === 'dark' 
+                  ? 'rgba(255, 255, 255, 0.05)' 
+                  : 'rgba(0, 0, 0, 0.03)', 
+                p: 2, 
+                borderRadius: 1, 
+                maxHeight: 200, 
+                overflow: 'auto',
+                border: `1px solid ${theme.palette.divider}`
+              }}>
                 <Typography variant="caption" color="text.secondary">
                   Response Data:
                 </Typography>

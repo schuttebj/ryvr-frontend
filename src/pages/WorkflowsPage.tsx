@@ -15,6 +15,13 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  Stack,
+  Paper,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -24,6 +31,8 @@ import {
   Delete as DeleteIcon,
   AccountTree as WorkflowIcon,
   CheckCircle as CheckCircleIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
 import { workflowApi } from '../services/workflowApi';
@@ -45,10 +54,16 @@ interface WorkflowSummary {
 export default function WorkflowsPage() {
   const { user } = useAuth();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
+  const [filteredWorkflows, setFilteredWorkflows] = useState<WorkflowSummary[]>([]);
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
+  
+  // Filter and search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuWorkflowId, setMenuWorkflowId] = useState<string | null>(null);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
   // Remove unused dialog state since we go directly to builder
   // const [newWorkflowDialog, setNewWorkflowDialog] = useState(false);
   // const [newWorkflowName, setNewWorkflowName] = useState('');
@@ -89,7 +104,39 @@ export default function WorkflowsPage() {
       loadWorkflows();
       setEditingWorkflowId(null); // Reset editing mode when returning to list
     }
-  }, [showBuilder]); // Re-load when showBuilder changes
+  }, [showBuilder]);
+
+  // Filter workflows based on search and filter criteria
+  useEffect(() => {
+    let filtered = workflows;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(workflow =>
+        workflow.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        workflow.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        workflow.tags?.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply category filter
+    if (categoryFilter) {
+      filtered = filtered.filter(workflow =>
+        workflow.tags?.includes(categoryFilter.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter) {
+      if (statusFilter === 'active') {
+        filtered = filtered.filter(workflow => workflow.isActive);
+      } else if (statusFilter === 'draft') {
+        filtered = filtered.filter(workflow => !workflow.isActive);
+      }
+    }
+
+    setFilteredWorkflows(filtered);
+  }, [workflows, searchTerm, categoryFilter, statusFilter]); // Re-load when showBuilder changes
 
   const handleWorkflowSave = useCallback(async (workflow: any) => {
     try {
@@ -185,12 +232,37 @@ export default function WorkflowsPage() {
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>, workflowId: string) => {
     setAnchorEl(event.currentTarget);
-    setMenuWorkflowId(workflowId);
+    setSelectedWorkflowId(workflowId);
   };
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setMenuWorkflowId(null);
+    setSelectedWorkflowId(null);
+  };
+
+  // Filter handlers
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleCategoryFilterChange = (event: any) => {
+    setCategoryFilter(event.target.value);
+  };
+
+  const handleStatusFilterChange = (event: any) => {
+    setStatusFilter(event.target.value);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCategoryFilter('');
+    setStatusFilter('');
+  };
+
+  // Get unique categories from workflows for filter options
+  const getCategories = () => {
+    const allTags = workflows.flatMap(w => w.tags || []);
+    return [...new Set(allTags)];
   };
 
   const handleWorkflowExecute = useCallback((workflowId: string) => {
@@ -252,9 +324,112 @@ export default function WorkflowsPage() {
       actions={headerActions}
     >
       <Box>
+        {/* Filter and Search Bar */}
+        <Paper 
+          elevation={1} 
+          sx={{ 
+            p: 3, 
+            mb: 3, 
+            backgroundColor: 'background.paper',
+            borderRadius: 2 
+          }}
+        >
+          <Stack spacing={2}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Filter & Search
+              </Typography>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={handleCreateWorkflow}
+                sx={{ minWidth: 140 }}
+              >
+                Add New
+              </Button>
+            </Box>
+            
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+              {/* Search Field */}
+              <TextField
+                placeholder="Search workflows..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="clear search"
+                        onClick={() => setSearchTerm('')}
+                        edge="end"
+                        size="small"
+                      >
+                        <ClearIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flex: 1, minWidth: 250 }}
+              />
+              
+              {/* Category Filter */}
+              <FormControl sx={{ minWidth: 150 }}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={categoryFilter}
+                  label="Category"
+                  onChange={handleCategoryFilterChange}
+                >
+                  <MenuItem value="">All Categories</MenuItem>
+                  {getCategories().map(category => (
+                    <MenuItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              
+              {/* Status Filter */}
+              <FormControl sx={{ minWidth: 120 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={handleStatusFilterChange}
+                >
+                  <MenuItem value="">All Status</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="draft">Draft</MenuItem>
+                </Select>
+              </FormControl>
+              
+              {/* Clear Filters Button */}
+              {(searchTerm || categoryFilter || statusFilter) && (
+                <Button
+                  variant="outlined"
+                  startIcon={<ClearIcon />}
+                  onClick={clearFilters}
+                  sx={{ minWidth: 100 }}
+                >
+                  Clear
+                </Button>
+              )}
+            </Stack>
+            
+            {/* Results Count */}
+            <Typography variant="body2" color="text.secondary">
+              Showing {filteredWorkflows.length} of {workflows.length} workflows
+            </Typography>
+          </Stack>
+        </Paper>
 
       <Grid container spacing={3}>
-        {workflows.map((workflow) => (
+        {filteredWorkflows.map((workflow) => (
           <Grid item xs={12} md={6} lg={4} key={workflow.id}>
             <Card sx={{ height: '100%' }}>
               <CardContent>
@@ -331,11 +506,11 @@ export default function WorkflowsPage() {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        <MenuItem onClick={() => handleEditWorkflow(menuWorkflowId!)}>
+        <MenuItem onClick={() => handleEditWorkflow(selectedWorkflowId!)}>
           <EditIcon sx={{ mr: 1 }} />
           Edit
         </MenuItem>
-        <MenuItem onClick={() => handleDeleteWorkflow(menuWorkflowId!)}>
+        <MenuItem onClick={() => handleDeleteWorkflow(selectedWorkflowId!)}>
           <DeleteIcon sx={{ mr: 1 }} />
           Delete
         </MenuItem>

@@ -7,7 +7,8 @@ import {
   Box, 
   Chip, 
   IconButton,
-  Avatar
+  Avatar,
+  useTheme
 } from '@mui/material';
 import { 
   Settings as SettingsIcon,
@@ -132,6 +133,7 @@ export default function BaseNode({
   children,
   isTrigger = false
 }: BaseNodeProps) {
+  const theme = useTheme();
   // Use brand color if no custom color provided
   const nodeColor = color || getNodeColor(data.type || '');
   
@@ -150,20 +152,26 @@ export default function BaseNode({
       sx={{
         minWidth: 220,
         maxWidth: 320,
-        border: '1px solid #e0e0e0',
+        border: `1px solid ${theme.palette.divider}`,
         borderLeft: `4px solid ${nodeColor}`,
         borderRadius: '8px',
-        boxShadow: selected ? `0 4px 16px ${nodeColor}25` : '0 2px 8px rgba(0,0,0,0.08)',
-        backgroundColor: selected ? `${nodeColor}12` : `${nodeColor}06`, // Subtle tint, more visible when selected
+        boxShadow: selected 
+          ? `0 4px 16px ${nodeColor}25` 
+          : theme.palette.mode === 'dark' 
+            ? '0 2px 8px rgba(0,0,0,0.3)' 
+            : '0 2px 8px rgba(0,0,0,0.08)',
+        backgroundColor: selected 
+          ? `${nodeColor}${theme.palette.mode === 'dark' ? '20' : '12'}` 
+          : `${nodeColor}${theme.palette.mode === 'dark' ? '10' : '06'}`, // Theme-aware opacity
         transition: 'all 0.2s ease',
         cursor: 'pointer',
         position: 'relative',
         overflow: 'visible', // Allow handles to be visible outside card
         '&:hover': {
-          backgroundColor: `${nodeColor}15`, // Slightly more visible on hover
+          backgroundColor: `${nodeColor}${theme.palette.mode === 'dark' ? '25' : '15'}`, // Theme-aware hover
           boxShadow: `0 6px 20px ${nodeColor}25`,
           transform: 'translateY(-2px)',
-          borderColor: '#d0d0d0',
+          borderColor: theme.palette.mode === 'dark' ? theme.palette.divider : '#d0d0d0',
           borderLeftColor: nodeColor,
         },
       }}
@@ -179,7 +187,7 @@ export default function BaseNode({
               isConnectable={true}
               style={{
                 backgroundColor: nodeColor,
-                border: '2px solid white',
+                border: `2px solid ${theme.palette.background.paper}`,
                 width: 16,
                 height: 16,
                 borderRadius: '50%',
@@ -198,7 +206,7 @@ export default function BaseNode({
             isConnectable={true}
             style={{
               backgroundColor: nodeColor,
-              border: '2px solid white',
+              border: `2px solid ${theme.palette.background.paper}`,
               width: 16,
               height: 16,
               borderRadius: '50%',
@@ -230,7 +238,7 @@ export default function BaseNode({
               variant="subtitle2" 
               sx={{ 
                 fontWeight: 600,
-                color: '#2e3142',
+                color: theme.palette.text.primary,
                 lineHeight: 1.2,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
