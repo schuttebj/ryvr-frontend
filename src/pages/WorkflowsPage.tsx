@@ -53,26 +53,33 @@ export default function WorkflowsPage() {
   // const [newWorkflowName, setNewWorkflowName] = useState('');
   // const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
 
-  // Load workflows on component mount and when returning from builder
+  // Load workflows on component mount and when returning from builder (using V2 API)
   useEffect(() => {
     const loadWorkflows = async () => {
       try {
-        console.log('Loading workflows...');
-        const savedWorkflows = await workflowApi.listWorkflows();
-        console.log('Loaded workflows:', savedWorkflows);
-        setWorkflows(savedWorkflows.map((w: any) => ({
-          id: w.id,
-          name: w.name,
-          description: w.description,
-          isActive: w.isActive || false,
-          nodes: w.nodes || [],
-          successRate: 0,
-          createdAt: w.createdAt,
-          tags: w.tags || [],
-          executionCount: w.executionCount || 0,
-        })));
+        console.log('Loading V2 workflow templates...');
+        const result = await workflowApi.listWorkflowTemplatesV2();
+        console.log('Loaded V2 workflow templates:', result);
+        
+        if (result.success && result.templates) {
+          setWorkflows(result.templates.map((template: any) => ({
+            id: template.id.toString(),
+            name: template.name,
+            description: template.description || '',
+            isActive: template.status === 'published',
+            nodes: template.workflow_config?.steps || [],
+            successRate: 0, // Will get from execution history later
+            createdAt: template.created_at,
+            tags: template.tags || [],
+            executionCount: 0, // Will get from execution history later
+          })));
+        } else {
+          console.error('Failed to load templates:', result.error);
+          setWorkflows([]);
+        }
       } catch (error) {
         console.error('Failed to load workflows:', error);
+        setWorkflows([]);
       }
     };
 
@@ -85,31 +92,59 @@ export default function WorkflowsPage() {
 
   const handleWorkflowSave = useCallback(async (workflow: any) => {
     try {
-      await workflowApi.saveWorkflow(workflow);
-      
-      // Update the workflows list
-      setWorkflows(prev => {
-        const existingIndex = prev.findIndex(w => w.id === workflow.id);
-        const workflowSummary: WorkflowSummary = {
-          id: workflow.id,
-          name: workflow.name,
-          description: workflow.description,
-          isActive: workflow.isActive || false,
-          nodes: workflow.nodes || [],
-          successRate: 0,
-          createdAt: workflow.createdAt || new Date().toISOString(),
-          tags: workflow.tags || [],
-          executionCount: workflow.executionCount || 0,
-        };
-        
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = workflowSummary;
-          return updated;
-        } else {
-          return [...prev, workflowSummary];
+      // Convert workflow to V2 format
+      const v2Template = {
+        schema_version: "ryvr.workflow.v1",
+        name: workflow.name,
+        description: workflow.description || '',
+        category: "general",
+        tags: workflow.tags || [],
+        inputs: {},
+        globals: {},
+        steps: workflow.nodes?.map((node: any, index: number) => ({
+          id: node.id || `step_${index}`,
+          type: node.type || 'task',
+          name: node.name || `Step ${index + 1}`,
+          depends_on: [],
+          input: { bindings: node.data || {} }
+        })) || [],
+        execution: {
+          execution_mode: "simulate",
+          dry_run: true
         }
-      });
+      };
+      
+      const result = await workflowApi.createWorkflowTemplateV2(v2Template);
+      
+      if (result.success && result.template) {
+        console.log('Successfully saved V2 workflow template:', result.template);
+        
+        // Update the workflows list with the saved template
+        setWorkflows(prev => {
+          const existingIndex = prev.findIndex(w => w.id === result.template!.id.toString());
+          const workflowSummary: WorkflowSummary = {
+            id: result.template!.id.toString(),
+            name: result.template!.name,
+            description: result.template!.description || '',
+            isActive: true,
+            nodes: result.template!.workflow_config?.steps || [],
+            successRate: 0,
+            createdAt: result.template!.created_at || new Date().toISOString(),
+            tags: result.template!.tags || [],
+            executionCount: 0,
+          };
+        
+          if (existingIndex >= 0) {
+            const updated = [...prev];
+            updated[existingIndex] = workflowSummary;
+            return updated;
+          } else {
+            return [...prev, workflowSummary];
+          }
+        });
+      } else {
+        console.error('Failed to save workflow template:', result.error);
+      }
     } catch (error) {
       console.error('Failed to save workflow:', error);
     }
@@ -129,14 +164,17 @@ export default function WorkflowsPage() {
 
   const handleDeleteWorkflow = async (workflowId: string) => {
     try {
-      // Delete from backend/storage
-      await workflowApi.deleteWorkflow(workflowId);
+      // Delete from backend using V2 API
+      const result = await workflowApi.deleteWorkflowTemplateV2(parseInt(workflowId));
       
-      // Update local state
-      setWorkflows(workflows.filter(w => w.id !== workflowId));
-      setAnchorEl(null);
-      
-      console.log(`Workflow ${workflowId} deleted successfully`);
+      if (result.success) {
+        // Update local state
+        setWorkflows(workflows.filter(w => w.id !== workflowId));
+        setAnchorEl(null);
+        console.log(`Workflow template ${workflowId} deleted successfully`);
+      } else {
+        console.error('Failed to delete workflow template:', result.error);
+      }
     } catch (error) {
       console.error('Failed to delete workflow:', error);
       // You might want to show a toast notification here

@@ -330,7 +330,8 @@ export const getStoredNodeResponse = (nodeId: string) => {
   return globalWorkflowData[nodeId] || null;
 };
 
-// Function to populate test data for development
+// NOTE: Test data population removed - use real workflow execution data instead
+// Function preserved for reference but returns empty data
 export const populateTestWorkflowData = () => {
   try {
     const testData = {
@@ -636,8 +637,9 @@ export const populateTestWorkflowData = () => {
 
     globalWorkflowData = testData;
     console.log('🧪 Test workflow data populated:', Object.keys(testData));
-    console.log('📊 Available data nodes:', Object.keys(testData));
-    return testData;
+    // No longer populating test data - workflows should use real execution results
+    console.log('ℹ️ Test data population disabled - using real workflow execution');
+    return {};
   } catch (error) {
     console.error('Failed to populate test data:', error);
     return {};
@@ -659,68 +661,12 @@ export const populateTestWorkflowData = () => {
 //   return config;
 // });
 
-// DataForSEO API calls (temporarily disabled during refactoring - returning mock data)
-export const dataforSeoApi = {
-  // SERP Analysis
-  analyzeSERP: async (keyword: string, _location = 'US', language = 'en') => {
-    return {
-      data: {
-        success: true,
-        data: { keyword, language, results: [] }
-      }
-    };
-  },
-
-  // Keyword Volume
-  getKeywordVolume: async (keywords: string[], _location = 'US', language = 'en') => {
-    return {
-      data: {
-        success: true,
-        data: { keywords, language, volumes: [] }
-      }
-    };
-  },
-
-  // Keywords for Site
-  getKeywordsForSite: async (domain: string, _location = 'US', language = 'en') => {
-    return {
-      data: {
-        success: true,
-        data: { domain, language, keywords: [] }
-      }
-    };
-  },
-
-  // Competitor Analysis
-  analyzeCompetitors: async (domain: string, _location = 'US', language = 'en') => {
-    return {
-      data: {
-        success: true,
-        data: { domain, language, competitors: [] }
-      }
-    };
-  },
-
-  // Content Analysis
-  analyzeContent: async (content: string, keyword: string, language = 'en') => {
-    return {
-      data: {
-        success: true,
-        data: { content: content.substring(0, 100) + "...", keyword, language, analysis: {} }
-      }
-    };
-  },
-
-  // SERP Screenshot
-  getSerpScreenshot: async (keyword: string, _location = 'US', language = 'en') => {
-    return {
-      data: {
-        success: true,
-        data: { keyword, language, screenshot_url: "mock-screenshot.png" }
-      }
-    };
-  }
-};
+// NOTE: DataForSEO API calls are now handled through the backend integration service
+// Use workflowApi.executeNode() with appropriate node types instead:
+// - For SERP analysis: nodeType 'serp_analysis' 
+// - For keyword volume: nodeType 'keyword_research'
+// - For backlinks: nodeType 'backlink_analysis'
+// - For technical SEO: nodeType 'technical_seo'
 
 // Enhanced variable processing helper for new format  
 export const processVariables = (text: string, workflowData: Record<string, any>): string => {
@@ -1160,68 +1106,8 @@ This comprehensive approach ensures sustainable results and long-term success. B
 For more information about ${title.toLowerCase()}, contact our team of experts who can provide personalized guidance and support.`;
 };
 
-// AI API calls (temporarily disabled during refactoring - returning mock data)
-export const aiApi = {
-  // Generate SEO Content
-  generateSeoContent: async (keyword: string, contentType: string, tone: string) => {
-    return {
-      data: {
-        success: true,
-        data: { keyword, contentType, tone, content: "Generated SEO content..." }
-      }
-    };
-  },
-
-  // Optimize Content for SEO
-  optimizeContentSeo: async (content: string, keyword: string, tone: string) => {
-    return {
-      data: {
-        success: true,
-        data: { content: content.substring(0, 100) + "... [optimized]", keyword, tone }
-      }
-    };
-  },
-
-  // Analyze Content
-  analyzeContent: async (content: string, keyword: string) => {
-    return {
-      data: {
-        success: true,
-        data: { content: content.substring(0, 100) + "...", keyword, analysis: {} }
-      }
-    };
-  },
-
-  // Generate Keywords
-  generateKeywords: async (topic: string, language: string) => {
-    return {
-      data: {
-        success: true,
-        data: { topic, language, keywords: [] }
-      }
-    };
-  },
-
-  // Generate Ad Copy
-  generateAdCopy: async (keyword: string, adType: string, tone: string) => {
-    return {
-      data: {
-        success: true,
-        data: { keyword, adType, tone, adCopy: "Generated ad copy..." }
-      }
-    };
-  },
-
-  // Generate Email Sequence
-  generateEmailSequence: async (topic: string, emailCount: number, tone: string) => {
-    return {
-      data: {
-        success: true,
-        data: { topic, emailCount, tone, emails: [] }
-      }
-    };
-  }
-};
+// NOTE: AI API calls are now handled through the backend integration service
+// Use workflowApi.executeNode() with nodeType 'ai_generation' and appropriate configuration
 
 // Workflow execution with data mapping
 export const workflowApi = {
@@ -1641,68 +1527,18 @@ export const workflowApi = {
             }
             
         } catch (error: any) {
-            console.warn('⚠️ Backend API not available, using mock SERP data:', error.message);
-            
-            // Fallback to mock data when backend is not available
-            const mockItems = [];
-            const requestedCount = maxResults || 10;
-            
-            // Generate mock organic results based on settings
-            for (let i = 0; i < requestedCount; i++) {
-              const mockItem = {
-                type: 'organic',
-                rank_group: 1,
-                rank_absolute: i + 1,
-                position: 'left',
-                title: `${keyword} - Example Result ${i + 1}`,
-                domain: `example${i + 1}.com`,
-                url: `https://example${i + 1}.com/page-about-${keyword.toLowerCase().replace(/\s+/g, '-')}`,
-                description: `This is a mock organic search result for ${keyword}. Result ${i + 1} provides comprehensive information about ${keyword.toLowerCase()}.`,
-                breadcrumb: `example${i + 1}.com › ${keyword.toLowerCase()}`,
-                is_paid: false
-              };
-              
-              // Add result type specific fields if needed
-              if (finalConfig.resultType === 'news') {
-                mockItem.title = `${keyword} News - Latest Updates ${i + 1}`;
-                mockItem.description = `Breaking news about ${keyword}. Stay updated with the latest developments.`;
-              }
-              
-              mockItems.push(mockItem);
-            }
-            
-            // Create mock response matching expected structure
-            result = {
-              results: [{
-                keyword: keyword,
-                type: 'organic',
-                se_domain: 'google.com',
-                location_code: locationCode,
-                language_code: languageCode,
-                check_url: `https://www.google.com/search?q=${encodeURIComponent(keyword)}`,
-                datetime: new Date().toISOString(),
-                total_count: mockItems.length,
-                se_results_count: 1000000,
-                items: mockItems
-              }]
-            };
-            
-            // Mark as mock data using type assertion
-            (result as any).is_mock_data = true;
-            
-            console.log(`🎭 Generated ${mockItems.length} mock SERP results for keyword: ${keyword}`);
-            console.log(`ℹ️ To use real SERP data, ensure backend is running and accessible at the configured URL`);
+            console.error('❌ Backend API not available:', error.message);
+            throw new Error(`Failed to fetch SERP data: ${error.message}. Please ensure backend is running and DataForSEO integration is configured.`);
           }
           
-          // Log final result structure (works for both real and mock data)
+          // Log final result structure for debugging
           if (result && result.results && result.results[0]) {
-            console.log(`📊 Final SERP data structure:`);
+            console.log(`📊 SERP data received:`);
             console.log(`   - Keyword: ${result.results[0].keyword}`);
             console.log(`   - Total Items: ${result.results[0].total_count}`);
             console.log(`   - SE Results Count: ${result.results[0].se_results_count || 'N/A'}`);
             console.log(`   - Items Array Length: ${result.results[0].items.length}`);
             console.log(`   - Sample URLs: ${result.results[0].items.slice(0, 3).map((item: any) => item.url).filter(Boolean).join(', ')}`);
-            console.log(`   - Data Source: ${(result as any).is_mock_data ? 'Mock Data' : 'Real API'}`);
           }
           break;
           
@@ -2156,78 +1992,38 @@ export const workflowApi = {
             console.log(`👤 Client Profile loaded for: ${clientData.name}`);
           } catch (error) {
             console.error('Failed to load client profile:', error);
-            
-            // Fallback to mock data for development
-            result = {
-              client_basic: {
-                businessName: 'Sample Business',
-                founderName: 'John Doe, CEO',
-                industry: 'Technology',
-                coreOffering: 'Software solutions'
-              },
-              client_meta: {
-                id: clientId,
-                name: 'Sample Client',
-                industry: 'Technology',
-                status: 'active'
-              },
-              business_profile: {},
-              note: 'Using fallback data - client not found or backend unavailable'
-            };
+            throw new Error(`Failed to load client profile: ${error}. Please ensure client ID is valid and backend is accessible.`);
           }
           break;
           
         // Legacy DataForSEO nodes (keeping for backward compatibility)  
         case 'seo_keywords_volume':
-          const keywords = finalConfig.keywords ? finalConfig.keywords.split(',').map((k: string) => k.trim()) : [];
-          result = await dataforSeoApi.getKeywordVolume(keywords, finalConfig.location, finalConfig.language);
+          throw new Error(`Legacy node type 'seo_keywords_volume' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
         case 'seo_keywords_site':
-          result = await dataforSeoApi.getKeywordsForSite(
-            finalConfig.url || inputData.url,
-            finalConfig.location,
-            finalConfig.language
-          );
+          throw new Error(`Legacy node type 'seo_keywords_site' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
         case 'seo_competitors':
-          result = await dataforSeoApi.analyzeCompetitors(
-            finalConfig.domain || inputData.domain,
-            finalConfig.location,
-            finalConfig.language
-          );
+          throw new Error(`Legacy node type 'seo_competitors' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
         case 'seo_content_analyze':
-          result = await dataforSeoApi.analyzeContent(
-            finalConfig.content || inputData.content,
-            finalConfig.keyword || inputData.keyword
-          );
+          throw new Error(`Legacy node type 'seo_content_analyze' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
-        // Legacy AI nodes (keeping for backward compatibility)
+        // Legacy AI nodes (deprecated)
         case 'ai_content_seo':
-          result = await aiApi.generateSeoContent(
-            finalConfig.keyword || inputData.keyword,
-            finalConfig.contentType || 'blog_post',
-            finalConfig.tone || 'professional'
-          );
+          throw new Error(`Legacy node type 'ai_content_seo' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
         case 'ai_keywords_generate':
-          result = await aiApi.generateKeywords(
-            finalConfig.topic || inputData.topic,
-            finalConfig.language || 'en'
-          );
+          throw new Error(`Legacy node type 'ai_keywords_generate' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
         case 'ai_ads_generate':
-          result = await aiApi.generateAdCopy(
-            finalConfig.keyword || inputData.keyword,
-            finalConfig.adType || 'search',
-            finalConfig.tone || 'persuasive'
-          );
+          throw new Error(`Legacy node type 'ai_ads_generate' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
         default:
@@ -3053,6 +2849,25 @@ export const workflowApi = {
     }
   },
 
+  // Delete workflow template
+  deleteWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`/api/workflows/templates/${templateId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to delete workflow template');
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Failed to delete workflow template:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   // Get tool catalog for workflow building
   getToolCatalogV2: async (filters?: {
     provider?: string;
@@ -3065,7 +2880,7 @@ export const workflowApi = {
       if (filters?.category) params.append('category', filters.category);
       if (filters?.business_id) params.append('business_id', filters.business_id.toString());
 
-      const response = await fetch(`/api/integrations/tool-catalog?${params.toString()}`);
+      const response = await fetch(`/api/workflows/tool-catalog?${params.toString()}`);
 
       if (!response.ok) {
         const errorData = await response.json();
