@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -11,7 +11,6 @@ import {
   Chip,
   IconButton,
   Tooltip,
-  Divider,
   Stack,
   Button,
   Alert,
@@ -55,8 +54,6 @@ export default function VariableTransformationPanel({
 }: VariableTransformationPanelProps) {
   const theme = useTheme();
   const [transformations, setTransformations] = useState<TransformationRule[]>([]);
-  const [outputFormat, setOutputFormat] = useState<'single' | 'list' | 'object' | 'custom'>('single');
-  const [customTemplate, setCustomTemplate] = useState('');
   const [livePreview, setLivePreview] = useState(true);
   const [previewResult, setPreviewResult] = useState<any>(null);
 
@@ -101,7 +98,7 @@ export default function VariableTransformationPanel({
         'expression': { label: 'Custom Expression', params: ['formula'] },
       }
     }
-  };
+  } as const;
 
   // Get node color for a variable path
   const getNodeColor = (path: string): string => {
@@ -114,7 +111,7 @@ export default function VariableTransformationPanel({
     const newRule: TransformationRule = {
       id: `transform_${Date.now()}`,
       type,
-      operation: Object.keys(transformationTypes[type].operations)[0],
+      operation: Object.keys((transformationTypes[type] as any).operations)[0],
       parameters: {},
       alias: `result_${transformations.length + 1}`
     };
@@ -155,7 +152,7 @@ export default function VariableTransformationPanel({
     }).join('|');
 
     return `{{${baseVariable}|${transformPipes}}}`;
-  }, [selectedPaths, transformations, outputFormat, customTemplate]);
+  }, [selectedPaths, transformations]);
 
   // Live preview of transformation result
   useEffect(() => {
@@ -183,7 +180,7 @@ export default function VariableTransformationPanel({
 
       setPreviewResult(result);
     } catch (error) {
-      setPreviewResult({ error: error.message });
+      setPreviewResult({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }, [selectedPaths, transformations, availableData, livePreview]);
 
@@ -334,7 +331,7 @@ export default function VariableTransformationPanel({
                   <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                     <FunctionIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
                     <Typography variant="body2">
-                      {index + 1}. {transformationTypes[transformation.type].operations[transformation.operation]?.label || transformation.operation}
+                      {index + 1}. {(transformationTypes[transformation.type] as any).operations[transformation.operation]?.label || transformation.operation}
                     </Typography>
                     <Box sx={{ flexGrow: 1 }} />
                     <IconButton
@@ -358,10 +355,10 @@ export default function VariableTransformationPanel({
                         label="Type"
                         onChange={(e) => updateTransformation(transformation.id, {
                           type: e.target.value as TransformationRule['type'],
-                          operation: Object.keys(transformationTypes[e.target.value as TransformationRule['type']].operations)[0]
+                          operation: Object.keys((transformationTypes[e.target.value as TransformationRule['type']] as any).operations)[0]
                         })}
                       >
-                        {Object.entries(transformationTypes).map(([key, value]) => (
+                        {Object.entries(transformationTypes).map(([key]) => (
                           <MenuItem key={key} value={key}>
                             {key.charAt(0).toUpperCase() + key.slice(1)}
                           </MenuItem>
@@ -377,7 +374,7 @@ export default function VariableTransformationPanel({
                         label="Operation"
                         onChange={(e) => updateTransformation(transformation.id, { operation: e.target.value })}
                       >
-                        {Object.entries(transformationTypes[transformation.type].operations).map(([key, value]) => (
+                        {Object.entries((transformationTypes[transformation.type] as any).operations).map(([key, value]: [string, any]) => (
                           <MenuItem key={key} value={key}>
                             {value.label}
                           </MenuItem>
@@ -386,7 +383,7 @@ export default function VariableTransformationPanel({
                     </FormControl>
 
                     {/* Parameters */}
-                    {transformationTypes[transformation.type].operations[transformation.operation]?.params.map(param => (
+                    {(transformationTypes[transformation.type] as any).operations[transformation.operation]?.params.map((param: string) => (
                       <TextField
                         key={param}
                         size="small"
