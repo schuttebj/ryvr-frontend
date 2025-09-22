@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   TextField,
   IconButton,
@@ -131,7 +131,7 @@ export default function VariableTextField({
           Preview with actual values:
         </Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center' }}>
-          {parsedContent.map((part, index) => {
+          {parsedContent.map((part: { type: 'text' | 'variable'; content: string; originalMatch?: string }, index: number) => {
             if (part.type === 'text') {
               return (
                 <Typography key={index} component="span" variant="body2">
@@ -158,7 +158,7 @@ export default function VariableTextField({
   };
 
   const renderVariablePills = () => {
-    if (previewMode || parsedContent.filter(p => p.type === 'variable').length === 0) return null;
+    if (previewMode || parsedContent.filter((p: { type: 'text' | 'variable'; content: string; originalMatch?: string }) => p.type === 'variable').length === 0) return null;
 
     return (
       <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
@@ -166,8 +166,8 @@ export default function VariableTextField({
           Variables:
         </Typography>
         {parsedContent
-          .filter(part => part.type === 'variable')
-          .map((part, index) => (
+          .filter((part: { type: 'text' | 'variable'; content: string; originalMatch?: string }) => part.type === 'variable')
+          .map((part: { type: 'text' | 'variable'; content: string; originalMatch?: string }, index: number) => (
             <Chip
               key={index}
               label={part.content}
@@ -186,7 +186,7 @@ export default function VariableTextField({
   const renderEndAdornment = () => {
     const existingEndAdornment = textFieldProps.InputProps?.endAdornment;
     
-    const previewToggle = showPreview && parsedContent.some(p => p.type === 'variable') ? (
+    const previewToggle = showPreview && parsedContent.some((p: { type: 'text' | 'variable'; content: string; originalMatch?: string }) => p.type === 'variable') ? (
       <Tooltip title={previewMode ? "Show variable names" : "Show actual values"}>
         <IconButton
           size="small"
@@ -231,7 +231,7 @@ export default function VariableTextField({
         {...textFieldProps}
         ref={textFieldRef}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
         InputProps={{
           ...textFieldProps.InputProps,
           endAdornment: renderEndAdornment(),
@@ -249,7 +249,6 @@ export default function VariableTextField({
           open={variableSelectorOpen}
           onClose={() => setVariableSelectorOpen(false)}
           onInsert={handleVariableInsert}
-          availableData={availableData}
         />
       )}
     </Box>
