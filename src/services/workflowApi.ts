@@ -2714,8 +2714,8 @@ export const workflowApi = {
   // WORKFLOW V2 API METHODS (New Schema Support)
   // =============================================================================
 
-  // Create workflow template with V2 schema (now default)
-  createWorkflowTemplateV2: async (template: WorkflowTemplateV2): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
+  // Create workflow template (default schema)
+  createWorkflowTemplate: async (template: WorkflowTemplateV2): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
     try {
       const response = await fetch(`/api/workflows/templates`, {
         method: 'POST',
@@ -2738,8 +2738,8 @@ export const workflowApi = {
     }
   },
 
-  // List workflow templates with V2 schema
-  listWorkflowTemplatesV2: async (filters?: {
+  // List workflow templates
+  listWorkflowTemplates: async (filters?: {
     business_id?: number;
     category?: string;
     tags?: string;
@@ -2770,7 +2770,7 @@ export const workflowApi = {
   },
 
   // Get specific workflow template
-  getWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
+  getWorkflowTemplate: async (templateId: number): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
     try {
       const response = await fetch(`/api/workflows/templates/${templateId}`);
 
@@ -2788,7 +2788,7 @@ export const workflowApi = {
   },
 
   // Validate workflow template
-  validateWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; validation?: any; error?: string }> => {
+  validateWorkflowTemplate: async (templateId: number): Promise<{ success: boolean; validation?: any; error?: string }> => {
     try {
       const response = await fetch(`/api/workflows/templates/${templateId}/validate`, {
         method: 'POST'
@@ -2808,7 +2808,7 @@ export const workflowApi = {
   },
 
   // Execute workflow template
-  executeWorkflowV2: async (templateId: number, executionRequest: ExecutionRequest): Promise<{ success: boolean; execution?: any; error?: string }> => {
+  executeWorkflow: async (templateId: number, executionRequest: ExecutionRequest): Promise<{ success: boolean; execution?: any; error?: string }> => {
     try {
       const response = await fetch(`/api/workflows/templates/${templateId}/execute`, {
         method: 'POST',
@@ -2832,7 +2832,7 @@ export const workflowApi = {
   },
 
   // Get execution status
-  getExecutionStatusV2: async (executionId: number): Promise<{ success: boolean; execution?: WorkflowExecutionV2; error?: string }> => {
+  getExecutionStatus: async (executionId: number): Promise<{ success: boolean; execution?: WorkflowExecutionV2; error?: string }> => {
     try {
       const response = await fetch(`/api/workflows/executions/${executionId}`);
 
@@ -2850,7 +2850,7 @@ export const workflowApi = {
   },
 
   // Delete workflow template
-  deleteWorkflowTemplateV2: async (templateId: number): Promise<{ success: boolean; error?: string }> => {
+  deleteWorkflowTemplate: async (templateId: number): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch(`/api/workflows/templates/${templateId}`, {
         method: 'DELETE'
@@ -2869,7 +2869,7 @@ export const workflowApi = {
   },
 
   // Get tool catalog for workflow building
-  getToolCatalogV2: async (filters?: {
+  getToolCatalog: async (filters?: {
     provider?: string;
     category?: string;
     business_id?: number;

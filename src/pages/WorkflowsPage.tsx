@@ -54,13 +54,13 @@ export default function WorkflowsPage() {
   // const [newWorkflowName, setNewWorkflowName] = useState('');
   // const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
 
-  // Load workflows on component mount and when returning from builder (using V2 API)
+  // Load workflows on component mount and when returning from builder
   useEffect(() => {
     const loadWorkflows = async () => {
       try {
-        console.log('Loading V2 workflow templates...');
-        const result = await workflowApi.listWorkflowTemplatesV2();
-        console.log('Loaded V2 workflow templates:', result);
+        console.log('Loading workflow templates...');
+        const result = await workflowApi.listWorkflowTemplates();
+        console.log('Loaded workflow templates:', result);
         
         if (result.success && result.templates) {
           setWorkflows(result.templates.map((template: any) => ({
@@ -93,8 +93,8 @@ export default function WorkflowsPage() {
 
   const handleWorkflowSave = useCallback(async (workflow: any) => {
     try {
-      // Convert workflow to V2 format
-      const v2Template: WorkflowTemplateV2 = {
+      // Convert workflow to standard format
+      const workflowTemplate: WorkflowTemplateV2 = {
         schema_version: "ryvr.workflow.v1" as const,
         name: workflow.name,
         description: workflow.description || '',
@@ -115,10 +115,10 @@ export default function WorkflowsPage() {
         }
       };
       
-      const result = await workflowApi.createWorkflowTemplateV2(v2Template);
+      const result = await workflowApi.createWorkflowTemplate(workflowTemplate);
       
       if (result.success && result.template) {
-        console.log('Successfully saved V2 workflow template:', result.template);
+        console.log('Successfully saved workflow template:', result.template);
         
         // Update the workflows list with the saved template
         setWorkflows(prev => {
@@ -166,8 +166,8 @@ export default function WorkflowsPage() {
 
   const handleDeleteWorkflow = async (workflowId: string) => {
     try {
-      // Delete from backend using V2 API
-      const result = await workflowApi.deleteWorkflowTemplateV2(parseInt(workflowId));
+      // Delete from backend
+      const result = await workflowApi.deleteWorkflowTemplate(parseInt(workflowId));
       
       if (result.success) {
         // Update local state
