@@ -14,6 +14,8 @@ import {
   TransformationConfig
 } from '../types/workflow';
 
+import { getAuthToken } from '../utils/auth';
+
 // API_BASE_URL temporarily unused - will be restored when fixing API integration
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
 
@@ -2594,9 +2596,11 @@ export const workflowApi = {
   // Create workflow template (default schema)
   createWorkflowTemplate: async (template: WorkflowTemplateV2): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/v1/workflows/templates`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(template)
@@ -2631,7 +2635,13 @@ export const workflowApi = {
       if (filters?.skip) params.append('skip', filters.skip.toString());
       if (filters?.limit) params.append('limit', filters.limit.toString());
 
-      const response = await fetch(`${API_BASE}/api/v1/workflows/templates?${params.toString()}`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/v1/workflows/templates?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2649,7 +2659,13 @@ export const workflowApi = {
   // Get specific workflow template
   getWorkflowTemplate: async (templateId: number): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2667,8 +2683,13 @@ export const workflowApi = {
   // Validate workflow template
   validateWorkflowTemplate: async (templateId: number): Promise<{ success: boolean; validation?: any; error?: string }> => {
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}/validate`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
@@ -2687,9 +2708,11 @@ export const workflowApi = {
   // Execute workflow template
   executeWorkflow: async (templateId: number, executionRequest: ExecutionRequest): Promise<{ success: boolean; execution?: any; error?: string }> => {
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}/execute`, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(executionRequest)
@@ -2711,7 +2734,13 @@ export const workflowApi = {
   // Get execution status
   getExecutionStatus: async (executionId: number): Promise<{ success: boolean; execution?: WorkflowExecutionV2; error?: string }> => {
     try {
-      const response = await fetch(`${API_BASE}/api/v1/workflows/executions/${executionId}`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/v1/workflows/executions/${executionId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2729,8 +2758,13 @@ export const workflowApi = {
   // Delete workflow template
   deleteWorkflowTemplate: async (templateId: number): Promise<{ success: boolean; error?: string }> => {
     try {
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
@@ -2757,7 +2791,13 @@ export const workflowApi = {
       if (filters?.category) params.append('category', filters.category);
       if (filters?.business_id) params.append('business_id', filters.business_id.toString());
 
-      const response = await fetch(`${API_BASE}/api/v1/workflows/tool-catalog?${params.toString()}`);
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/v1/workflows/tool-catalog?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
