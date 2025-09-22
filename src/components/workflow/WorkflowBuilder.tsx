@@ -1367,34 +1367,17 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         </Box>
       </Box>
 
-      {/* Variable Selector Panel - Above Settings */}
-      {variableSelectorOpen && (
-        <Paper sx={{
-          position: 'fixed',
-          right: settingsNode ? 420 : 20, // Position to the left of settings panel if open
-          top: 20,
-          height: 'calc(100vh - 40px)',
-          width: 350,
-          zIndex: 60000, // Higher than settings panel
-          borderRadius: 2,
-          border: `1px solid ${theme.palette.divider}`,
-          overflow: 'hidden',
-          boxShadow: theme.palette.mode === 'dark' 
-            ? '0 8px 32px rgba(0, 0, 0, 0.4)' 
-            : '0 4px 20px rgba(0, 0, 0, 0.1)',
-        }}>
-          <VariableSelector
-            open={variableSelectorOpen}
-            onClose={() => setVariableSelectorOpen(false)}
-            onInsert={(variable) => {
-              // Insert variable functionality can be enhanced
-              console.log('Variable selected:', variable);
-              setVariableSelectorOpen(false);
-            }}
-            position="panel"
-          />
-        </Paper>
-      )}
+      {/* Variable Selector - Use Dialog for Better UX */}
+      <VariableSelector
+        open={variableSelectorOpen}
+        onClose={() => setVariableSelectorOpen(false)}
+        onInsert={(variable) => {
+          // TODO: Insert variable into currently focused field
+          console.log('Variable selected:', variable);
+          setVariableSelectorOpen(false);
+        }}
+        position="dialog"
+      />
 
       {/* Right Settings Panel */}
       {settingsNode && (
