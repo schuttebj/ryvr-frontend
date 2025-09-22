@@ -27,6 +27,7 @@ import {
 } from '@mui/icons-material';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
 import { workflowApi } from '../services/workflowApi';
+import { WorkflowTemplateV2 } from '../types/workflow';
 
 interface WorkflowSummary {
   id: string;
@@ -67,7 +68,7 @@ export default function WorkflowsPage() {
             name: template.name,
             description: template.description || '',
             isActive: template.status === 'published',
-            nodes: template.workflow_config?.steps || [],
+            nodes: template.steps || [],
             successRate: 0, // Will get from execution history later
             createdAt: template.created_at,
             tags: template.tags || [],
@@ -93,8 +94,8 @@ export default function WorkflowsPage() {
   const handleWorkflowSave = useCallback(async (workflow: any) => {
     try {
       // Convert workflow to V2 format
-      const v2Template = {
-        schema_version: "ryvr.workflow.v1",
+      const v2Template: WorkflowTemplateV2 = {
+        schema_version: "ryvr.workflow.v1" as const,
         name: workflow.name,
         description: workflow.description || '',
         category: "general",
@@ -109,7 +110,7 @@ export default function WorkflowsPage() {
           input: { bindings: node.data || {} }
         })) || [],
         execution: {
-          execution_mode: "simulate",
+          execution_mode: "simulate" as const,
           dry_run: true
         }
       };
@@ -121,16 +122,17 @@ export default function WorkflowsPage() {
         
         // Update the workflows list with the saved template
         setWorkflows(prev => {
-          const existingIndex = prev.findIndex(w => w.id === result.template!.id.toString());
+          const template = result.template!;
+          const existingIndex = prev.findIndex(w => w.id === template.id?.toString());
           const workflowSummary: WorkflowSummary = {
-            id: result.template!.id.toString(),
-            name: result.template!.name,
-            description: result.template!.description || '',
+            id: template.id?.toString() || '',
+            name: template.name,
+            description: template.description || '',
             isActive: true,
-            nodes: result.template!.workflow_config?.steps || [],
+            nodes: template.steps || [],
             successRate: 0,
-            createdAt: result.template!.created_at || new Date().toISOString(),
-            tags: result.template!.tags || [],
+            createdAt: template.created_at || new Date().toISOString(),
+            tags: template.tags || [],
             executionCount: 0,
           };
         
