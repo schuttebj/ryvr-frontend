@@ -56,7 +56,6 @@ import {
   ListAlt as StepsIcon,
   TrendingUp as MetricsIcon
 } from '@mui/icons-material';
-import { workflowApi } from '../services/workflowApi';
 
 interface WorkflowRun {
   id: string;
@@ -170,9 +169,9 @@ export const WorkflowRunsPage: React.FC = () => {
         completedAt: endTime.toISOString(),
         duration,
         results: result.results || [],
-        finalResult: result.results?.[result.results.length - 1]?.data,
+        finalResult: (result.results as any)?.[result.results.length - 1]?.data,
         error: result.error,
-        successfulNodes: result.results?.filter((r: any) => r.success).length || 0
+        successfulNodes: (result.results as any)?.filter((r: any) => r.success).length || 0
       };
 
       const finalRuns = runs.map(r => r.id === runId ? completedRun : r);

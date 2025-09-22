@@ -51,7 +51,6 @@ import {
   Speed as PerformanceIcon,
   AccessTime as TimeIcon,
 } from '@mui/icons-material';
-import { workflowApi } from '../../services/workflowApi';
 import { WorkflowNodeType } from '../../types/workflow';
 
 interface WorkflowExecutionStep {
@@ -138,14 +137,6 @@ export default function WorkflowExecutionPanel({ nodes, edges, open, onClose }: 
 
     try {
       // Create a proper workflow object with edges
-      const workflowData = {
-        id: `temp_workflow_${Date.now()}`,
-        name: 'Test Execution',
-        nodes: nodes,
-        edges: edges || [], // Include edges for proper flow order
-        isActive: true
-      };
-
       addLogMessage(`📋 Executing workflow with ${nodes.length} nodes and ${edges.length} edges...`);
       addLogMessage(`🔗 Flow order will be determined by node connections`);
 
