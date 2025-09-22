@@ -1,27 +1,17 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
   Box,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Chip,
   TextField,
   Alert,
   IconButton,
   Tooltip,
   Paper,
-  Badge,
-  Divider,
   useTheme,
-  Stack,
   List,
-  ListItem,
   ListItemText,
   ListItemIcon,
   ListItemButton,
@@ -33,9 +23,6 @@ import {
   ContentCopy as CopyIcon,
   Close as CloseIcon,
   Code as CodeIcon,
-  List as ListIcon,
-  DataObject as JsonIcon,
-  Filter as FilterIcon,
   CheckCircle,
   Storage as DataIcon,
 } from '@mui/icons-material';
@@ -44,7 +31,6 @@ interface VariableSelectorProps {
   open: boolean;
   onClose: () => void;
   onInsert: (variable: string) => void;
-  availableData?: Record<string, any>;
   position?: 'dialog' | 'panel';
   sx?: any;
 }
@@ -53,20 +39,16 @@ export default function VariableSelector({
   open,
   onClose,
   onInsert,
-  availableData,
   position = 'dialog',
   sx = {},
 }: VariableSelectorProps) {
   const theme = useTheme();
-  const [selectedFormat, setSelectedFormat] = useState<'single' | 'list' | 'json' | 'range'>('single');
   const [selectedPath, setSelectedPath] = useState('');
   const [navigationPath, setNavigationPath] = useState<string[]>([]);
   const [currentData, setCurrentData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
-  const [rangeStart, setRangeStart] = useState(0);
-  const [rangeEnd, setRangeEnd] = useState(0);
-
+  
   // Enhanced setSelectedPath with logging
   const setSelectedPathWithLogging = (path: string) => {
     console.log('🎯 Setting selected path:', path);
@@ -106,9 +88,9 @@ export default function VariableSelector({
     setNavigationPath(newPath);
     
     // Navigate to the data at that path
-    let data = realNodeData;
+    let data: any = realNodeData;
     for (const pathSegment of newPath) {
-      data = data?.[pathSegment];
+      data = data?.[pathSegment as keyof typeof data];
     }
     setCurrentData(data);
   };
@@ -166,7 +148,7 @@ export default function VariableSelector({
           <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <DataIcon color="primary" />
             {position === 'panel' ? 'Data Browser' : 'Variable Selector'}
-          </Typography>
+                      </Typography>
           <IconButton 
             onClick={onClose}
             size="small"
@@ -177,13 +159,13 @@ export default function VariableSelector({
         </Box>
 
         {/* Search */}
-        <TextField
+            <TextField
           placeholder="Search properties..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
           size="small"
-          fullWidth
-          sx={{ mb: 2 }}
+              fullWidth
+              sx={{ mb: 2 }}
         />
 
         {/* Breadcrumb Navigation */}
@@ -203,7 +185,7 @@ export default function VariableSelector({
             >
               Root
             </Link>
-            {navigationPath.map((segment, index) => (
+            {navigationPath.map((segment: string, index: number) => (
               <Link
                 key={index}
                 component="button"
@@ -221,7 +203,7 @@ export default function VariableSelector({
             ))}
           </Breadcrumbs>
         )}
-      </Box>
+        </Box>
 
       {/* Content */}
       <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
@@ -230,7 +212,7 @@ export default function VariableSelector({
             {navigationPath.length === 0 ? (
               // Root level - show nodes
               <List dense>
-                {realNodeData.map((node) => (
+                {realNodeData.map((node: any) => (
                   <ListItemButton
                     key={node.nodeId}
                     onClick={() => navigateToProperty(node.nodeId, node)}
@@ -248,7 +230,7 @@ export default function VariableSelector({
                     }}
                   >
                     <ListItemIcon>
-                      <CheckCircle color="success" fontSize="small" />
+                    <CheckCircle color="success" fontSize="small" />
                     </ListItemIcon>
                     <ListItemText
                       primary={node.nodeId}
@@ -296,7 +278,7 @@ export default function VariableSelector({
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
                               {property}
-                            </Typography>
+                    </Typography>
                             <Chip 
                               label={type} 
                               size="small" 
@@ -318,7 +300,7 @@ export default function VariableSelector({
                             }}
                           >
                             {preview}
-                          </Typography>
+                    </Typography>
                         }
                       />
                       {isExpandable && (
@@ -353,24 +335,24 @@ export default function VariableSelector({
             <Typography variant="subtitle2" sx={{ mb: 1, color: theme.palette.primary.main }}>
               Selected Variable
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ 
                 fontFamily: 'monospace', 
                 fontWeight: 'bold',
                 color: theme.palette.text.primary 
               }}>
                 {`{{${selectedPath}}}`}
-              </Typography>
-              <Tooltip title="Copy variable">
-                <IconButton
-                  size="small"
+                </Typography>
+                <Tooltip title="Copy variable">
+                  <IconButton
+                    size="small"
                   onClick={() => navigator.clipboard.writeText(`{{${selectedPath}}}`)}
-                >
-                  <CopyIcon />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          </Paper>
+                  >
+                    <CopyIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Paper>
         )}
       </Box>
 
@@ -383,20 +365,20 @@ export default function VariableSelector({
           justifyContent: 'flex-end',
           gap: 1
         }}>
-          <Button onClick={onClose}>Cancel</Button>
-          <Button 
+        <Button onClick={onClose}>Cancel</Button>
+        <Button 
             onClick={() => {
               if (selectedPath) {
                 onInsert(`{{${selectedPath}}}`);
                 onClose();
               }
             }} 
-            variant="contained" 
-            disabled={!selectedPath}
-            startIcon={<CodeIcon />}
-          >
-            Insert Variable
-          </Button>
+          variant="contained" 
+          disabled={!selectedPath}
+          startIcon={<CodeIcon />}
+        >
+          Insert Variable
+        </Button>
         </Box>
       )}
     </Box>
@@ -417,4 +399,4 @@ export default function VariableSelector({
       <VariableSelectorContent />
     </Dialog>
   );
-}
+} 
