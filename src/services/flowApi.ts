@@ -87,6 +87,11 @@ export class FlowApiService {
       limit?: number;
     } = {}
   ): Promise<FlowListResponse> {
+    // Validate businessId is a number
+    if (!businessId || isNaN(businessId) || businessId <= 0) {
+      throw new Error(`Invalid business ID: ${businessId}. Must be a positive number.`);
+    }
+    
     const params = new URLSearchParams();
     if (options.status) params.append('status', options.status);
     if (options.skip !== undefined) params.append('skip', options.skip.toString());

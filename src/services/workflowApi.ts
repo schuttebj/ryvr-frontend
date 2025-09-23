@@ -1257,7 +1257,7 @@ export const workflowApi = {
             successRate: 0,
             lastExecuted: null,
             // Convert V2 steps to V1 nodes format
-            nodes: template.steps?.map((step, index) => {
+            nodes: (template.workflow_config?.steps || template.steps)?.map((step, index) => {
               // Try to restore original position if saved, otherwise auto-layout
               const savedPosition = step.input?.bindings?.position;
               const position = savedPosition || { x: 100 + (index * 200), y: 100 + (index * 150) };
@@ -1279,7 +1279,7 @@ export const workflowApi = {
             }) || [],
             // Create basic edges connecting sequential steps
             // Note: V2 uses depends_on for connections, V1 uses source/target edges
-            edges: template.steps?.reduce((edges: any[], step, index) => {
+            edges: (template.workflow_config?.steps || template.steps)?.reduce((edges: any[], step, index) => {
               if (step.depends_on && step.depends_on.length > 0) {
                 // Create edges based on dependencies
                 const stepEdges = step.depends_on.map((dep: string, depIndex: number) => ({
@@ -1291,7 +1291,8 @@ export const workflowApi = {
                 return [...edges, ...stepEdges];
               } else if (index > 0) {
                 // Default sequential connection for steps without explicit dependencies
-                const prevStep = template.steps![index - 1];
+                const steps = template.workflow_config?.steps || template.steps || [];
+                const prevStep = steps[index - 1];
                 return [...edges, {
                   id: `edge_${index - 1}_${index}`,
                   source: prevStep.id || `node_${index - 1}`,

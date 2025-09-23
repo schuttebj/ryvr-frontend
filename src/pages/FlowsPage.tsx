@@ -97,19 +97,28 @@ export default function FlowsPage() {
   };
   
   const loadFlows = async () => {
-    if (!selectedBusiness) return;
+    if (!selectedBusiness) {
+      setError('No business selected');
+      return;
+    }
+    
+    if (!selectedBusiness.id || isNaN(selectedBusiness.id)) {
+      setError(`Invalid business ID: ${selectedBusiness.id}`);
+      return;
+    }
     
     setLoading(true);
     setError(null);
     
     try {
+      console.log('Loading flows for business:', selectedBusiness);
       const response = await FlowApiService.getFlows(selectedBusiness.id, {
         limit: 100 // Load all flows for now
       });
       setFlows(response.flows);
     } catch (err) {
       console.error('Error loading flows:', err);
-      setError('Failed to load flows');
+      setError(`Failed to load flows: ${(err as Error).message}`);
     } finally {
       setLoading(false);
     }
