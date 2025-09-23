@@ -231,13 +231,33 @@ export default function VariableTransformationPanel({
     }
   }, [selectedPaths]); // Only depend on selectedPaths to avoid loops
   
-  // Generate array iteration variables
-  const generateArrayIterationVariables = (basePath: string, property: string, count: number) => {
+  // Generate array iteration variables by incrementing the LAST numeric index
+  const generateArrayIterationVariables = (originalPath: string, count: number) => {
     const variables = [];
+    const parts = originalPath.split('.');
+    let lastNumericIndex = -1;
+    
+    // Find the LAST numeric part
+    for (let i = parts.length - 1; i >= 0; i--) {
+      if (/^\d+$/.test(parts[i])) {
+        lastNumericIndex = i;
+        break;
+      }
+    }
+    
+    if (lastNumericIndex === -1) {
+      console.warn('No numeric index found in path for array iteration');
+      return `{{${originalPath} ?? ""}}`;
+    }
+    
+    // Generate variables by incrementing the last numeric index
     for (let i = 0; i < count; i++) {
-      const fullPath = property ? `${basePath}.${i}.${property}` : `${basePath}.${i}`;
+      const newParts = [...parts];
+      newParts[lastNumericIndex] = i.toString();
+      const fullPath = newParts.join('.');
       variables.push(`{{${fullPath} ?? ""}}`);
     }
+    
     return variables.join(' + ');
   };
 
@@ -317,8 +337,8 @@ export default function VariableTransformationPanel({
     if (selectedPaths.length === 0) return '';
 
     // Check for array iteration mode
-    if (arrayIteration.enabled && arrayIteration.basePath && arrayIteration.property) {
-      return generateArrayIterationVariables(arrayIteration.basePath, arrayIteration.property, arrayIteration.count);
+    if (arrayIteration.enabled && selectedPaths.length > 0) {
+      return generateArrayIterationVariables(selectedPaths[0], arrayIteration.count);
     }
 
     if (transformations.length === 0) {
@@ -661,103 +681,93 @@ export default function VariableTransformationPanel({
             
             {arrayIteration.enabled && (
               <Box sx={{ mb: 2 }}>
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  <Typography variant="caption">
+                    <strong>⚠️ Auto-detection is not working properly for this data structure.</strong><br />
+                    The system detected the wrong array level. Use the simple number input below to specify how many items you want to generate.
+                  </Typography>
+                </Alert>
+                
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <TextField
-                    label="Items to Generate"
+                    label="Number of Items"
                     type="number"
                     size="small"
                     value={arrayIteration.count}
                     onChange={(e) => setArrayIteration(prev => ({ 
                       ...prev, 
-                      count: Math.min(Math.max(1, parseInt(e.target.value) || 1), 20) // Allow up to 20 items
+                      count: Math.min(Math.max(1, parseInt(e.target.value) || 1), 20)
                     }))}
                     inputProps={{ min: 1, max: 20 }}
                     sx={{ width: 150 }}
+                    helperText="Enter the actual number of items"
                   />
-                  <Typography variant="caption" color="text.secondary">
-                    Auto-detected: {arrayPattern.arrayLength} | Max: 20
-                  </Typography>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                      Common sizes:
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      {[5, 10, 15, 20].map(count => (
+                        <Button
+                          key={count}
+                          size="small"
+                          variant={arrayIteration.count === count ? "contained" : "outlined"}
+                          onClick={() => setArrayIteration(prev => ({ ...prev, count }))}
+                          sx={{ minWidth: 'auto', px: 1 }}
+                        >
+                          {count}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Box>
                 </Box>
                 
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="secondary"
-                    onClick={() => {
-                      const customCount = prompt(
-                        `Auto-detection found ${arrayPattern.arrayLength} items.\n\nIf you know there are more items in this array, enter the actual count:`, 
-                        arrayIteration.count.toString()
-                      );
-                      if (customCount && !isNaN(parseInt(customCount))) {
-                        const count = Math.min(Math.max(1, parseInt(customCount)), 20);
-                        setArrayIteration(prev => ({ ...prev, count }));
-                      }
-                    }}
-                  >
-                    ✏️ Manual Override
-                  </Button>
-                  
-                  {arrayPattern.arrayLength === 1 && (
-                    <Button
-                      size="small"
-                      variant="contained"
-                      color="info"
-                      onClick={() => {
-                        // Common array sizes for quick selection
-                        const suggestions = [5, 10, 15, 20];
-                        const choice = prompt(
-                          `Quick selection for common array sizes:\n\n` +
-                          `${suggestions.map((s, i) => `${i + 1}. ${s} items`).join('\n')}\n\n` +
-                          `Enter number (1-4) or custom count:`,
-                          '1'
-                        );
-                        
-                        if (choice) {
-                          const choiceNum = parseInt(choice);
-                          let count;
-                          if (choiceNum >= 1 && choiceNum <= 4) {
-                            count = suggestions[choiceNum - 1];
-                          } else if (!isNaN(choiceNum)) {
-                            count = Math.min(Math.max(1, choiceNum), 20);
-                          }
-                          
-                          if (count) {
-                            setArrayIteration(prev => ({ ...prev, count }));
-                          }
-                        }
-                      }}
-                    >
-                      🚀 Quick Select
-                    </Button>
-                  )}
-                </Box>
-                
-                <Alert severity="info" sx={{ mb: 1 }}>
+                <Alert severity="info">
                   <Typography variant="caption">
-                    <strong>Will generate {arrayIteration.count} variables:</strong><br />
-                    {Array.from({ length: Math.min(arrayIteration.count, 3) }, (_, i) => (
-                      <span key={i}>
-                        • <code>{arrayPattern.basePath}.{i}.{arrayPattern.property}</code><br />
-                      </span>
-                    ))}
-                    {arrayIteration.count > 3 && (
-                      <span>• <em>... ({arrayIteration.count - 3} more)</em><br /></span>
-                    )}
-                    {arrayIteration.count > 1 && (
-                      <span>• <code>{arrayPattern.basePath}.{arrayIteration.count - 1}.{arrayPattern.property}</code></span>
-                    )}
+                    <strong>This will generate variables by incrementing the LAST numeric index in your selected path.</strong><br />
+                    <br />
+                    Your selection: <code>{selectedPaths[0]}</code><br />
+                    <br />
+                    Generated variables will be:<br />
+                    {(() => {
+                      // Find the last numeric index in the path and increment it
+                      const originalPath = selectedPaths[0];
+                      const parts = originalPath.split('.');
+                      let lastNumericIndex = -1;
+                      
+                      // Find the LAST numeric part
+                      for (let i = parts.length - 1; i >= 0; i--) {
+                        if (/^\d+$/.test(parts[i])) {
+                          lastNumericIndex = i;
+                          break;
+                        }
+                      }
+                      
+                      if (lastNumericIndex === -1) {
+                        return "⚠️ No numeric index found in path";
+                      }
+                      
+                      // Generate examples
+                      const examples = [];
+                      for (let i = 0; i < Math.min(arrayIteration.count, 3); i++) {
+                        const newParts = [...parts];
+                        newParts[lastNumericIndex] = i.toString();
+                        examples.push(newParts.join('.'));
+                      }
+                      
+                      if (arrayIteration.count > 3) {
+                        examples.push(`... (${arrayIteration.count - 3} more) ...`);
+                        const newParts = [...parts];
+                        newParts[lastNumericIndex] = (arrayIteration.count - 1).toString();
+                        examples.push(newParts.join('.'));
+                      }
+                      
+                      return examples.map((example, i) => (
+                        <span key={i}>• <code>{example}</code><br /></span>
+                      ));
+                    })()}
                   </Typography>
                 </Alert>
-                
-                {arrayPattern.arrayLength === 1 && arrayIteration.count > 1 && (
-                  <Alert severity="warning">
-                    <Typography variant="caption">
-                      ⚠️ <strong>Note:</strong> Auto-detection found only 1 item, but you're generating {arrayIteration.count} variables. 
-                      Make sure your API actually returns {arrayIteration.count} items in this array.
-                    </Typography>
-                  </Alert>
-                )}
               </Box>
             )}
           </Paper>
