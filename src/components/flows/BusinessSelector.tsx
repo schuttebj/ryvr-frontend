@@ -5,7 +5,6 @@
  * Shows business context information and allows easy switching
  */
 
-import React from 'react';
 import {
   FormControl,
   Select,

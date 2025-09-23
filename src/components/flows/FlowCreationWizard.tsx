@@ -7,7 +7,7 @@
  * 3. Review & Create
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -21,10 +21,8 @@ import {
   Box,
   Card,
   CardContent,
-  CardActions,
   TextField,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   Chip,
@@ -32,13 +30,11 @@ import {
   Alert,
   LinearProgress,
   IconButton,
-  Tooltip,
   useTheme,
   alpha,
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Visibility as PreviewIcon,
   PlayArrow as StartIcon,
   AutoAwesome as AIIcon,
   CheckCircle as CheckIcon,
