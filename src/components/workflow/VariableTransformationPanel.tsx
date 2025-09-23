@@ -82,92 +82,110 @@ export default function VariableTransformationPanel({
     const path = paths[0];
     const parts = path.split('.');
     
-    // Look for pattern like "items.0.url" or "results.0.items.1.title"
+    console.log(`🔄 ===== FIXED ARRAY DETECTION =====`);
+    console.log(`🔄 Full path: ${path}`);
+    console.log(`🔄 Path parts:`, parts);
+    
+    // Find ALL numeric indices in the path
+    const numericIndices = [];
     for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (/^\d+$/.test(part)) { // This part is a numeric index
-        const basePath = parts.slice(0, i).join('.');
-        const property = parts.slice(i + 1).join('.');
-        
-        // Check if the base path points to an array
-        const pathParts = basePath.split('.');
-        let current = availableData;
-        
-        console.log(`🔄 Array detection - checking basePath: ${basePath}, pathParts:`, pathParts);
-        console.log(`🔄 Available data keys:`, Object.keys(availableData));
-        console.log(`🔄 Full selected path: ${path}`);
-        
-        for (const pathPart of pathParts) {
-          current = current?.[pathPart];
-          console.log(`🔄 Array detection step: ${pathPart} → `, current);
-        }
-        
-        if (Array.isArray(current)) {
-          console.log(`🔄 Array detected at "${basePath}"! Length: ${current.length}`);
-          console.log(`🔄 Array contents preview:`, current.slice(0, 3)); // Show first 3 items
-          
-          // Collect all possible array configurations
-          const arrayConfigurations = [{
-            basePath,
-            arrayLength: current.length,
-            property,
-            currentIndex: parseInt(part),
-            fullPath: path,
-            depth: basePath.split('.').length
-          }];
-          
-          // Check if this might be a nested array structure
-          if (current.length > 0 && current[0] && typeof current[0] === 'object') {
-            const firstItem = current[0];
-            console.log(`🔄 First array item structure:`, Object.keys(firstItem));
-            
-            // Look for nested arrays that might contain the actual data
-            Object.keys(firstItem).forEach(key => {
-              if (Array.isArray(firstItem[key])) {
-                console.log(`🔄 Found nested array at key "${key}" with length:`, firstItem[key].length);
-                console.log(`🔄 Nested array sample:`, firstItem[key].slice(0, 2));
-                
-                // Check if the current property path includes this key (correct path match)
-                if (property.includes(key + '.')) {
-                  const adjustedBasePath = `${basePath}.0.${key}`;
-                  const adjustedProperty = property.substring(property.indexOf(key + '.') + key.length + 1);
-                  
-                  console.log(`🔄 ✨ Found nested array option:`);
-                  console.log(`🔄    Nested: ${adjustedBasePath} (${firstItem[key].length} items) → ${adjustedProperty}`);
-                  
-                  arrayConfigurations.push({
-                    basePath: adjustedBasePath,
-                    arrayLength: firstItem[key].length,
-                    property: adjustedProperty,
-                    currentIndex: 0,
-                    fullPath: path,
-                    depth: adjustedBasePath.split('.').length
-                  });
-                }
-              }
-            });
-          }
-          
-          // Choose the best configuration: most items first, then deepest path
-          const bestConfig = arrayConfigurations.reduce((best, current) => {
-            if (current.arrayLength > best.arrayLength) return current;
-            if (current.arrayLength === best.arrayLength && current.depth > best.depth) return current;
-            return best;
-          });
-          
-          console.log(`🔄 ✅ Selected array configuration:`, {
-            basePath: bestConfig.basePath,
-            arrayLength: bestConfig.arrayLength,
-            property: bestConfig.property,
-            reason: `${bestConfig.arrayLength} items, depth ${bestConfig.depth}`,
-            alternatives: arrayConfigurations.length - 1
-          });
-          
-          return bestConfig;
-        }
+      if (/^\d+$/.test(parts[i])) {
+        numericIndices.push({
+          index: i,
+          value: parts[i],
+          basePath: parts.slice(0, i).join('.'),
+          property: parts.slice(i + 1).join('.')
+        });
       }
     }
-    return null;
+    
+    console.log(`🔄 Found ${numericIndices.length} numeric indices:`, numericIndices);
+    
+    if (numericIndices.length === 0) {
+      console.log(`🔄 No numeric indices found`);
+      return null;
+    }
+    
+    // Check each numeric index to find valid arrays, prioritizing simple properties
+    const validConfigurations = [];
+    
+    for (const numericIndex of numericIndices) {
+      const pathParts = numericIndex.basePath.split('.');
+      let current = availableData;
+      
+      console.log(`🔄 Checking array at: "${numericIndex.basePath}"`);
+      console.log(`🔄 Property after: "${numericIndex.property}"`);
+      
+      // Navigate to check if this is a valid array
+      let isValidPath = true;
+      for (const pathPart of pathParts) {
+        current = current?.[pathPart];
+        if (current === undefined || current === null) {
+          console.log(`🔄   Invalid path at: ${pathPart}`);
+          isValidPath = false;
+          break;
+        }
+      }
+      
+      if (isValidPath && Array.isArray(current)) {
+        const propertyParts = numericIndex.property.split('.');
+        const isSimpleProperty = propertyParts.length === 1; // Like "url"
+        const hasMoreIndices = propertyParts.some(part => /^\d+$/.test(part));
+        
+        console.log(`🔄 ✅ Valid array at "${numericIndex.basePath}" (${current.length} items)`);
+        console.log(`🔄   Property: "${numericIndex.property}" → ${isSimpleProperty ? 'SIMPLE' : 'COMPLEX'}`);
+        
+        validConfigurations.push({
+          basePath: numericIndex.basePath,
+          arrayLength: current.length,
+          property: numericIndex.property,
+          currentIndex: parseInt(numericIndex.value),
+          fullPath: path,
+          depth: pathParts.length,
+          isSimpleProperty,
+          hasMoreIndices,
+          priority: isSimpleProperty ? 100 : (50 - propertyParts.length) // Higher priority for simple properties
+        });
+      }
+    }
+    
+    if (validConfigurations.length === 0) {
+      console.log(`🔄 ❌ No valid array configurations found`);
+      return null;
+    }
+    
+    // Sort by priority: simple properties first, then by array length, then by depth
+    validConfigurations.sort((a, b) => {
+      // First: prioritize simple properties
+      if (a.isSimpleProperty && !b.isSimpleProperty) return -1;
+      if (!a.isSimpleProperty && b.isSimpleProperty) return 1;
+      
+      // Second: prioritize arrays with more items
+      if (a.arrayLength !== b.arrayLength) return b.arrayLength - a.arrayLength;
+      
+      // Third: prioritize deeper paths
+      return b.depth - a.depth;
+    });
+    
+    const bestConfig = validConfigurations[0];
+    
+    console.log(`🔄 ✅ SELECTED BEST configuration:`, {
+      basePath: bestConfig.basePath,
+      arrayLength: bestConfig.arrayLength,
+      property: bestConfig.property,
+      isSimpleProperty: bestConfig.isSimpleProperty,
+      reason: `${bestConfig.arrayLength} items, ${bestConfig.isSimpleProperty ? 'simple property' : 'complex property'}, depth ${bestConfig.depth}`,
+      totalOptions: validConfigurations.length
+    });
+    
+    console.log(`🔄 All configurations found:`, validConfigurations.map(c => ({
+      basePath: c.basePath,
+      property: c.property,
+      arrayLength: c.arrayLength,
+      isSimple: c.isSimpleProperty
+    })));
+    
+    return bestConfig;
   };
 
   // Array iteration settings
@@ -681,12 +699,56 @@ export default function VariableTransformationPanel({
             
             {arrayIteration.enabled && (
               <Box sx={{ mb: 2 }}>
-                <Alert severity="warning" sx={{ mb: 2 }}>
-                  <Typography variant="caption">
-                    <strong>⚠️ Auto-detection is not working properly for this data structure.</strong><br />
-                    The system detected the wrong array level. Use the simple number input below to specify how many items you want to generate.
-                  </Typography>
-                </Alert>
+                {(() => {
+                  // Check for common path issues
+                  const originalPath = selectedPaths[0];
+                  const parts = originalPath.split('.');
+                  
+                  // Look for pattern like "items.0.items.0.url" which should be "items.0.url"
+                  let suggestedPath = null;
+                  let issue = null;
+                  
+                  // Find sequences like ".items.0.items" which might be wrong
+                  for (let i = 0; i < parts.length - 3; i++) {
+                    if (parts[i] === 'items' && /^\d+$/.test(parts[i + 1]) && parts[i + 2] === 'items' && /^\d+$/.test(parts[i + 3])) {
+                      // Found pattern like "items.0.items.0" - suggest removing the middle part
+                      const correctedParts = [...parts];
+                      correctedParts.splice(i + 2, 2); // Remove "items.0"
+                      suggestedPath = correctedParts.join('.');
+                      issue = "Detected possible extra nesting in path";
+                      break;
+                    }
+                  }
+                  
+                  return suggestedPath ? (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      <Typography variant="caption">
+                        <strong>🚨 Path Issue Detected!</strong><br />
+                        {issue}<br /><br />
+                        <strong>Current path:</strong> <code>{originalPath}</code><br />
+                        <strong>Suggested path:</strong> <code>{suggestedPath}</code><br /><br />
+                        <Button 
+                          size="small" 
+                          variant="contained" 
+                          color="error"
+                          onClick={() => {
+                            // This would need to be connected to the parent component to update the selected path
+                            alert(`Please reselect this path in the tree view:\n\n${suggestedPath}\n\nThen try array expansion again.`);
+                          }}
+                        >
+                          🔧 How to Fix
+                        </Button>
+                      </Typography>
+                    </Alert>
+                  ) : (
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      <Typography variant="caption">
+                        <strong>⚠️ Auto-detection is not working properly for this data structure.</strong><br />
+                        The system detected the wrong array level. Use the simple number input below to specify how many items you want to generate.
+                      </Typography>
+                    </Alert>
+                  );
+                })()}
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <TextField
