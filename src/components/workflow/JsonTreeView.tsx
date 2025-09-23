@@ -118,6 +118,14 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const [localMaxProps, setLocalMaxProps] = useState(maxProps);
   const [localMaxDepth, setLocalMaxDepth] = useState(maxDepth);
   
+  // Update local depth when parent prop changes
+  useEffect(() => {
+    if (maxDepth > localMaxDepth) {
+      console.log(`📈 TreeNode ${nodeKey} inherited depth increase: ${localMaxDepth} → ${maxDepth}`);
+      setLocalMaxDepth(maxDepth);
+    }
+  }, [maxDepth, localMaxDepth, nodeKey]);
+  
   // Debug logging for state changes
   useEffect(() => {
     if (level <= 1) { // Only log for top-level nodes to avoid spam
@@ -135,20 +143,21 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   
   // Simplified circular reference detection - only check if we're getting too deep
   const shouldSkipCircular = useMemo(() => {
-    if (level > 6 || typeof value !== 'object' || value === null) return level > 6;
+    if (level > localMaxDepth || typeof value !== 'object' || value === null) return level > localMaxDepth;
     
     // Quick check for obvious circular references
     if (value === globalThis || value === window || value === document) return true;
     
     return false;
-  }, [value, level]);
+  }, [value, level, localMaxDepth]);
 
   // Early return for circular references or too deep nesting
   if (shouldSkipCircular) {
+    console.log(`🛑 Early skip for ${nodeKey} - level: ${level}, maxDepth: ${localMaxDepth}, reason: ${level > localMaxDepth ? 'depth' : 'circular'}`);
     return (
       <Box sx={{ p: 1, color: 'warning.main' }}>
         <Typography variant="caption">
-          {level > 6 ? 'Max depth reached' : 'Circular reference detected'} - click to expand manually
+          {level > localMaxDepth ? `Depth limit reached (${level}/${localMaxDepth})` : 'Circular reference detected'} - use Load Deeper button
         </Typography>
       </Box>
     );
@@ -301,10 +310,11 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
               try {
                 // Prevent rendering too deep to avoid memory issues
                 if (level >= localMaxDepth) {
+                  console.log(`🛑 Max depth reached for ${nodeKey} at level ${level}, maxDepth: ${localMaxDepth}`);
                   return (
                     <Box sx={{ p: 1 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                        Max depth reached ({localMaxDepth} levels)
+                        Max depth reached ({localMaxDepth} levels) - Level {level}
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                         <Button
@@ -314,8 +324,9 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                           onClick={(e) => {
                             e.stopPropagation(); // Prevent interfering with expand/collapse
                             e.preventDefault();
-                            console.log(`🔄 Increasing depth limit for this branch from ${localMaxDepth} to ${localMaxDepth + 3}`);
-                            setLocalMaxDepth(prev => prev + 3);
+                            const newDepth = localMaxDepth + 3;
+                            console.log(`🔄 Increasing depth limit for this branch from ${localMaxDepth} to ${newDepth}`);
+                            setLocalMaxDepth(newDepth);
                           }}
                           sx={{ 
                             fontSize: '0.7rem', 
@@ -360,7 +371,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                         
                         return (
                           <TreeNode
-                            key={itemKey}
+                            key={`${itemKey}_depth_${localMaxDepth}`} // Force re-render when depth changes
                             nodeKey={`[${index}]`}
                             value={item}
                             path={itemPath}
@@ -425,7 +436,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                         
                         return (
                           <TreeNode
-                            key={propKey}
+                            key={`${propKey}_depth_${localMaxDepth}`} // Force re-render when depth changes
                             nodeKey={key}
                             value={val}
                             path={propPath}
