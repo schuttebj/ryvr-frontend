@@ -20,6 +20,7 @@ import {
   useTheme,
   Switch,
   FormControlLabel,
+  GlobalStyles,
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -102,9 +103,18 @@ export default function VariableTransformationPanel({
         }
         
         if (Array.isArray(current)) {
-          console.log(`🔄 Array detected! Length: ${current.length}`);
+          console.log(`🔄 Array detected at "${basePath}"! Length: ${current.length}`);
           console.log(`🔄 Array contents preview:`, current.slice(0, 3)); // Show first 3 items
-          console.log(`🔄 Full array structure:`, current);
+          
+          // Collect all possible array configurations
+          const arrayConfigurations = [{
+            basePath,
+            arrayLength: current.length,
+            property,
+            currentIndex: parseInt(part),
+            fullPath: path,
+            depth: basePath.split('.').length
+          }];
           
           // Check if this might be a nested array structure
           if (current.length > 0 && current[0] && typeof current[0] === 'object') {
@@ -117,23 +127,43 @@ export default function VariableTransformationPanel({
                 console.log(`🔄 Found nested array at key "${key}" with length:`, firstItem[key].length);
                 console.log(`🔄 Nested array sample:`, firstItem[key].slice(0, 2));
                 
-                // Check if this nested array has more items than the parent
-                if (firstItem[key].length > current.length) {
-                  console.log(`⚠️ NESTED ARRAY HAS MORE ITEMS! Consider using: ${basePath}.0.${key} (${firstItem[key].length} items vs ${current.length})`);
-                  console.log(`⚠️ Your selected path was: ${path}`);
-                  console.log(`⚠️ Consider selecting from: ${basePath}.0.${key}.0.{propertyName} instead`);
+                // Check if the current property path includes this key (correct path match)
+                if (property.includes(key + '.')) {
+                  const adjustedBasePath = `${basePath}.0.${key}`;
+                  const adjustedProperty = property.substring(property.indexOf(key + '.') + key.length + 1);
+                  
+                  console.log(`🔄 ✨ Found nested array option:`);
+                  console.log(`🔄    Nested: ${adjustedBasePath} (${firstItem[key].length} items) → ${adjustedProperty}`);
+                  
+                  arrayConfigurations.push({
+                    basePath: adjustedBasePath,
+                    arrayLength: firstItem[key].length,
+                    property: adjustedProperty,
+                    currentIndex: 0,
+                    fullPath: path,
+                    depth: adjustedBasePath.split('.').length
+                  });
                 }
               }
             });
           }
           
-          return {
-            basePath,
-            arrayLength: current.length,
-            property,
-            currentIndex: parseInt(part),
-            fullPath: path
-          };
+          // Choose the best configuration: most items first, then deepest path
+          const bestConfig = arrayConfigurations.reduce((best, current) => {
+            if (current.arrayLength > best.arrayLength) return current;
+            if (current.arrayLength === best.arrayLength && current.depth > best.depth) return current;
+            return best;
+          });
+          
+          console.log(`🔄 ✅ Selected array configuration:`, {
+            basePath: bestConfig.basePath,
+            arrayLength: bestConfig.arrayLength,
+            property: bestConfig.property,
+            reason: `${bestConfig.arrayLength} items, depth ${bestConfig.depth}`,
+            alternatives: arrayConfigurations.length - 1
+          });
+          
+          return bestConfig;
         }
       }
     }
@@ -164,15 +194,25 @@ export default function VariableTransformationPanel({
       const isNewPattern = arrayIteration.basePath !== arrayPattern.basePath || 
                           arrayIteration.property !== arrayPattern.property;
       const isBetterLength = arrayPattern.arrayLength > arrayIteration.count;
+      const isSignificantlyBetter = arrayPattern.arrayLength > 1 && arrayIteration.count <= 1;
       
-      if (isNewPattern || isBetterLength) {
-        console.log(`🔄 Updating array iteration: ${isNewPattern ? 'new pattern' : 'better length'}`);
+      if (isNewPattern || isBetterLength || isSignificantlyBetter) {
+        const reason = isNewPattern ? 'new pattern' : 
+                      isSignificantlyBetter ? 'significantly better array' : 
+                      'better length';
+        console.log(`🔄 Updating array iteration: ${reason}`);
+        console.log(`🔄   Previous: ${arrayIteration.basePath} (count: ${arrayIteration.count})`);
+        console.log(`🔄   New: ${arrayPattern.basePath} (length: ${arrayPattern.arrayLength})`);
+        
         setArrayIteration(prev => ({
           ...prev,
           basePath: arrayPattern.basePath,
           property: arrayPattern.property,
-          // Use the detected array length if it's higher, otherwise keep current count but cap at array length
-          count: Math.min(Math.max(arrayPattern.arrayLength, prev.count, 1), arrayPattern.arrayLength)
+          // For new patterns or significantly better arrays, use the full array length
+          // Otherwise, use the higher of current count or array length
+          count: isNewPattern || isSignificantlyBetter ? 
+                Math.min(arrayPattern.arrayLength, 10) : // Cap at 10 for performance
+                Math.min(Math.max(arrayPattern.arrayLength, prev.count, 1), arrayPattern.arrayLength)
         }));
       } else {
         console.log(`🔄 Array pattern unchanged, keeping current state`);
@@ -461,6 +501,31 @@ export default function VariableTransformationPanel({
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Global CSS to fix dropdown z-index - targeting the specific classes mentioned by user */}
+      <GlobalStyles
+        styles={{
+          '.MuiPopover-root.MuiMenu-root.MuiModal-root': {
+            zIndex: '2000000 !important',
+          },
+          '.MuiPopover-root': {
+            zIndex: '2000000 !important',
+          },
+          '.MuiMenu-root': {
+            zIndex: '2000000 !important',
+          },
+          '.MuiModal-root .MuiPopover-paper': {
+            zIndex: '2000000 !important',
+          },
+          '[role="presentation"][id^="menu-"]': {
+            zIndex: '2000000 !important',
+          },
+          // Target the exact selector the user provided
+          'div[role="presentation"][id="menu-"].MuiPopover-root.MuiMenu-root.MuiModal-root': {
+            zIndex: '2000000 !important',
+          }
+        }}
+      />
+      
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
         <TransformIcon color="primary" sx={{ mr: 1 }} />
@@ -624,7 +689,13 @@ export default function VariableTransformationPanel({
             zIndex: 2000000,
           },
           '& .MuiMenu-root': {
-            zIndex: 2000000,
+            zIndex: '2000000 !important',
+          },
+          '& .MuiPopover-root': {
+            zIndex: '2000000 !important',
+          },
+          '& .MuiModal-root': {
+            zIndex: '2000000 !important',
           },
           '& .MuiPaper-root': {
             zIndex: '2000000 !important',
