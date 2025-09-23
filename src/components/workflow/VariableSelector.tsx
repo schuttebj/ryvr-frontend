@@ -8,6 +8,7 @@ import {
   Alert,
   IconButton,
   CircularProgress,
+  Button,
   useTheme,
 } from '@mui/material';
 import {
@@ -88,11 +89,64 @@ export default function VariableSelector({
       
       const loadRealNodeData = async () => {
         try {
-          // Import once and cache the result
-          const { getAvailableDataNodes } = await import('../../services/workflowApi');
+          // Import workflowApi functions
+          const { getAvailableDataNodes, clearDataNodeCache } = await import('../../services/workflowApi');
+          
+          // Clear cache to ensure we get fresh data
+          clearDataNodeCache();
+          
           const availableNodes = getAvailableDataNodes();
+          console.log('🔍 Raw available nodes before processing:', availableNodes);
+          console.log('🔍 Available nodes count:', availableNodes.length);
+          
+          // Also try to access and display the raw globalWorkflowData
+          try {
+            const workflowApiModule = await import('../../services/workflowApi');
+            const globalData = (workflowApiModule as any).globalWorkflowData || {};
+            const globalKeys = Object.keys(globalData);
+            
+            console.log('📊 GlobalWorkflowData debug info:');
+            console.log('  Keys:', globalKeys);
+            console.log('  Number of stored nodes:', globalKeys.length);
+            
+            if (globalKeys.length > 0) {
+              globalKeys.forEach(key => {
+                const data = globalData[key];
+                console.log(`  Node ${key}:`, {
+                  nodeId: data?.nodeId,
+                  nodeType: data?.nodeType,
+                  status: data?.status,
+                  executedAt: data?.executedAt,
+                  hasData: !!data?.data?.processed
+                });
+              });
+            } else {
+              console.warn('  ⚠️ No data found in globalWorkflowData');
+            }
+          } catch (e) {
+            console.warn('Could not debug globalWorkflowData:', e);
+          }
           
           if (isMounted) {
+            // If no data, try to get it from globalWorkflowData directly
+            if (availableNodes.length === 0) {
+              console.warn('⚠️ No nodes from getAvailableDataNodes, checking globalWorkflowData...');
+              
+              // Try to access globalWorkflowData directly
+              try {
+                const workflowApiModule = await import('../../services/workflowApi');
+                const globalData = (workflowApiModule as any).globalWorkflowData || {};
+                console.log('🔍 GlobalWorkflowData contents:', globalData);
+                console.log('🔍 GlobalWorkflowData keys:', Object.keys(globalData));
+                
+                if (Object.keys(globalData).length > 0) {
+                  console.log('🔄 Found data in globalWorkflowData, but getAvailableDataNodes returned empty');
+                }
+              } catch (e) {
+                console.warn('Could not access globalWorkflowData:', e);
+              }
+            }
+            
             // Limit data size for performance - only show first 10 nodes max to prevent memory issues
             const limitedNodes = availableNodes.slice(0, 10);
             
@@ -285,6 +339,74 @@ export default function VariableSelector({
                 <Typography variant="body2">
                   No workflow data available. Run some workflow steps to see data here.
                 </Typography>
+                <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      console.log('🔄 Manual refresh triggered');
+                      setIsLoading(false); // Reset loading state to trigger reload
+                    }}
+                  >
+                    🔄 Refresh Data
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    color="secondary"
+                    onClick={async () => {
+                      console.log('🧪 Adding test data...');
+                      try {
+                        const { storeNodeResult } = await import('../../services/workflowApi');
+                        
+                        // Import WorkflowNodeType
+                        const { WorkflowNodeType } = await import('../../types/workflow');
+                        
+                        // Add sample test data
+                        const testResponse = {
+                          executionId: `test_${Date.now()}`,
+                          nodeId: 'test-node-1',
+                          nodeType: WorkflowNodeType.AI_OPENAI_TASK,
+                          status: 'success' as const,
+                          executedAt: new Date().toISOString(),
+                          executionTime: 1000,
+                          data: {
+                            processed: {
+                              analysis: "This is a sample AI analysis result for testing variables.",
+                              keywords: ["test", "variable", "data"],
+                              score: 85,
+                              metadata: {
+                                model: "gpt-4o-mini",
+                                tokens: 150
+                              }
+                            },
+                            raw: { content: "Raw test content" },
+                            summary: {
+                              nodeId: 'test-node-1',
+                              success: true,
+                              dataType: 'object'
+                            }
+                          },
+                          apiMetadata: {
+                            provider: 'Test',
+                            endpoint: 'test',
+                            requestId: `test_${Date.now()}`
+                          }
+                        };
+                        
+                        await storeNodeResult('test-node-1', testResponse);
+                        console.log('✅ Test data added successfully');
+                        
+                        // Trigger refresh
+                        setIsLoading(false);
+                      } catch (error) {
+                        console.error('Failed to add test data:', error);
+                      }
+                    }}
+                  >
+                    🧪 Add Test Data
+                  </Button>
+                </Box>
               </Alert>
             )}
           </Box>
@@ -321,13 +443,22 @@ export default function VariableSelector({
       fullWidth
       disablePortal={false}
       sx={{ 
-        zIndex: 1400, // Use Material-UI standard high z-index instead of extreme values
+        zIndex: 9999, // Higher z-index to appear above node settings panels
+        '& .MuiBackdrop-root': {
+          zIndex: 9998,
+        },
         '& .MuiDialog-paper': {
           width: '95vw',
           maxWidth: '1600px',
           height: '90vh',
           maxHeight: '900px',
           position: 'relative',
+          zIndex: 9999,
+        }
+      }}
+      BackdropProps={{
+        sx: {
+          zIndex: 9998,
         }
       }}
     >
