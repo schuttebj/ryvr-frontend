@@ -1,4 +1,4 @@
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useMemo, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -103,35 +103,64 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   level,
 }) => {
   const theme = useTheme();
-  const [expanded, setExpanded] = useState(level < 3); // Auto-expand first 3 levels
+  const [expanded, setExpanded] = useState(level < 2); // Reduce auto-expand to 2 levels for memory
   
+  // Add circular reference detection
+  const hasCircularRef = useMemo(() => {
+    if (typeof value !== 'object' || value === null) return false;
+    try {
+      JSON.stringify(value);
+      return false;
+    } catch (e) {
+      return true; // Circular reference detected
+    }
+  }, [value]);
+
+  // If circular reference detected, don't render children
+  if (hasCircularRef && level > 0) {
+    return (
+      <Box sx={{ p: 1, color: 'warning.main' }}>
+        <Typography variant="caption">
+          Circular reference detected - skipping to prevent memory leak
+        </Typography>
+      </Box>
+    );
+  }
+
   const type = getValueType(value);
   const isExpandable = type === 'object' || type === 'array';
-  const fullPath = path.join('.');
-  const isSelected = selectedPaths.includes(fullPath);
-  const nodeColor = nodeColors[path[0]] || theme.palette.primary.main;
-  const typeColor = getTypeColor(type, theme);
   
-  // Search filtering
-  const matchesSearch = searchTerm === '' || 
-    nodeKey.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (type === 'string' && String(value).toLowerCase().includes(searchTerm.toLowerCase()));
+  // Memoize expensive computations
+  const fullPath = useMemo(() => path.join('.'), [path]);
+  const isSelected = useMemo(() => selectedPaths.includes(fullPath), [selectedPaths, fullPath]);
+  const nodeColor = useMemo(() => nodeColors[path[0]] || theme.palette.primary.main, [nodeColors, path, theme.palette.primary.main]);
+  const typeColor = useMemo(() => getTypeColor(type, theme), [type, theme]);
+  
+  // Memoize search filtering
+  const matchesSearch = useMemo(() => {
+    if (searchTerm === '') return true;
+    const searchLower = searchTerm.toLowerCase();
+    return nodeKey.toLowerCase().includes(searchLower) ||
+           (type === 'string' && String(value).toLowerCase().includes(searchLower));
+  }, [searchTerm, nodeKey, type, value]);
 
+  // Early return for non-matching search results
   if (!matchesSearch && !isExpandable) {
     return null;
   }
 
-  const handleExpand = () => {
+  // Memoize event handlers
+  const handleExpand = useCallback(() => {
     if (isExpandable) {
       setExpanded(!expanded);
     }
-  };
+  }, [isExpandable, expanded]);
 
-  const handleSelect = () => {
+  const handleSelect = useCallback(() => {
     if (!isExpandable) {
       onPathToggle(fullPath);
     }
-  };
+  }, [isExpandable, onPathToggle, fullPath]);
 
   const indent = level * 20;
 
@@ -240,38 +269,85 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
         </Typography>
       </Box>
 
-      {/* Children */}
-      {isExpandable && (
+      {/* Children - Memoized and limited for memory safety */}
+      {isExpandable && expanded && (
         <Collapse in={expanded}>
           <Box>
-            {type === 'array' 
-              ? value.map((item: any, index: number) => (
-                  <TreeNode
-                    key={index}
-                    nodeKey={`[${index}]`}
-                    value={item}
-                    path={[...path, index.toString()]}
-                    selectedPaths={selectedPaths}
-                    onPathToggle={onPathToggle}
-                    nodeColors={nodeColors}
-                    searchTerm={searchTerm}
-                    level={level + 1}
-                  />
-                ))
-              : Object.entries(value).map(([key, val]) => (
-                  <TreeNode
-                    key={key}
-                    nodeKey={key}
-                    value={val}
-                    path={[...path, key]}
-                    selectedPaths={selectedPaths}
-                    onPathToggle={onPathToggle}
-                    nodeColors={nodeColors}
-                    searchTerm={searchTerm}
-                    level={level + 1}
-                  />
-                ))
-            }
+            {useMemo(() => {
+              // Prevent rendering too deep to avoid memory issues
+              if (level >= 4) {
+                return (
+                  <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                    Max depth reached - expand manually to continue
+                  </Typography>
+                );
+              }
+
+              if (type === 'array') {
+                // Limit array items to prevent memory issues
+                const maxItems = 10;
+                const limitedArray = value.slice(0, maxItems);
+                
+                return (
+                  <>
+                    {limitedArray.map((item: any, index: number) => {
+                      // Create path once and reuse
+                      const itemPath = [...path, index.toString()];
+                      return (
+                        <TreeNode
+                          key={`${fullPath}[${index}]`}
+                          nodeKey={`[${index}]`}
+                          value={item}
+                          path={itemPath}
+                          selectedPaths={selectedPaths}
+                          onPathToggle={onPathToggle}
+                          nodeColors={nodeColors}
+                          searchTerm={searchTerm}
+                          level={level + 1}
+                        />
+                      );
+                    })}
+                    {value.length > maxItems && (
+                      <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                        ... and {value.length - maxItems} more items (limited for performance)
+                      </Typography>
+                    )}
+                  </>
+                );
+              } else {
+                // Limit object properties to prevent memory issues
+                const entries = Object.entries(value);
+                const maxProps = 15;
+                const limitedEntries = entries.slice(0, maxProps);
+                
+                return (
+                  <>
+                    {limitedEntries.map(([key, val]) => {
+                      // Create path once and reuse
+                      const propPath = [...path, key];
+                      return (
+                        <TreeNode
+                          key={`${fullPath}.${key}`}
+                          nodeKey={key}
+                          value={val}
+                          path={propPath}
+                          selectedPaths={selectedPaths}
+                          onPathToggle={onPathToggle}
+                          nodeColors={nodeColors}
+                          searchTerm={searchTerm}
+                          level={level + 1}
+                        />
+                      );
+                    })}
+                    {entries.length > maxProps && (
+                      <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                        ... and {entries.length - maxProps} more properties (limited for performance)
+                      </Typography>
+                    )}
+                  </>
+                );
+              }
+            }, [type, value, path, fullPath, selectedPaths, onPathToggle, nodeColors, searchTerm, level])}
           </Box>
         </Collapse>
       )}
@@ -288,55 +364,91 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
   searchTerm = '',
   level = 0,
 }) => {
-  if (!data || typeof data !== 'object') {
-    return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="body2" color="text.secondary">
-          No data available to browse
-        </Typography>
-      </Box>
-    );
-  }
+  // Memoize the rendered content to prevent unnecessary re-renders
+  const renderedContent = useMemo(() => {
+    if (!data || typeof data !== 'object') {
+      return (
+        <Box sx={{ p: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            No data available to browse
+          </Typography>
+        </Box>
+      );
+    }
 
-  // If data is an array of nodes (like our workflow data)
-  if (Array.isArray(data)) {
+    // If data is an array of nodes (like our workflow data)
+    if (Array.isArray(data)) {
+      // Limit the number of top-level nodes for memory safety
+      const maxTopLevelNodes = 10;
+      const limitedData = data.slice(0, maxTopLevelNodes);
+      
+      return (
+        <Box>
+          {limitedData.map((node: any, index: number) => {
+            const nodeId = node.nodeId || `item_${index}`;
+            const nodePath = [nodeId];
+            
+            return (
+              <TreeNode
+                key={nodeId}
+                nodeKey={nodeId}
+                value={node}
+                path={nodePath}
+                selectedPaths={selectedPaths}
+                onPathToggle={onPathToggle}
+                nodeColors={nodeColors}
+                searchTerm={searchTerm}
+                level={level}
+              />
+            );
+          })}
+          {data.length > maxTopLevelNodes && (
+            <Box sx={{ p: 2 }}>
+              <Typography variant="caption" color="text.secondary">
+                ... and {data.length - maxTopLevelNodes} more nodes (limited for performance)
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      );
+    }
+
+    // If data is a single object, render its properties
+    const entries = Object.entries(data);
+    const maxProperties = 20;
+    const limitedEntries = entries.slice(0, maxProperties);
+    
     return (
       <Box>
-        {data.map((node: any, index: number) => (
-          <TreeNode
-            key={node.nodeId || index}
-            nodeKey={node.nodeId || `item_${index}`}
-            value={node}
-            path={[node.nodeId || `item_${index}`]}
-            selectedPaths={selectedPaths}
-            onPathToggle={onPathToggle}
-            nodeColors={nodeColors}
-            searchTerm={searchTerm}
-            level={level}
-          />
-        ))}
+        {limitedEntries.map(([key, value]) => {
+          const propPath = [...path, key];
+          
+          return (
+            <TreeNode
+              key={key}
+              nodeKey={key}
+              value={value}
+              path={propPath}
+              selectedPaths={selectedPaths}
+              onPathToggle={onPathToggle}
+              nodeColors={nodeColors}
+              searchTerm={searchTerm}
+              level={level}
+            />
+          );
+        })}
+        {entries.length > maxProperties && (
+          <Box sx={{ p: 2 }}>
+            <Typography variant="caption" color="text.secondary">
+              ... and {entries.length - maxProperties} more properties (limited for performance)
+            </Typography>
+          </Box>
+        )}
       </Box>
     );
-  }
+  }, [data, path, selectedPaths, onPathToggle, nodeColors, searchTerm, level]);
 
-  // If data is a single object, render its properties
-  return (
-    <Box>
-      {Object.entries(data).map(([key, value]) => (
-        <TreeNode
-          key={key}
-          nodeKey={key}
-          value={value}
-          path={[...path, key]}
-          selectedPaths={selectedPaths}
-          onPathToggle={onPathToggle}
-          nodeColors={nodeColors}
-          searchTerm={searchTerm}
-          level={level}
-        />
-      ))}
-    </Box>
-  );
+  return renderedContent;
 });
 
 export default JsonTreeView;

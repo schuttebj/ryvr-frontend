@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   Box,
@@ -16,6 +16,19 @@ import {
 } from '@mui/icons-material';
 import VariableTransformationPanel from './VariableTransformationPanel';
 import JsonTreeView from './JsonTreeView';
+
+// Type declarations for development tools
+declare global {
+  interface Window {
+    gc?: () => void;
+  }
+  
+  const process: {
+    env: {
+      NODE_ENV?: string;
+    };
+  };
+}
 
 interface VariableSelectorProps {
   open: boolean;
@@ -80,16 +93,25 @@ export default function VariableSelector({
           const availableNodes = getAvailableDataNodes();
           
           if (isMounted) {
-            // Limit data size for performance - only show first 20 nodes max
-            const limitedNodes = availableNodes.slice(0, 20);
+            // Limit data size for performance - only show first 10 nodes max to prevent memory issues
+            const limitedNodes = availableNodes.slice(0, 10);
             
             if (limitedNodes.length < availableNodes.length) {
               console.warn(`📊 Limited data to ${limitedNodes.length} of ${availableNodes.length} nodes for performance`);
             }
             
-            setRealNodeData(limitedNodes);
-            setNodeColors(generateNodeColors(limitedNodes));
-            console.log('🔄 VariableSelector loaded node data:', limitedNodes);
+            // Further limit the data inside each node to prevent deep object traversal
+            const safeLimitedNodes = limitedNodes.map(node => ({
+              ...node,
+              data: node.data ? {
+                processed: node.data.processed ? JSON.parse(JSON.stringify(node.data.processed).slice(0, 50000)) : undefined,
+                raw: undefined // Remove raw data to save memory
+              } : undefined
+            }));
+            
+            setRealNodeData(safeLimitedNodes);
+            setNodeColors(generateNodeColors(safeLimitedNodes));
+            console.log('🔄 VariableSelector loaded limited node data:', safeLimitedNodes);
           }
         } catch (error) {
           console.warn('Failed to load real node data:', error);
@@ -112,8 +134,60 @@ export default function VariableSelector({
     };
   }, [open, generateNodeColors, isLoading]);
 
-  // Memoized search term for performance
-  const debouncedSearchTerm = useMemo(() => searchTerm, [searchTerm]);
+  // Properly debounced search term to prevent excessive re-renders
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // Add memory monitoring (development only)
+  useEffect(() => {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
+      const checkMemory = () => {
+        if ('memory' in performance) {
+          const memInfo = (performance as any).memory;
+          console.log('🧠 Memory usage:', {
+            used: Math.round(memInfo.usedJSHeapSize / 1024 / 1024) + 'MB',
+            total: Math.round(memInfo.totalJSHeapSize / 1024 / 1024) + 'MB',
+            limit: Math.round(memInfo.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+          });
+        }
+      };
+      
+      if (open) {
+        checkMemory();
+        const interval = setInterval(checkMemory, 5000);
+        return () => clearInterval(interval);
+      }
+    }
+  }, [open]);
+  
+  // Cleanup effect to help with garbage collection when component closes
+  useEffect(() => {
+    if (!open) {
+      // Clear data when component closes to help with memory management
+      setRealNodeData([]);
+      setNodeColors({});
+      setSelectedPaths([]);
+      setSearchTerm('');
+      setDebouncedSearchTerm('');
+      
+      // Force garbage collection if available (development)
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development' && typeof window !== 'undefined' && window.gc) {
+        setTimeout(() => {
+          if (window.gc) {
+            window.gc();
+            console.log('🧹 Forced garbage collection after VariableSelector close');
+          }
+        }, 1000);
+      }
+    }
+  }, [open]);
   
   const hasRealData = realNodeData && realNodeData.length > 0;
 
