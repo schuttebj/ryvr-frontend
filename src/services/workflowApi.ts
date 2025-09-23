@@ -275,21 +275,63 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
   }
   
   console.log('🔄 Analyzing workflow data nodes...');
+  console.log('📊 Raw globalWorkflowData:', Object.keys(globalWorkflowData));
+  
+  // Debug each response in detail
+  Object.entries(globalWorkflowData).forEach(([nodeId, response]) => {
+    console.log(`🔍 Processing node ${nodeId}:`, {
+      nodeId: response.nodeId,
+      nodeType: response.nodeType,
+      status: response.status,
+      hasData: !!response.data,
+      dataKeys: response.data ? Object.keys(response.data) : [],
+      processedExists: !!response.data?.processed,
+      processedType: typeof response.data?.processed,
+      processedKeys: response.data?.processed ? Object.keys(response.data.processed) : []
+    });
+  });
   
   const workflowNodes = Object.values(globalWorkflowData)
-    .filter(response => response.status === 'success')
-    .map(response => ({
-      nodeId: response.nodeId,
-      nodeLabel: response.nodeId, // In real app, would get from node metadata
-      nodeType: response.nodeType,
-      executedAt: response.executedAt,
-      status: response.status as 'success', // Safe cast since we filtered for success
-      dataStructure: analyzeDataStructure(response.data.processed), // Keep for backward compatibility
-      completeStructure: analyzeCompleteDataStructure(response), // New comprehensive structure
-      // Required properties for compatibility
-      id: response.nodeId,
-      data: response.data
-    }));
+    .filter(response => {
+      const isSuccess = response.status === 'success';
+      console.log(`🔍 Filter check for ${response.nodeId}: status=${response.status}, isSuccess=${isSuccess}`);
+      return isSuccess;
+    })
+    .map(response => {
+      console.log(`🔄 Mapping node ${response.nodeId} to AvailableDataNode format`);
+      
+      const result = {
+        nodeId: response.nodeId,
+        nodeLabel: response.nodeId, // In real app, would get from node metadata
+        nodeType: response.nodeType,
+        executedAt: response.executedAt,
+        status: response.status as 'success', // Safe cast since we filtered for success
+        dataStructure: (() => {
+          const structure = analyzeDataStructure(response.data.processed);
+          console.log(`🔍 Data structure analysis for ${response.nodeId}:`, {
+            inputType: typeof response.data.processed,
+            inputKeys: response.data.processed ? Object.keys(response.data.processed) : [],
+            structureLength: structure?.length || 0,
+            firstFewItems: structure?.slice(0, 3) || []
+          });
+          return structure;
+        })(), // Keep for backward compatibility
+        completeStructure: analyzeCompleteDataStructure(response), // New comprehensive structure
+        // Required properties for compatibility
+        id: response.nodeId,
+        data: response.data
+      };
+      
+      console.log(`✅ Mapped node ${response.nodeId}:`, {
+        nodeId: result.nodeId,
+        hasDataStructure: !!result.dataStructure,
+        dataStructureLength: result.dataStructure?.length || 0,
+        hasCompleteStructure: !!result.completeStructure,
+        hasData: !!result.data
+      });
+      
+      return result;
+    });
 
   // Add client business profile data as available variables
   try {
@@ -337,6 +379,10 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
     console.log(`📊 Added ${clientNodes.length} client business profiles to available data nodes`);
     const allNodes = [...workflowNodes, ...clientNodes];
     
+    console.log(`📋 Final result: ${allNodes.length} total nodes available`);
+    console.log(`📋 Workflow nodes: ${workflowNodes.length}, Client nodes: ${clientNodes.length}`);
+    console.log(`📋 Node IDs being returned:`, allNodes.map(node => node.nodeId));
+    
     // Cache the result
     dataNodeCache = allNodes;
     cacheTimestamp = now;
@@ -344,6 +390,9 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
     return allNodes;
   } catch (error) {
     console.warn('Failed to load client business profiles for variables:', error);
+    
+    console.log(`📋 Fallback result: ${workflowNodes.length} workflow nodes only`);
+    console.log(`📋 Node IDs being returned (fallback):`, workflowNodes.map(node => node.nodeId));
     
     // Cache workflow nodes only
     dataNodeCache = workflowNodes;

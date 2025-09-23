@@ -186,6 +186,18 @@ export default function VariableSelector({
           console.log('🔍 Available nodes from getAvailableDataNodes:', availableNodes);
           console.log('🔍 Available nodes count:', availableNodes.length);
           
+          // Debug each available node in detail
+          availableNodes.forEach((node, index) => {
+            console.log(`🔍 Available node ${index}:`, {
+              nodeId: node.nodeId,
+              nodeType: node.nodeType,
+              hasData: !!node.data,
+              hasDataStructure: !!node.dataStructure,
+              dataStructureLength: node.dataStructure?.length || 0,
+              sampleDataStructure: node.dataStructure?.slice(0, 2) || []
+            });
+          });
+          
           if (isMounted) {
             // If no data, try to get it from globalWorkflowData directly
             if (availableNodes.length === 0) {
@@ -214,17 +226,29 @@ export default function VariableSelector({
             }
             
             // Further limit the data inside each node to prevent deep object traversal
-            const safeLimitedNodes = limitedNodes.map(node => ({
-              ...node,
-              data: node.data ? {
-                processed: node.data.processed ? JSON.parse(JSON.stringify(node.data.processed).slice(0, 50000)) : undefined,
-                raw: undefined // Remove raw data to save memory
-              } : undefined
-            }));
+            const safeLimitedNodes = limitedNodes.map(node => {
+              console.log(`🔄 Processing node ${node.nodeId} for display:`, {
+                hasData: !!node.data,
+                hasProcessed: !!node.data?.processed,
+                processedType: typeof node.data?.processed,
+                processedSize: node.data?.processed ? JSON.stringify(node.data.processed).length : 0
+              });
+              
+              return {
+                ...node,
+                data: node.data ? {
+                  processed: node.data.processed ? JSON.parse(JSON.stringify(node.data.processed).slice(0, 50000)) : undefined,
+                  raw: undefined // Remove raw data to save memory
+                } : undefined
+              };
+            });
+            
+            console.log('🔄 VariableSelector final safeLimitedNodes:', safeLimitedNodes);
+            console.log('🔄 VariableSelector safeLimitedNodes count:', safeLimitedNodes.length);
+            console.log('🔄 VariableSelector nodes with data:', safeLimitedNodes.filter(n => n.data?.processed).length);
             
             setRealNodeData(safeLimitedNodes);
             setNodeColors(generateNodeColors(safeLimitedNodes));
-            console.log('🔄 VariableSelector loaded limited node data:', safeLimitedNodes);
           }
         } catch (error) {
           console.warn('Failed to load real node data:', error);
@@ -342,6 +366,17 @@ export default function VariableSelector({
   }, [open]);
   
   const hasRealData = realNodeData && realNodeData.length > 0;
+  
+  // Debug what's determining the display
+  useEffect(() => {
+    console.log('🔍 VariableSelector display check:', {
+      open,
+      isLoading,
+      realNodeDataLength: realNodeData?.length || 0,
+      hasRealData,
+      realNodeDataSample: realNodeData?.slice(0, 1) || []
+    });
+  }, [open, isLoading, realNodeData, hasRealData]);
 
   // Memoized variable generation handler
   const handleVariableGenerated = useCallback((variable: string) => {
