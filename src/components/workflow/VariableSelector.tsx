@@ -225,22 +225,35 @@ export default function VariableSelector({
               console.warn(`📊 Limited data to ${limitedNodes.length} of ${availableNodes.length} nodes for performance`);
             }
             
-            // Further limit the data inside each node to prevent deep object traversal
+            // Use the data as-is without JSON truncation to avoid parsing errors
             const safeLimitedNodes = limitedNodes.map(node => {
-              console.log(`🔄 Processing node ${node.nodeId} for display:`, {
-                hasData: !!node.data,
-                hasProcessed: !!node.data?.processed,
-                processedType: typeof node.data?.processed,
-                processedSize: node.data?.processed ? JSON.stringify(node.data.processed).length : 0
-              });
-              
-              return {
-                ...node,
-                data: node.data ? {
-                  processed: node.data.processed ? JSON.parse(JSON.stringify(node.data.processed).slice(0, 50000)) : undefined,
-                  raw: undefined // Remove raw data to save memory
-                } : undefined
-              };
+              try {
+                console.log(`🔄 Processing node ${node.nodeId} for display:`, {
+                  hasData: !!node.data,
+                  hasProcessed: !!node.data?.processed,
+                  processedType: typeof node.data?.processed,
+                  processedSize: node.data?.processed ? JSON.stringify(node.data.processed).length : 0
+                });
+                
+                return {
+                  ...node,
+                  data: node.data ? {
+                    // Use data as-is - JsonTreeView has its own limits to prevent memory issues
+                    processed: node.data.processed,
+                    raw: undefined // Remove raw data to save memory
+                  } : undefined
+                };
+              } catch (error) {
+                console.error(`❌ Error processing node ${node.nodeId}:`, error);
+                // Return node without processed data if there's an error
+                return {
+                  ...node,
+                  data: {
+                    processed: { error: 'Data processing failed', nodeId: node.nodeId },
+                    raw: undefined
+                  }
+                };
+              }
             });
             
             console.log('🔄 VariableSelector final safeLimitedNodes:', safeLimitedNodes);
