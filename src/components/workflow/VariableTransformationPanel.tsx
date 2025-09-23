@@ -56,6 +56,59 @@ export default function VariableTransformationPanel({
   const [transformations, setTransformations] = useState<TransformationRule[]>([]);
   const [livePreview, setLivePreview] = useState(true);
   const [previewResult, setPreviewResult] = useState<any>(null);
+  
+  // Array iteration settings
+  const [arrayIteration, setArrayIteration] = useState({
+    enabled: false,
+    count: 10,
+    basePath: '',
+    property: ''
+  });
+  
+  // Detect if selected paths contain array indices and suggest array iteration
+  const detectArrayPattern = (paths: string[]) => {
+    if (paths.length !== 1) return null;
+    
+    const path = paths[0];
+    const parts = path.split('.');
+    
+    // Look for pattern like "items.0.url" or "results.0.items.1.title"
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      if (/^\d+$/.test(part)) { // This part is a numeric index
+        const basePath = parts.slice(0, i).join('.');
+        const property = parts.slice(i + 1).join('.');
+        
+        // Check if the base path points to an array
+        const pathParts = basePath.split('.');
+        let current = availableData;
+        for (const pathPart of pathParts) {
+          current = current?.[pathPart];
+        }
+        
+        if (Array.isArray(current)) {
+          return {
+            basePath,
+            arrayLength: current.length,
+            property,
+            currentIndex: parseInt(part),
+            fullPath: path
+          };
+        }
+      }
+    }
+    return null;
+  };
+  
+  // Generate array iteration variables
+  const generateArrayIterationVariables = (basePath: string, property: string, count: number) => {
+    const variables = [];
+    for (let i = 0; i < count; i++) {
+      const fullPath = property ? `${basePath}.${i}.${property}` : `${basePath}.${i}`;
+      variables.push(`{{${fullPath} ?? ""}}`);
+    }
+    return variables.join(' + ');
+  };
 
   // Available transformation operations
   const transformationTypes = {
@@ -132,6 +185,11 @@ export default function VariableTransformationPanel({
   const generateVariableString = useMemo(() => {
     if (selectedPaths.length === 0) return '';
 
+    // Check for array iteration mode
+    if (arrayIteration.enabled && arrayIteration.basePath && arrayIteration.property) {
+      return generateArrayIterationVariables(arrayIteration.basePath, arrayIteration.property, arrayIteration.count);
+    }
+
     if (transformations.length === 0) {
       // Simple variable without transformations
       if (selectedPaths.length === 1) {
@@ -159,7 +217,7 @@ export default function VariableTransformationPanel({
 
     // Add null handling to complex transformations too
     return `{{${baseVariable} ?? "null" | ${transformPipes}}}`;
-  }, [selectedPaths, transformations]);
+  }, [selectedPaths, transformations, arrayIteration]);
 
   // Live preview of transformation result
   useEffect(() => {
@@ -185,7 +243,7 @@ export default function VariableTransformationPanel({
               current = current[index];
             } else {
               console.warn(`Invalid array access: ${part} on`, current);
-              current = undefined;
+              current = undefined as any;
               break;
             }
           } else {
@@ -194,7 +252,7 @@ export default function VariableTransformationPanel({
               current = current[part];
             } else {
               console.warn(`Cannot access property ${part} on`, current);
-              current = undefined;
+              current = undefined as any;
               break;
             }
           }
@@ -340,11 +398,14 @@ export default function VariableTransformationPanel({
                 // Format the resolved value for display
                 if (current === null) resolvedValue = 'null';
                 else if (current === undefined) resolvedValue = 'undefined';
-                else if (typeof current === 'string') resolvedValue = `"${current.length > 20 ? current.substring(0, 17) + '...' : current}"`;
+                else if (typeof current === 'string') {
+                  const str = current as string;
+                  resolvedValue = `"${str.length > 20 ? str.substring(0, 17) + '...' : str}"`;
+                }
                 else if (typeof current === 'number') resolvedValue = String(current);
                 else if (typeof current === 'boolean') resolvedValue = String(current);
                 else if (Array.isArray(current)) resolvedValue = `Array(${current.length})`;
-                else if (typeof current === 'object') resolvedValue = `{${Object.keys(current || {}).length} keys}`;
+                else if (typeof current === 'object' && current !== null) resolvedValue = `{${Object.keys(current).length} keys}`;
                 else resolvedValue = String(current);
               } catch (error) {
                 resolvedValue = 'error';
@@ -376,6 +437,73 @@ export default function VariableTransformationPanel({
           </Stack>
         </Paper>
       )}
+      
+      {/* Array Iteration */}
+      {(() => {
+        const arrayPattern = detectArrayPattern(selectedPaths);
+        return arrayPattern && (
+          <Paper sx={{ p: 2, mb: 2, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0,150,255,0.05)' : 'rgba(0,150,255,0.02)', border: '1px solid rgba(0,150,255,0.2)' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
+                🔄 Array Iteration Detected
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={arrayIteration.enabled}
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      setArrayIteration(prev => ({
+                        ...prev,
+                        enabled,
+                        basePath: enabled ? arrayPattern.basePath : '',
+                        property: enabled ? arrayPattern.property : '',
+                        count: enabled ? Math.min(prev.count, arrayPattern.arrayLength) : prev.count
+                      }));
+                    }}
+                    size="small"
+                  />
+                }
+                label="Enable"
+                sx={{ ml: 1 }}
+              />
+            </Box>
+            
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Detected array pattern: <code>{arrayPattern.basePath}</code> (length: {arrayPattern.arrayLength}) 
+              → property: <code>{arrayPattern.property}</code>
+            </Typography>
+            
+            {arrayIteration.enabled && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <TextField
+                  label="Number of Items"
+                  type="number"
+                  size="small"
+                  value={arrayIteration.count}
+                  onChange={(e) => setArrayIteration(prev => ({ 
+                    ...prev, 
+                    count: Math.min(Math.max(1, parseInt(e.target.value) || 1), arrayPattern.arrayLength) 
+                  }))}
+                  inputProps={{ min: 1, max: arrayPattern.arrayLength }}
+                  sx={{ width: 150 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  Max: {arrayPattern.arrayLength}
+                </Typography>
+              </Box>
+            )}
+            
+            {arrayIteration.enabled && (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="caption">
+                  Will generate: {arrayIteration.count} variables from {arrayPattern.basePath}.0.{arrayPattern.property} to {arrayPattern.basePath}.{arrayIteration.count - 1}.{arrayPattern.property}
+                </Typography>
+              </Alert>
+            )}
+          </Paper>
+        );
+      })()}
 
       {/* Transformation Rules */}
       <Box sx={{ mb: 2 }}>
@@ -517,6 +645,26 @@ export default function VariableTransformationPanel({
           >
             🚫 Handle Nulls
           </Button>
+          {(() => {
+            const arrayPattern = detectArrayPattern(selectedPaths);
+            return arrayPattern && (
+              <Button
+                size="small"
+                variant="outlined"
+                color="info"
+                onClick={() => {
+                  setArrayIteration({
+                    enabled: true,
+                    count: Math.min(10, arrayPattern.arrayLength),
+                    basePath: arrayPattern.basePath,
+                    property: arrayPattern.property
+                  });
+                }}
+              >
+                🔄 Array List ({arrayPattern.arrayLength} items)
+              </Button>
+            );
+          })()}
         </Stack>
       </Box>
 
@@ -556,7 +704,7 @@ export default function VariableTransformationPanel({
                       return JSON.stringify(item);
                     }).join(', ') + ']';
                   }
-                  return JSON.stringify(previewResult, (key, value) => {
+                  return JSON.stringify(previewResult, (_, value) => {
                     if (value === null) return 'null';
                     if (value === undefined) return 'undefined';
                     return value;
