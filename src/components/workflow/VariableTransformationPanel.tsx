@@ -618,7 +618,7 @@ export default function VariableTransformationPanel({
           <Paper sx={{ p: 2, mb: 2, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0,150,255,0.05)' : 'rgba(0,150,255,0.02)', border: '1px solid rgba(0,150,255,0.2)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <Typography variant="subtitle2" sx={{ flexGrow: 1 }}>
-                🔄 Array Iteration Detected
+                🔄 Smart Array Expansion
               </Typography>
               <FormControlLabel
                 control={
@@ -642,37 +642,123 @@ export default function VariableTransformationPanel({
               />
             </Box>
             
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              Detected array pattern: <code>{arrayPattern.basePath}</code> (length: {arrayPattern.arrayLength}) 
-              → property: <code>{arrayPattern.property}</code>
-            </Typography>
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                📍 <strong>Array:</strong> <code>{arrayPattern.basePath}</code>
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                🎯 <strong>Property:</strong> <code>{arrayPattern.property}</code>
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                📊 <strong>Auto-detected:</strong> {arrayPattern.arrayLength} items
+                {arrayPattern.arrayLength === 1 && (
+                  <span style={{ color: theme.palette.warning.main, fontWeight: 'bold' }}>
+                    {' '}(⚠️ May have more - use manual override)
+                  </span>
+                )}
+              </Typography>
+            </Box>
             
             {arrayIteration.enabled && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <TextField
-                  label="Number of Items"
-                  type="number"
-                  size="small"
-                  value={arrayIteration.count}
-                  onChange={(e) => setArrayIteration(prev => ({ 
-                    ...prev, 
-                    count: Math.min(Math.max(1, parseInt(e.target.value) || 1), arrayPattern.arrayLength) 
-                  }))}
-                  inputProps={{ min: 1, max: arrayPattern.arrayLength }}
-                  sx={{ width: 150 }}
-                />
-                <Typography variant="caption" color="text.secondary">
-                  Max: {arrayPattern.arrayLength}
-                </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <TextField
+                    label="Items to Generate"
+                    type="number"
+                    size="small"
+                    value={arrayIteration.count}
+                    onChange={(e) => setArrayIteration(prev => ({ 
+                      ...prev, 
+                      count: Math.min(Math.max(1, parseInt(e.target.value) || 1), 20) // Allow up to 20 items
+                    }))}
+                    inputProps={{ min: 1, max: 20 }}
+                    sx={{ width: 150 }}
+                  />
+                  <Typography variant="caption" color="text.secondary">
+                    Auto-detected: {arrayPattern.arrayLength} | Max: 20
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      const customCount = prompt(
+                        `Auto-detection found ${arrayPattern.arrayLength} items.\n\nIf you know there are more items in this array, enter the actual count:`, 
+                        arrayIteration.count.toString()
+                      );
+                      if (customCount && !isNaN(parseInt(customCount))) {
+                        const count = Math.min(Math.max(1, parseInt(customCount)), 20);
+                        setArrayIteration(prev => ({ ...prev, count }));
+                      }
+                    }}
+                  >
+                    ✏️ Manual Override
+                  </Button>
+                  
+                  {arrayPattern.arrayLength === 1 && (
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="info"
+                      onClick={() => {
+                        // Common array sizes for quick selection
+                        const suggestions = [5, 10, 15, 20];
+                        const choice = prompt(
+                          `Quick selection for common array sizes:\n\n` +
+                          `${suggestions.map((s, i) => `${i + 1}. ${s} items`).join('\n')}\n\n` +
+                          `Enter number (1-4) or custom count:`,
+                          '1'
+                        );
+                        
+                        if (choice) {
+                          const choiceNum = parseInt(choice);
+                          let count;
+                          if (choiceNum >= 1 && choiceNum <= 4) {
+                            count = suggestions[choiceNum - 1];
+                          } else if (!isNaN(choiceNum)) {
+                            count = Math.min(Math.max(1, choiceNum), 20);
+                          }
+                          
+                          if (count) {
+                            setArrayIteration(prev => ({ ...prev, count }));
+                          }
+                        }
+                      }}
+                    >
+                      🚀 Quick Select
+                    </Button>
+                  )}
+                </Box>
+                
+                <Alert severity="info" sx={{ mb: 1 }}>
+                  <Typography variant="caption">
+                    <strong>Will generate {arrayIteration.count} variables:</strong><br />
+                    {Array.from({ length: Math.min(arrayIteration.count, 3) }, (_, i) => (
+                      <span key={i}>
+                        • <code>{arrayPattern.basePath}.{i}.{arrayPattern.property}</code><br />
+                      </span>
+                    ))}
+                    {arrayIteration.count > 3 && (
+                      <span>• <em>... ({arrayIteration.count - 3} more)</em><br /></span>
+                    )}
+                    {arrayIteration.count > 1 && (
+                      <span>• <code>{arrayPattern.basePath}.{arrayIteration.count - 1}.{arrayPattern.property}</code></span>
+                    )}
+                  </Typography>
+                </Alert>
+                
+                {arrayPattern.arrayLength === 1 && arrayIteration.count > 1 && (
+                  <Alert severity="warning">
+                    <Typography variant="caption">
+                      ⚠️ <strong>Note:</strong> Auto-detection found only 1 item, but you're generating {arrayIteration.count} variables. 
+                      Make sure your API actually returns {arrayIteration.count} items in this array.
+                    </Typography>
+                  </Alert>
+                )}
               </Box>
-            )}
-            
-            {arrayIteration.enabled && (
-              <Alert severity="info" sx={{ mt: 2 }}>
-                <Typography variant="caption">
-                  Will generate: {arrayIteration.count} variables from {arrayPattern.basePath}.0.{arrayPattern.property} to {arrayPattern.basePath}.{arrayIteration.count - 1}.{arrayPattern.property}
-                </Typography>
-              </Alert>
             )}
           </Paper>
         );
