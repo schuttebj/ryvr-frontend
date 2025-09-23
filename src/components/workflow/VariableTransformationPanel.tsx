@@ -62,22 +62,17 @@ export default function VariableTransformationPanel({
   const dropdownMenuProps = {
     PaperProps: {
       sx: {
-        zIndex: 1000001, // Higher than Variable Selector modal (1000000)
+        zIndex: 1000002, // Even higher to ensure visibility
         boxShadow: theme.shadows[8], // Enhanced shadow for better visibility
+        position: 'fixed', // Use fixed positioning
       }
     },
     sx: {
-      zIndex: 1000001, // Higher than Variable Selector modal
-    }
+      zIndex: 1000002, // Even higher to ensure visibility
+    },
+    disablePortal: false, // Allow portal rendering
+    keepMounted: false, // Don't keep mounted when closed
   };
-  
-  // Array iteration settings
-  const [arrayIteration, setArrayIteration] = useState({
-    enabled: false,
-    count: 10,
-    basePath: '',
-    property: ''
-  });
   
   // Detect if selected paths contain array indices and suggest array iteration
   const detectArrayPattern = (paths: string[]) => {
@@ -119,6 +114,47 @@ export default function VariableTransformationPanel({
     }
     return null;
   };
+
+  // Array iteration settings
+  const [arrayIteration, setArrayIteration] = useState({
+    enabled: false,
+    count: 10,
+    basePath: '',
+    property: ''
+  });
+
+  // Auto-update array iteration state when new array pattern is detected
+  useEffect(() => {
+    const arrayPattern = detectArrayPattern(selectedPaths);
+    if (arrayPattern) {
+      console.log(`🔄 Array pattern detected automatically:`, {
+        basePath: arrayPattern.basePath,
+        arrayLength: arrayPattern.arrayLength,
+        property: arrayPattern.property,
+        currentCount: arrayIteration.count
+      });
+      
+      // Update array iteration settings with detected pattern
+      setArrayIteration(prev => ({
+        ...prev,
+        basePath: arrayPattern.basePath,
+        property: arrayPattern.property,
+        // Set count to min of current count and actual array length, but at least 1
+        count: Math.min(Math.max(prev.count, 1), arrayPattern.arrayLength)
+      }));
+    } else {
+      // Reset if no array pattern detected
+      if (arrayIteration.basePath || arrayIteration.property) {
+        console.log(`🔄 No array pattern detected, resetting array iteration state`);
+        setArrayIteration(prev => ({
+          ...prev,
+          basePath: '',
+          property: '',
+          enabled: false
+        }));
+      }
+    }
+  }, [selectedPaths]); // Only depend on selectedPaths to avoid loops
   
   // Generate array iteration variables
   const generateArrayIterationVariables = (basePath: string, property: string, count: number) => {
@@ -543,7 +579,26 @@ export default function VariableTransformationPanel({
       })()}
 
       {/* Transformation Rules */}
-      <Box sx={{ mb: 2 }}>
+      <Box 
+        sx={{ 
+          mb: 2,
+          zIndex: 1000002, // Ensure entire transformations section has high z-index
+          position: 'relative',
+          // Force all nested dropdowns to appear above modal
+          '& .MuiSelect-root': {
+            zIndex: 1000002,
+          },
+          '& .MuiMenu-root': {
+            zIndex: 1000002,
+          },
+          '& .MuiPaper-root': {
+            zIndex: '1000002 !important',
+          },
+          '& .MuiPopper-root': {
+            zIndex: '1000002 !important',
+          }
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Typography variant="subtitle2">Transformations</Typography>
           <Box sx={{ flexGrow: 1 }} />
@@ -561,9 +616,25 @@ export default function VariableTransformationPanel({
             No transformations applied. Variable will use raw values.
           </Alert>
         ) : (
-          <Stack spacing={1}>
+          <Stack 
+            spacing={1}
+            sx={{
+              zIndex: 1000002, // Ensure stack container has high z-index
+              position: 'relative',
+            }}
+          >
             {transformations.map((transformation, index) => (
-              <Accordion key={transformation.id} defaultExpanded>
+              <Accordion 
+                key={transformation.id} 
+                defaultExpanded
+                sx={{
+                  zIndex: 1000002, // Ensure accordion doesn't interfere with dropdown z-index
+                  position: 'relative',
+                  '& .MuiAccordionDetails-root': {
+                    zIndex: 1000002, // Ensure details section has high z-index
+                  }
+                }}
+              >
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                   <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                     <FunctionIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
@@ -585,7 +656,13 @@ export default function VariableTransformationPanel({
                 <AccordionDetails>
                   <Stack spacing={2}>
                     {/* Transformation Type */}
-                    <FormControl size="small">
+                    <FormControl 
+                      size="small"
+                      sx={{
+                        zIndex: 1000002, // Ensure form control is above modal
+                        position: 'relative',
+                      }}
+                    >
                       <InputLabel>Type</InputLabel>
                       <Select
                         value={transformation.type}
@@ -595,6 +672,10 @@ export default function VariableTransformationPanel({
                           operation: Object.keys((transformationTypes[e.target.value as TransformationRule['type']] as any).operations)[0]
                         })}
                         MenuProps={dropdownMenuProps}
+                        sx={{
+                          zIndex: 1000002, // Ensure select is above modal
+                          position: 'relative',
+                        }}
                       >
                         {Object.entries(transformationTypes).map(([key]) => (
                           <MenuItem key={key} value={key}>
@@ -605,13 +686,23 @@ export default function VariableTransformationPanel({
                     </FormControl>
 
                     {/* Operation */}
-                    <FormControl size="small">
+                    <FormControl 
+                      size="small"
+                      sx={{
+                        zIndex: 1000002, // Ensure form control is above modal
+                        position: 'relative',
+                      }}
+                    >
                       <InputLabel>Operation</InputLabel>
                       <Select
                         value={transformation.operation}
                         label="Operation"
                         onChange={(e) => updateTransformation(transformation.id, { operation: e.target.value })}
                         MenuProps={dropdownMenuProps}
+                        sx={{
+                          zIndex: 1000002, // Ensure select is above modal
+                          position: 'relative',
+                        }}
                       >
                         {Object.entries((transformationTypes[transformation.type] as any).operations).map(([key, value]: [string, any]) => (
                           <MenuItem key={key} value={key}>
@@ -631,6 +722,10 @@ export default function VariableTransformationPanel({
                         onChange={(e) => updateTransformation(transformation.id, {
                           parameters: { ...transformation.parameters, [param]: e.target.value }
                         })}
+                        sx={{
+                          zIndex: 1000002, // Ensure text fields are also above the modal
+                          position: 'relative',
+                        }}
                       />
                     ))}
                   </Stack>
