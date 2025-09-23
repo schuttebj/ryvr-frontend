@@ -1,4 +1,4 @@
-import React, { useState, memo, useMemo } from 'react';
+import React, { useState, memo, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -116,6 +116,22 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const [expanded, setExpanded] = useState(level < 2); // Reduce auto-expand to 2 levels for memory
   const [localMaxItems, setLocalMaxItems] = useState(maxItems);
   const [localMaxProps, setLocalMaxProps] = useState(maxProps);
+  const [localMaxDepth, setLocalMaxDepth] = useState(maxDepth);
+  
+  // Debug logging for state changes
+  useEffect(() => {
+    if (level <= 1) { // Only log for top-level nodes to avoid spam
+      console.log(`🌳 TreeNode ${nodeKey} state:`, {
+        level,
+        localMaxItems,
+        localMaxProps,
+        localMaxDepth,
+        expanded,
+        valueType: getValueType(value),
+        isExpandable: getValueType(value) === 'object' || getValueType(value) === 'array'
+      });
+    }
+  }, [localMaxItems, localMaxProps, localMaxDepth, expanded, level, nodeKey, value]);
   
   // Simplified circular reference detection - only check if we're getting too deep
   const shouldSkipCircular = useMemo(() => {
@@ -284,20 +300,50 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
             {(() => {
               try {
                 // Prevent rendering too deep to avoid memory issues
-                if (level >= maxDepth) {
+                if (level >= localMaxDepth) {
                   return (
                     <Box sx={{ p: 1 }}>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                        Max depth reached ({maxDepth} levels)
+                        Max depth reached ({localMaxDepth} levels)
                       </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => setExpanded(false)}
-                        sx={{ fontSize: '0.7rem', py: 0.5 }}
-                      >
-                        Collapse to continue deeper
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          color="primary"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent interfering with expand/collapse
+                            e.preventDefault();
+                            console.log(`🔄 Increasing depth limit for this branch from ${localMaxDepth} to ${localMaxDepth + 3}`);
+                            setLocalMaxDepth(prev => prev + 3);
+                          }}
+                          sx={{ 
+                            fontSize: '0.7rem', 
+                            py: 0.5,
+                            px: 1,
+                            backgroundColor: theme.palette.primary.main,
+                            '&:hover': {
+                              backgroundColor: theme.palette.primary.dark,
+                            }
+                          }}
+                        >
+                          🔽 Load Deeper (+3 levels)
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent interfering with expand/collapse
+                            e.preventDefault();
+                            console.log(`🔄 Collapsing node at level ${level} to allow deeper expansion`);
+                            setExpanded(false);
+                          }}
+                          sx={{ fontSize: '0.7rem', py: 0.5, px: 1 }}
+                        >
+                          📁 Collapse
+                        </Button>
+                      </Box>
                     </Box>
                   );
                 }
@@ -323,7 +369,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                             nodeColors={nodeColors}
                             searchTerm={searchTerm}
                             level={level + 1}
-                            maxDepth={maxDepth}
+                            maxDepth={localMaxDepth}
                             maxItems={maxItems}
                             maxProps={maxProps}
                           />
@@ -336,11 +382,29 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                           </Typography>
                           <Button
                             size="small"
-                            variant="outlined"
-                            onClick={() => setLocalMaxItems(prev => Math.min(prev + 10, value.length))}
-                            sx={{ fontSize: '0.7rem', py: 0.5 }}
+                            variant="contained"
+                            color="primary"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent tree collapse
+                              e.preventDefault();
+                              console.log('🔄 Loading more array items:', { current: localMaxItems, total: value.length });
+                              setLocalMaxItems(prev => {
+                                const newMax = Math.min(prev + 10, value.length);
+                                console.log('📈 Array maxItems updated:', prev, '→', newMax);
+                                return newMax;
+                              });
+                            }}
+                            sx={{ 
+                              fontSize: '0.7rem', 
+                              py: 0.5, 
+                              px: 1,
+                              backgroundColor: theme.palette.primary.main,
+                              '&:hover': {
+                                backgroundColor: theme.palette.primary.dark,
+                              }
+                            }}
                           >
-                            Load More ({Math.min(10, value.length - localMaxItems)} more)
+                            🔽 Load More ({Math.min(10, value.length - localMaxItems)} items)
                           </Button>
                         </Box>
                       )}
@@ -370,7 +434,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                             nodeColors={nodeColors}
                             searchTerm={searchTerm}
                             level={level + 1}
-                            maxDepth={maxDepth}
+                            maxDepth={localMaxDepth}
                             maxItems={maxItems}
                             maxProps={maxProps}
                           />
@@ -383,11 +447,29 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                           </Typography>
                           <Button
                             size="small"
-                            variant="outlined"
-                            onClick={() => setLocalMaxProps(prev => Math.min(prev + 10, entries.length))}
-                            sx={{ fontSize: '0.7rem', py: 0.5 }}
+                            variant="contained"
+                            color="primary"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent tree collapse
+                              e.preventDefault();
+                              console.log('🔄 Loading more object properties:', { current: localMaxProps, total: entries.length });
+                              setLocalMaxProps(prev => {
+                                const newMax = Math.min(prev + 10, entries.length);
+                                console.log('📈 Object maxProps updated:', prev, '→', newMax);
+                                return newMax;
+                              });
+                            }}
+                            sx={{ 
+                              fontSize: '0.7rem', 
+                              py: 0.5, 
+                              px: 1,
+                              backgroundColor: theme.palette.primary.main,
+                              '&:hover': {
+                                backgroundColor: theme.palette.primary.dark,
+                              }
+                            }}
                           >
-                            Load More ({Math.min(10, entries.length - localMaxProps)} more)
+                            🔽 Load More ({Math.min(10, entries.length - localMaxProps)} props)
                           </Button>
                         </Box>
                       )}
