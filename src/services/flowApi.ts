@@ -38,6 +38,12 @@ export interface FlowTemplateResponse {
     path: string;
     label: string;
     type: string;
+    description?: string;
+    default_value?: any;
+    options?: Array<{
+      label: string;
+      value: any;
+    }>;
   }>;
   step_count: number;
   created_at: string;
@@ -99,7 +105,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/businesses/${businessId}/flows${query}`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -132,7 +138,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/businesses/${businessId}/flows`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -163,7 +169,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -193,7 +199,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}/start`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -231,7 +237,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}/reviews/${stepId}/approve`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -276,7 +282,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/templates${query}`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -304,7 +310,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/flows/templates/${templateId}/preview`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -338,7 +344,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401) {
-          handleAuthError();
+          handleAuthError(`/api/v1/businesses/my-businesses`, response.status);
           throw new Error('Authentication failed');
         }
         throw new Error(`HTTP error! status: ${response.status}`);

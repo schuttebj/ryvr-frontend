@@ -40,16 +40,13 @@ import {
   Close as CloseIcon,
   Visibility as PreviewIcon,
   PlayArrow as StartIcon,
-  Schedule as ScheduleIcon,
   AutoAwesome as AIIcon,
-  Settings as SettingsIcon,
   CheckCircle as CheckIcon,
 } from '@mui/icons-material';
 
 import { 
   FlowBusinessContext, 
-  CreateFlowRequest,
-  FlowFieldConfig 
+  CreateFlowRequest
 } from '../../types/workflow';
 import FlowApiService, { FlowTemplateResponse, TemplatePreviewResponse } from '../../services/flowApi';
 
@@ -183,7 +180,7 @@ export default function FlowCreationWizard({
         execution_mode: 'live'
       };
       
-      const response = await FlowApiService.createFlow(selectedBusiness.id, createRequest);
+      await FlowApiService.createFlow(selectedBusiness.id, createRequest);
       
       onFlowCreated();
       onClose();
