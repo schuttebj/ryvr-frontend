@@ -153,6 +153,16 @@ export default function IntegrationManagementPage() {
         },
         {
           id: 6,
+          name: 'WordPress',
+          provider: 'WordPress',
+          description: 'Content management and synchronization with WordPress sites',
+          category: 'Content Management',
+          status: 'active',
+          tier_restrictions: [],
+          documentation_url: 'https://docs.ryvr.com/integrations/wordpress'
+        },
+        {
+          id: 7,
           name: 'Ahrefs',
           provider: 'Ahrefs',
           description: 'SEO toolset and backlink analysis',

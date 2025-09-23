@@ -411,9 +411,9 @@ export default function VariableSelector({
   // Enhanced content component with side-by-side layout
   const VariableSelectorContent = () => (
     <Box sx={{ 
-      height: position === 'panel' ? '100%' : '80vh',
-      width: position === 'panel' ? '100%' : '95vw',
-      maxWidth: position === 'panel' ? '100%' : '1400px',
+      height: position === 'panel' ? '100%' : '100%',
+      width: position === 'panel' ? '100%' : '100%',
+      maxWidth: position === 'panel' ? '100%' : '100%',
       display: 'flex',
       flexDirection: 'column',
       backgroundColor: theme.palette.background.paper,

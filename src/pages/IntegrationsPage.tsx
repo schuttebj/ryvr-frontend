@@ -34,13 +34,14 @@ import {
   Api as ApiIcon,
   Psychology as AiIcon,
   Search as SeoIcon,
+  Language as WordPressIcon,
   DragIndicator as DragIcon,
 } from '@mui/icons-material';
 
 interface Integration {
   id: string;
   name: string;
-  type: 'openai' | 'dataforseo' | 'custom';
+  type: 'openai' | 'dataforseo' | 'wordpress' | 'custom';
   status: 'connected' | 'disconnected' | 'error';
   config: Record<string, any>;
   lastTested?: string;
@@ -67,6 +68,14 @@ const availableIntegrations = [
     category: 'SEO Tools',
   },
   {
+    type: 'wordpress' as const,
+    name: 'WordPress',
+    description: 'Sync content with WordPress sites including ACF and SEO data',
+    icon: <WordPressIcon />,
+    color: '#21759b',
+    category: 'Content Management',
+  },
+  {
     type: 'custom' as const,
     name: 'Custom API',
     description: 'Connect to any REST API endpoint',
@@ -83,12 +92,12 @@ export default function IntegrationsPage() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
-  const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'custom' | null>(null);
+  const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'custom' | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    type: 'openai' as 'openai' | 'dataforseo' | 'custom',
+    type: 'openai' as 'openai' | 'dataforseo' | 'wordpress' | 'custom',
     // OpenAI fields
     apiKey: '',
     model: 'gpt-4o-mini',
@@ -98,6 +107,15 @@ export default function IntegrationsPage() {
     login: '',
     password: '',
     useSandbox: true,
+    // WordPress fields
+    siteUrl: '',
+    wpApiKey: '',
+    syncPostTypes: ['post', 'page'],
+    syncAcfFields: true,
+    syncRankmathData: true,
+    syncTaxonomies: true,
+    twoWaySync: true,
+    defaultAuthorId: '',
     // Custom fields
     baseUrl: '',
     headers: '{}',
@@ -132,7 +150,7 @@ export default function IntegrationsPage() {
     setSelectedTab(newValue);
   };
 
-  const openDialog = (integration?: Integration, integrationType?: 'openai' | 'dataforseo' | 'custom') => {
+  const openDialog = (integration?: Integration, integrationType?: 'openai' | 'dataforseo' | 'wordpress' | 'custom') => {
     if (integration) {
       setEditingIntegration(integration);
       setFormData({
@@ -145,6 +163,15 @@ export default function IntegrationsPage() {
         login: integration.config.login || '',
         password: integration.config.password || '',
         useSandbox: integration.config.useSandbox !== false,
+        // WordPress fields
+        siteUrl: integration.config.siteUrl || '',
+        wpApiKey: integration.config.wpApiKey || '',
+        syncPostTypes: integration.config.syncPostTypes || ['post', 'page'],
+        syncAcfFields: integration.config.syncAcfFields !== false,
+        syncRankmathData: integration.config.syncRankmathData !== false,
+        syncTaxonomies: integration.config.syncTaxonomies !== false,
+        twoWaySync: integration.config.twoWaySync !== false,
+        defaultAuthorId: integration.config.defaultAuthorId || '',
         baseUrl: integration.config.baseUrl || '',
         headers: JSON.stringify(integration.config.headers || {}, null, 2),
       });
@@ -161,6 +188,15 @@ export default function IntegrationsPage() {
         login: '',
         password: '',
         useSandbox: true,
+        // WordPress fields
+        siteUrl: '',
+        wpApiKey: '',
+        syncPostTypes: ['post', 'page'],
+        syncAcfFields: true,
+        syncRankmathData: true,
+        syncTaxonomies: true,
+        twoWaySync: true,
+        defaultAuthorId: '',
         baseUrl: '',
         headers: '{}',
       });
@@ -189,6 +225,15 @@ export default function IntegrationsPage() {
         config.login = formData.login;
         config.password = formData.password;
         config.useSandbox = formData.useSandbox;
+      } else if (formData.type === 'wordpress') {
+        config.siteUrl = formData.siteUrl;
+        config.wpApiKey = formData.wpApiKey;
+        config.syncPostTypes = formData.syncPostTypes;
+        config.syncAcfFields = formData.syncAcfFields;
+        config.syncRankmathData = formData.syncRankmathData;
+        config.syncTaxonomies = formData.syncTaxonomies;
+        config.twoWaySync = formData.twoWaySync;
+        config.defaultAuthorId = formData.defaultAuthorId;
       } else if (formData.type === 'custom') {
         config.baseUrl = formData.baseUrl;
         config.headers = JSON.parse(formData.headers);
@@ -529,6 +574,7 @@ export default function IntegrationsPage() {
               >
                 <MenuItem value="openai">OpenAI</MenuItem>
                 <MenuItem value="dataforseo">DataForSEO</MenuItem>
+                <MenuItem value="wordpress">WordPress</MenuItem>
                 <MenuItem value="custom">Custom API</MenuItem>
               </Select>
             </FormControl>
@@ -626,6 +672,100 @@ export default function IntegrationsPage() {
               </Box>
             )}
 
+            {/* WordPress Configuration */}
+            {formData.type === 'wordpress' && (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: 'primary.main' }}>
+                  WordPress Configuration
+                </Typography>
+                
+                <TextField
+                  fullWidth
+                  label="WordPress Site URL"
+                  value={formData.siteUrl}
+                  onChange={(e) => setFormData({ ...formData, siteUrl: e.target.value })}
+                  sx={{ mb: 2 }}
+                  placeholder="https://yoursite.com"
+                  helperText="Full URL of your WordPress site"
+                />
+
+                <TextField
+                  fullWidth
+                  label="API Key"
+                  type="password"
+                  value={formData.wpApiKey}
+                  onChange={(e) => setFormData({ ...formData, wpApiKey: e.target.value })}
+                  sx={{ mb: 2 }}
+                  helperText="Generated API key from RYVR WordPress plugin"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Default Author ID (Optional)"
+                  type="number"
+                  value={formData.defaultAuthorId}
+                  onChange={(e) => setFormData({ ...formData, defaultAuthorId: e.target.value })}
+                  sx={{ mb: 2 }}
+                  helperText="WordPress user ID for posts created by RYVR"
+                />
+
+                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500 }}>
+                  Synchronization Options
+                </Typography>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.syncAcfFields}
+                      onChange={(e) => setFormData({ ...formData, syncAcfFields: e.target.checked })}
+                    />
+                  }
+                  label="Sync ACF Custom Fields"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.syncRankmathData}
+                      onChange={(e) => setFormData({ ...formData, syncRankmathData: e.target.checked })}
+                    />
+                  }
+                  label="Sync RankMath SEO Data"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.syncTaxonomies}
+                      onChange={(e) => setFormData({ ...formData, syncTaxonomies: e.target.checked })}
+                    />
+                  }
+                  label="Sync Categories & Tags"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.twoWaySync}
+                      onChange={(e) => setFormData({ ...formData, twoWaySync: e.target.checked })}
+                    />
+                  }
+                  label="Enable Two-Way Sync"
+                  sx={{ mb: 2, display: 'block' }}
+                />
+
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  💡 <strong>Setup Instructions:</strong><br />
+                  1. Install the RYVR WordPress plugin on your site<br />
+                  2. Configure the plugin in WordPress Admin → RYVR → Settings<br />
+                  3. Copy the generated API key to the field above
+                </Typography>
+              </Box>
+            )}
+
             {/* Custom API Configuration */}
             {formData.type === 'custom' && (
               <Box>
@@ -708,6 +848,15 @@ export default function IntegrationsPage() {
                   login: formData.login,
                   password: formData.password,
                   useSandbox: formData.useSandbox,
+                } : formData.type === 'wordpress' ? {
+                  siteUrl: formData.siteUrl,
+                  wpApiKey: formData.wpApiKey,
+                  syncPostTypes: formData.syncPostTypes,
+                  syncAcfFields: formData.syncAcfFields,
+                  syncRankmathData: formData.syncRankmathData,
+                  syncTaxonomies: formData.syncTaxonomies,
+                  twoWaySync: formData.twoWaySync,
+                  defaultAuthorId: formData.defaultAuthorId,
                 } : {
                   baseUrl: formData.baseUrl,
                   headers: JSON.parse(formData.headers || '{}'),
@@ -724,8 +873,10 @@ export default function IntegrationsPage() {
           <Button 
             onClick={handleSave} 
             variant="contained"
-            disabled={!formData.name || (formData.type === 'openai' && !formData.apiKey) || 
-                     (formData.type === 'dataforseo' && (!formData.login || !formData.password))}
+            disabled={!formData.name || 
+                     (formData.type === 'openai' && !formData.apiKey) || 
+                     (formData.type === 'dataforseo' && (!formData.login || !formData.password)) ||
+                     (formData.type === 'wordpress' && (!formData.siteUrl || !formData.wpApiKey))}
           >
             {editingIntegration ? 'Save Changes' : 'Add Integration'}
           </Button>
