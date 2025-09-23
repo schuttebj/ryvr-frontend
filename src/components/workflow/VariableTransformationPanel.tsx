@@ -405,8 +405,27 @@ export default function VariableTransformationPanel({
         samplePath: selectedPaths[0]
       });
       
-      // Simulate transformation result with proper null/undefined handling
-      const mockData = selectedPaths.map(path => {
+      // Handle array iteration for live preview
+      let pathsToResolve = selectedPaths;
+      
+      if (arrayIteration.enabled) {
+        const arrayPattern = detectArrayPattern(selectedPaths);
+        if (arrayPattern) {
+          console.log('🔍 Array iteration preview - generating paths for', arrayIteration.count, 'items');
+          
+          // Generate all the array iteration paths
+          pathsToResolve = [];
+          for (let i = 0; i < arrayIteration.count; i++) {
+            const iterationPath = `${arrayPattern.basePath}.${i}.${arrayPattern.property}`;
+            pathsToResolve.push(iterationPath);
+          }
+          
+          console.log('🔍 Generated array iteration paths:', pathsToResolve);
+        }
+      }
+      
+      // Resolve all paths (either single selected paths or generated array iteration paths)
+      const mockData = pathsToResolve.map(path => {
         console.log(`🔍 Resolving path: ${path}`);
         const pathParts = path.split('.');
         let current = availableData;
@@ -418,8 +437,21 @@ export default function VariableTransformationPanel({
         for (let i = 0; i < pathParts.length; i++) {
           const part = pathParts[i];
           
+          // Handle numeric indices (array access)
+          if (/^\d+$/.test(part)) {
+            const index = parseInt(part);
+            if (Array.isArray(current)) {
+              current = current[index];
+            } else if (current && typeof current === 'object') {
+              current = current[index];
+            } else {
+              console.warn(`Cannot access index ${part} on`, current);
+              current = undefined as any;
+              break;
+            }
+          }
           // Handle array indices like [0], [1], etc.
-          if (part.startsWith('[') && part.endsWith(']')) {
+          else if (part.startsWith('[') && part.endsWith(']')) {
             const index = parseInt(part.slice(1, -1));
             if (Array.isArray(current) && !isNaN(index)) {
               current = current[index];
@@ -456,7 +488,7 @@ export default function VariableTransformationPanel({
     } catch (error) {
       setPreviewResult({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
-  }, [selectedPaths, transformations, availableData, livePreview]);
+  }, [selectedPaths, transformations, availableData, livePreview, arrayIteration]);
 
   // Apply transformation for preview (simplified frontend version)
   const applyTransformationToPreview = (data: any, transformation: TransformationRule) => {
@@ -699,56 +731,19 @@ export default function VariableTransformationPanel({
             
             {arrayIteration.enabled && (
               <Box sx={{ mb: 2 }}>
-                {(() => {
-                  // Check for common path issues
-                  const originalPath = selectedPaths[0];
-                  const parts = originalPath.split('.');
-                  
-                  // Look for pattern like "items.0.items.0.url" which should be "items.0.url"
-                  let suggestedPath = null;
-                  let issue = null;
-                  
-                  // Find sequences like ".items.0.items" which might be wrong
-                  for (let i = 0; i < parts.length - 3; i++) {
-                    if (parts[i] === 'items' && /^\d+$/.test(parts[i + 1]) && parts[i + 2] === 'items' && /^\d+$/.test(parts[i + 3])) {
-                      // Found pattern like "items.0.items.0" - suggest removing the middle part
-                      const correctedParts = [...parts];
-                      correctedParts.splice(i + 2, 2); // Remove "items.0"
-                      suggestedPath = correctedParts.join('.');
-                      issue = "Detected possible extra nesting in path";
-                      break;
-                    }
-                  }
-                  
-                  return suggestedPath ? (
-                    <Alert severity="error" sx={{ mb: 2 }}>
-                      <Typography variant="caption">
-                        <strong>🚨 Path Issue Detected!</strong><br />
-                        {issue}<br /><br />
-                        <strong>Current path:</strong> <code>{originalPath}</code><br />
-                        <strong>Suggested path:</strong> <code>{suggestedPath}</code><br /><br />
-                        <Button 
-                          size="small" 
-                          variant="contained" 
-                          color="error"
-                          onClick={() => {
-                            // This would need to be connected to the parent component to update the selected path
-                            alert(`Please reselect this path in the tree view:\n\n${suggestedPath}\n\nThen try array expansion again.`);
-                          }}
-                        >
-                          🔧 How to Fix
-                        </Button>
-                      </Typography>
-                    </Alert>
-                  ) : (
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      <Typography variant="caption">
-                        <strong>⚠️ Auto-detection is not working properly for this data structure.</strong><br />
-                        The system detected the wrong array level. Use the simple number input below to specify how many items you want to generate.
-                      </Typography>
-                    </Alert>
-                  );
-                })()}
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  <Typography variant="caption">
+                    <strong>✅ Array Detection Successful!</strong><br />
+                    Found array with <strong>{(() => {
+                      const arrayPattern = detectArrayPattern(selectedPaths);
+                      return arrayPattern ? arrayPattern.arrayLength : 0;
+                    })()} items</strong> and simple property <code>{(() => {
+                      const arrayPattern = detectArrayPattern(selectedPaths);
+                      return arrayPattern ? arrayPattern.property : 'unknown';
+                    })()}</code>.<br />
+                    The generated variables will work correctly with your data structure.
+                  </Typography>
+                </Alert>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                   <TextField
@@ -1092,6 +1087,16 @@ export default function VariableTransformationPanel({
                 fontWeight: (previewResult === null || previewResult === undefined) ? 'bold' : 'normal'
               }}>
                 {(() => {
+                  // Custom display for array iteration results
+                  if (Array.isArray(previewResult) && arrayIteration.enabled) {
+                    return previewResult.map((item, index) => {
+                      if (item === null) return `${index + 1}. null`;
+                      if (item === undefined) return `${index + 1}. undefined`;
+                      if (typeof item === 'string') return `${index + 1}. "${item}"`;
+                      return `${index + 1}. ${JSON.stringify(item)}`;
+                    }).join('\n');
+                  }
+                  
                   // Custom JSON stringify that highlights null/undefined values
                   if (previewResult === null) return 'null';
                   if (previewResult === undefined) return 'undefined';
