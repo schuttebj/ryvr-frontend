@@ -98,7 +98,19 @@ const getValuePreview = (value: any, type: string): string => {
     case 'undefined':
       return 'undefined';
     case 'array':
-      return `Array(${value?.length || 0})`;
+      if (!value || value.length === 0) return 'Array(0)';
+      if (value.length <= 3) {
+        // Show preview of small arrays with proper formatting
+        const previews = value.map((item: any) => {
+          if (item === null) return 'null';
+          if (item === undefined) return 'undefined';
+          if (typeof item === 'string') return `"${item.length > 20 ? item.substring(0, 17) + '...' : item}"`;
+          if (typeof item === 'object' && item !== null) return '{...}';
+          return String(item);
+        });
+        return `[${previews.join(', ')}]`;
+      }
+      return `Array(${value.length})`;
     case 'object':
       if (!value) return 'null';
       return `{${Object.keys(value).length} keys}`;
@@ -178,15 +190,41 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const type = getValueType(value);
   const isExpandable = type === 'object' || type === 'array';
   
+  // Special handling for arrays to ensure they're always expandable even with null values
+  const shouldForceExpansion = type === 'array' && Array.isArray(value) && value.length > 0;
+  
   // Debug logging for null/undefined values
-  if ((type === 'null' || type === 'undefined') && level <= 2) {
+  if ((type === 'null' || type === 'undefined') && level <= 3) {
     console.log(`🔍 Null/Undefined value detected:`, {
       nodeKey,
       type,
       value,
       level,
-      path: path.join('.')
+      path: path.join('.'),
+      isArrayItem: nodeKey.startsWith('[') && nodeKey.endsWith(']')
     });
+  }
+  
+  // Debug logging for arrays containing null values
+  if (type === 'array' && level <= 2) {
+    const nullCount = value?.filter((item: any) => item === null || item === undefined).length || 0;
+    if (nullCount > 0) {
+      console.log(`🔍 Array with null values:`, {
+        nodeKey,
+        totalItems: value?.length || 0,
+        nullCount,
+        preview: getValuePreview(value, type),
+        path: path.join('.'),
+        isExpandable,
+        shouldForceExpansion,
+        expanded
+      });
+      
+      // Special warning if this might be the user's issue
+      if (nullCount === value?.length) {
+        console.warn(`⚠️ Array contains ONLY null values - should be expandable to show individual items`);
+      }
+    }
   }
   
   // Simplified computations to prevent re-render loops
@@ -243,13 +281,16 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
         onClick={isExpandable ? handleExpand : undefined}
       >
         {/* Expand/Collapse Icon */}
-        {isExpandable && (
+        {(isExpandable || shouldForceExpansion) && (
           <IconButton
             size="small"
+            onClick={handleExpand}
             sx={{ 
               p: 0.25, 
               mr: 0.5,
               color: nodeColor,
+              backgroundColor: (type === 'array' && value?.some?.((item: any) => item === null || item === undefined)) 
+                ? 'rgba(255, 0, 0, 0.1)' : 'transparent'
             }}
           >
             {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -321,13 +362,15 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
             whiteSpace: 'nowrap',
             fontStyle: (type === 'null' || type === 'undefined') ? 'italic' : 'normal',
             fontWeight: (type === 'null' || type === 'undefined') ? 'bold' : 'normal',
-            backgroundColor: (type === 'null' || type === 'undefined') ? 'rgba(128, 128, 128, 0.1)' : 'transparent',
+            backgroundColor: (type === 'null' || type === 'undefined') ? 'rgba(255, 0, 0, 0.1)' : 'transparent',
             px: (type === 'null' || type === 'undefined') ? 0.5 : 0,
             borderRadius: (type === 'null' || type === 'undefined') ? 1 : 0,
-            border: (type === 'null' || type === 'undefined') ? '1px solid rgba(128, 128, 128, 0.3)' : 'none',
+            border: (type === 'null' || type === 'undefined') ? '1px solid rgba(255, 0, 0, 0.3)' : 'none',
           }}
         >
-          {getValuePreview(value, type)}
+          {(type === 'null' || type === 'undefined') && nodeKey.startsWith('[') && nodeKey.endsWith(']') 
+            ? `← ${getValuePreview(value, type)} (empty array item)` 
+            : getValuePreview(value, type)}
         </Typography>
       </Box>
 
