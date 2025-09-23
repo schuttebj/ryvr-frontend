@@ -25,6 +25,12 @@ import {
   Tab,
   Divider,
   Paper,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Stack,
+  InputAdornment,
+  Snackbar,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -36,6 +42,11 @@ import {
   Search as SeoIcon,
   Language as WordPressIcon,
   DragIndicator as DragIcon,
+  ContentCopy as CopyIcon,
+  CheckCircle as CheckIcon,
+  ExpandMore as ExpandMoreIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 
 interface Integration {
@@ -93,6 +104,17 @@ export default function IntegrationsPage() {
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'custom' | null>(null);
+  
+  // WordPress API key generation and display
+  const [generatedCredentials, setGeneratedCredentials] = useState<{
+    apiKey: string;
+    businessId: string;
+    ryvrEndpoint: string;
+    integrationId: string;
+  } | null>(null);
+  const [showCredentials, setShowCredentials] = useState(false);
+  const [copySuccess, setCopySuccess] = useState('');
+  const [showApiKey, setShowApiKey] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -210,6 +232,36 @@ export default function IntegrationsPage() {
     setEditingIntegration(null);
     setSelectedIntegrationType(null);
     setTestResult(null);
+    setGeneratedCredentials(null);
+    setShowCredentials(false);
+    setCopySuccess('');
+  };
+
+  // Generate API key for WordPress integration
+  const generateWordPressCredentials = (integrationId: string) => {
+    const apiKey = `ryvr_wp_${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
+    const businessId = '1'; // This should come from user context or be configurable
+    const ryvrEndpoint = window.location.origin + '/api/v1'; // Use current domain
+    
+    return {
+      apiKey,
+      businessId,
+      ryvrEndpoint,
+      integrationId
+    };
+  };
+
+  // Copy to clipboard functionality
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(`${label} copied!`);
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      setCopySuccess('Failed to copy');
+      setTimeout(() => setCopySuccess(''), 2000);
+    }
   };
 
   const handleSave = () => {
@@ -226,8 +278,11 @@ export default function IntegrationsPage() {
         config.password = formData.password;
         config.useSandbox = formData.useSandbox;
       } else if (formData.type === 'wordpress') {
+        // Generate API key if this is a new WordPress integration
+        const wpApiKey = editingIntegration?.config.wpApiKey || `ryvr_wp_${Math.random().toString(36).substring(2, 15)}${Date.now().toString(36)}`;
+        
         config.siteUrl = formData.siteUrl;
-        config.wpApiKey = formData.wpApiKey;
+        config.wpApiKey = wpApiKey;
         config.syncPostTypes = formData.syncPostTypes;
         config.syncAcfFields = formData.syncAcfFields;
         config.syncRankmathData = formData.syncRankmathData;
@@ -255,7 +310,18 @@ export default function IntegrationsPage() {
         : [...integrations, integration];
 
       saveIntegrations(newIntegrations);
-      closeDialog();
+      
+      // For WordPress integrations, generate and show credentials
+      if (formData.type === 'wordpress' && !editingIntegration) {
+        const credentials = generateWordPressCredentials(integration.id);
+        // Update the config with the generated API key
+        integration.config.wpApiKey = credentials.apiKey;
+        setGeneratedCredentials(credentials);
+        setShowCredentials(true);
+        // Don't close dialog immediately for WordPress - show credentials first
+      } else {
+        closeDialog();
+      }
     } catch (error: any) {
       console.error('Failed to save integration:', error);
       alert('Failed to save integration: ' + error.message);
@@ -689,15 +755,18 @@ export default function IntegrationsPage() {
                   helperText="Full URL of your WordPress site"
                 />
 
-                <TextField
-                  fullWidth
-                  label="API Key"
-                  type="password"
-                  value={formData.wpApiKey}
-                  onChange={(e) => setFormData({ ...formData, wpApiKey: e.target.value })}
-                  sx={{ mb: 2 }}
-                  helperText="Generated API key from RYVR WordPress plugin"
-                />
+                {editingIntegration && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    API credentials have already been generated for this integration.
+                  </Alert>
+                )}
+
+                {!editingIntegration && (
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    🔑 API credentials will be automatically generated after saving this integration.
+                    You'll then copy these to your WordPress plugin settings.
+                  </Alert>
+                )}
 
                 <TextField
                   fullWidth
@@ -758,10 +827,11 @@ export default function IntegrationsPage() {
                 />
 
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 2, p: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
-                  💡 <strong>Setup Instructions:</strong><br />
-                  1. Install the RYVR WordPress plugin on your site<br />
-                  2. Configure the plugin in WordPress Admin → RYVR → Settings<br />
-                  3. Copy the generated API key to the field above
+                  💡 <strong>Setup Process:</strong><br />
+                  1. Configure your WordPress site URL and sync preferences above<br />
+                  2. Save this integration to generate API credentials<br />
+                  3. Install the RYVR WordPress plugin on your site<br />
+                  4. Copy the generated credentials to your WordPress plugin settings
                 </Typography>
               </Box>
             )}
@@ -876,12 +946,156 @@ export default function IntegrationsPage() {
             disabled={!formData.name || 
                      (formData.type === 'openai' && !formData.apiKey) || 
                      (formData.type === 'dataforseo' && (!formData.login || !formData.password)) ||
-                     (formData.type === 'wordpress' && (!formData.siteUrl || !formData.wpApiKey))}
+                     (formData.type === 'wordpress' && !formData.siteUrl)}
           >
             {editingIntegration ? 'Save Changes' : 'Add Integration'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* WordPress Credentials Display */}
+      <Dialog 
+        open={showCredentials && generatedCredentials !== null} 
+        onClose={() => {
+          setShowCredentials(false);
+          setGeneratedCredentials(null);
+          closeDialog();
+        }}
+        maxWidth="md" 
+        fullWidth
+      >
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <CheckIcon color="success" />
+            WordPress Integration Created Successfully!
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="success" sx={{ mb: 3 }}>
+            Your WordPress integration has been created. Copy these credentials to your WordPress plugin settings.
+          </Alert>
+          
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            📋 Copy these settings to your WordPress plugin:
+          </Typography>
+          
+          <Stack spacing={3}>
+            <TextField
+              fullWidth
+              label="RYVR API Endpoint"
+              value={generatedCredentials?.ryvrEndpoint || ''}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton 
+                      onClick={() => copyToClipboard(generatedCredentials?.ryvrEndpoint || '', 'API Endpoint')}
+                      edge="end"
+                    >
+                      <CopyIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <TextField
+              fullWidth
+              label="Business ID"
+              value={generatedCredentials?.businessId || ''}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton 
+                      onClick={() => copyToClipboard(generatedCredentials?.businessId || '', 'Business ID')}
+                      edge="end"
+                    >
+                      <CopyIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <TextField
+              fullWidth
+              label="API Key"
+              type={showApiKey ? 'text' : 'password'}
+              value={generatedCredentials?.apiKey || ''}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton 
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      edge="end"
+                    >
+                      {showApiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                    <IconButton 
+                      onClick={() => copyToClipboard(generatedCredentials?.apiKey || '', 'API Key')}
+                      edge="end"
+                    >
+                      <CopyIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Stack>
+
+          <Accordion sx={{ mt: 3 }}>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <Typography variant="subtitle1">📝 WordPress Plugin Setup Instructions</Typography>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Stack spacing={2}>
+                <Typography variant="body2">
+                  <strong>Step 1:</strong> Install the RYVR WordPress plugin on your site
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Step 2:</strong> Go to WordPress Admin → RYVR → Settings
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Step 3:</strong> Paste the credentials above into the corresponding fields:
+                </Typography>
+                <Box component="ul" sx={{ pl: 3 }}>
+                  <li>RYVR API Endpoint → "API Endpoint" field</li>
+                  <li>Business ID → "Business ID" field</li>
+                  <li>API Key → "API Key" field</li>
+                </Box>
+                <Typography variant="body2">
+                  <strong>Step 4:</strong> Test the connection in the WordPress plugin
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Step 5:</strong> Configure your sync preferences and save
+                </Typography>
+              </Stack>
+            </AccordionDetails>
+          </Accordion>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setShowCredentials(false);
+              setGeneratedCredentials(null);
+              closeDialog();
+            }}
+            variant="contained"
+          >
+            Got it!
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Copy Success Snackbar */}
+      <Snackbar
+        open={!!copySuccess}
+        autoHideDuration={2000}
+        onClose={() => setCopySuccess('')}
+        message={copySuccess}
+      />
       </Box>
     </AdminLayout>
   );

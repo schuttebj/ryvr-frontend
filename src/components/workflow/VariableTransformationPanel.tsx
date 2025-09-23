@@ -57,6 +57,20 @@ export default function VariableTransformationPanel({
   const [livePreview, setLivePreview] = useState(true);
   const [previewResult, setPreviewResult] = useState<any>(null);
   
+  // High z-index for dropdowns to appear above Variable Selector modal
+  // Variable Selector modal has z-index 1000000, so dropdowns need 1000001+
+  const dropdownMenuProps = {
+    PaperProps: {
+      sx: {
+        zIndex: 1000001, // Higher than Variable Selector modal (1000000)
+        boxShadow: theme.shadows[8], // Enhanced shadow for better visibility
+      }
+    },
+    sx: {
+      zIndex: 1000001, // Higher than Variable Selector modal
+    }
+  };
+  
   // Array iteration settings
   const [arrayIteration, setArrayIteration] = useState({
     enabled: false,
@@ -82,11 +96,17 @@ export default function VariableTransformationPanel({
         // Check if the base path points to an array
         const pathParts = basePath.split('.');
         let current = availableData;
+        
+        console.log(`🔄 Array detection - checking basePath: ${basePath}, pathParts:`, pathParts);
+        console.log(`🔄 Available data keys:`, Object.keys(availableData));
+        
         for (const pathPart of pathParts) {
           current = current?.[pathPart];
+          console.log(`🔄 Array detection step: ${pathPart} → `, current);
         }
         
         if (Array.isArray(current)) {
+          console.log(`🔄 Array detected! Length: ${current.length}`);
           return {
             basePath,
             arrayLength: current.length,
@@ -227,11 +247,24 @@ export default function VariableTransformationPanel({
     }
 
     try {
+      // Debug availableData structure before path resolution
+      console.log('🔍 VariableTransformationPanel.useEffect debug:', {
+        selectedPathsCount: selectedPaths.length,
+        selectedPaths: selectedPaths,
+        availableDataKeys: Object.keys(availableData),
+        availableDataStructure: availableData,
+        samplePath: selectedPaths[0]
+      });
+      
       // Simulate transformation result with proper null/undefined handling
       const mockData = selectedPaths.map(path => {
         console.log(`🔍 Resolving path: ${path}`);
         const pathParts = path.split('.');
         let current = availableData;
+        
+        // Debug the first step especially
+        console.log(`🔍 Starting resolution with availableData:`, availableData);
+        console.log(`🔍 Looking for key '${pathParts[0]}' in keys:`, Object.keys(availableData));
         
         for (let i = 0; i < pathParts.length; i++) {
           const part = pathParts[i];
@@ -386,6 +419,8 @@ export default function VariableTransformationPanel({
               let resolvedValue = 'unknown';
               
               try {
+                console.log(`🔧 Chip resolution for path: ${path}, availableData keys:`, Object.keys(availableData));
+                
                 for (const part of pathParts) {
                   if (part.startsWith('[') && part.endsWith(']')) {
                     const index = parseInt(part.slice(1, -1));
@@ -393,6 +428,7 @@ export default function VariableTransformationPanel({
                   } else {
                     current = current?.[part];
                   }
+                  console.log(`🔧 Chip step: ${part} → `, current);
                 }
                 
                 // Format the resolved value for display
@@ -408,6 +444,7 @@ export default function VariableTransformationPanel({
                 else if (typeof current === 'object' && current !== null) resolvedValue = `{${Object.keys(current).length} keys}`;
                 else resolvedValue = String(current);
               } catch (error) {
+                console.error(`🔧 Chip resolution error for ${path}:`, error);
                 resolvedValue = 'error';
               }
               
@@ -557,6 +594,7 @@ export default function VariableTransformationPanel({
                           type: e.target.value as TransformationRule['type'],
                           operation: Object.keys((transformationTypes[e.target.value as TransformationRule['type']] as any).operations)[0]
                         })}
+                        MenuProps={dropdownMenuProps}
                       >
                         {Object.entries(transformationTypes).map(([key]) => (
                           <MenuItem key={key} value={key}>
@@ -573,6 +611,7 @@ export default function VariableTransformationPanel({
                         value={transformation.operation}
                         label="Operation"
                         onChange={(e) => updateTransformation(transformation.id, { operation: e.target.value })}
+                        MenuProps={dropdownMenuProps}
                       >
                         {Object.entries((transformationTypes[transformation.type] as any).operations).map(([key, value]: [string, any]) => (
                           <MenuItem key={key} value={key}>

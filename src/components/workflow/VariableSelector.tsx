@@ -597,7 +597,28 @@ export default function VariableSelector({
         }}>
           <VariableTransformationPanel
             selectedPaths={selectedPaths}
-            availableData={realNodeData || {}}
+            availableData={(() => {
+              // Convert realNodeData array to object structure that matches the paths
+              const dataObject: Record<string, any> = {};
+              
+              if (Array.isArray(realNodeData)) {
+                realNodeData.forEach(node => {
+                  if (node.nodeId && node.data) {
+                    dataObject[node.nodeId] = node.data;
+                  }
+                });
+              }
+              
+              console.log('🔧 VariableTransformationPanel availableData structure:', {
+                realNodeDataType: Array.isArray(realNodeData) ? 'array' : typeof realNodeData,
+                realNodeDataLength: Array.isArray(realNodeData) ? realNodeData.length : 'not array',
+                convertedKeys: Object.keys(dataObject),
+                sampleKey: Object.keys(dataObject)[0],
+                sampleData: dataObject[Object.keys(dataObject)[0]]
+              });
+              
+              return dataObject;
+            })()}
             onVariableGenerated={handleVariableGenerated}
             nodeColors={nodeColors}
           />

@@ -142,6 +142,19 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const [localMaxProps, setLocalMaxProps] = useState(maxProps);
   const [localMaxDepth, setLocalMaxDepth] = useState(maxDepth);
   
+  // Calculate type and expandability first
+  const type = getValueType(value);
+  const isExpandable = type === 'object' || type === 'array';
+  const shouldForceExpansion = type === 'array' && Array.isArray(value) && value.length > 0;
+  
+  // Check if this node or any child nodes are selected
+  const fullPath = path.join('.');
+  const isNodeSelected = selectedPaths.includes(fullPath);
+  const hasSelectedChildren = selectedPaths.some((selectedPath: string) => 
+    selectedPath.startsWith(fullPath + '.') && selectedPath !== fullPath
+  );
+  const shouldStayExpanded = isNodeSelected || hasSelectedChildren;
+  
   // Update local depth when parent prop changes
   useEffect(() => {
     if (maxDepth > localMaxDepth) {
@@ -149,6 +162,14 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
       setLocalMaxDepth(maxDepth);
     }
   }, [maxDepth, localMaxDepth, nodeKey]);
+  
+  // Auto-expand when this node or children become selected
+  useEffect(() => {
+    if (shouldStayExpanded && !expanded && isExpandable) {
+      console.log(`📌 Auto-expanding ${nodeKey} because it has selected children`);
+      setExpanded(true);
+    }
+  }, [shouldStayExpanded, expanded, isExpandable, nodeKey]);
   
   // Debug logging for state changes
   useEffect(() => {
@@ -187,11 +208,6 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
     );
   }
 
-  const type = getValueType(value);
-  const isExpandable = type === 'object' || type === 'array';
-  
-  // Special handling for arrays to ensure they're always expandable even with null values
-  const shouldForceExpansion = type === 'array' && Array.isArray(value) && value.length > 0;
   
   // Debug logging for null/undefined values
   if ((type === 'null' || type === 'undefined') && level <= 3) {
@@ -227,8 +243,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
     }
   }
   
-  // Simplified computations to prevent re-render loops
-  const fullPath = path.join('.');
+  // Simplified computations to prevent re-render loops  
   const isSelected = selectedPaths.includes(fullPath);
   const nodeColor = nodeColors[path[0]] || theme.palette.primary.main;
   const typeColor = getTypeColor(type, theme);
@@ -246,6 +261,11 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   // Simple event handlers
   const handleExpand = () => {
     if (isExpandable) {
+      // Prevent collapsing if this node should stay expanded due to selections
+      if (expanded && shouldStayExpanded) {
+        console.log(`🔒 Preventing collapse of ${nodeKey} because it has selected items`);
+        return;
+      }
       setExpanded(!expanded);
     }
   };
@@ -269,7 +289,11 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
           pr: 1,
           cursor: isExpandable ? 'pointer' : 'default',
           backgroundColor: isSelected ? `${nodeColor}20` : 'transparent',
-          border: isSelected ? `1px solid ${nodeColor}` : '1px solid transparent',
+          border: isSelected 
+            ? `1px solid ${nodeColor}` 
+            : shouldStayExpanded 
+              ? '1px solid rgba(95, 94, 255, 0.2)' 
+              : '1px solid transparent',
           borderRadius: 1,
           mx: 0.5,
           '&:hover': {
@@ -288,10 +312,16 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
             sx={{ 
               p: 0.25, 
               mr: 0.5,
-              color: nodeColor,
-              backgroundColor: (type === 'array' && value?.some?.((item: any) => item === null || item === undefined)) 
-                ? 'rgba(255, 0, 0, 0.1)' : 'transparent'
+              color: shouldStayExpanded ? theme.palette.primary.main : nodeColor,
+              backgroundColor: shouldStayExpanded 
+                ? 'rgba(95, 94, 255, 0.1)' // Primary color with transparency for selected nodes
+                : (type === 'array' && value?.some?.((item: any) => item === null || item === undefined)) 
+                  ? 'rgba(255, 0, 0, 0.1)' 
+                  : 'transparent',
+              border: shouldStayExpanded ? '1px solid rgba(95, 94, 255, 0.3)' : 'none',
+              borderRadius: 1,
             }}
+            title={shouldStayExpanded ? 'This node stays open because it contains selected items' : undefined}
           >
             {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
           </IconButton>
