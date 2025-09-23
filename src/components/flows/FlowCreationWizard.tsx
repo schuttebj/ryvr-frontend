@@ -56,7 +56,7 @@ import FlowApiService, { FlowTemplateResponse, TemplatePreviewResponse } from '.
 interface FlowCreationWizardProps {
   open: boolean;
   onClose: () => void;
-  onFlowCreated: (flowId: number) => void;
+  onFlowCreated: () => void;
   selectedBusiness: FlowBusinessContext | null;
 }
 
@@ -185,7 +185,7 @@ export default function FlowCreationWizard({
       
       const response = await FlowApiService.createFlow(selectedBusiness.id, createRequest);
       
-      onFlowCreated(response.flow_id);
+      onFlowCreated();
       onClose();
     } catch (err: any) {
       console.error('Error creating flow:', err);

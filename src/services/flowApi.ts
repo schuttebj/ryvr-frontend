@@ -5,7 +5,7 @@
  * (Kanban-style interface for workflow executions)
  */
 
-import api from './api';
+import { getAuthToken, handleAuthError } from '../utils/auth';
 import { 
   FlowCard, 
   CreateFlowRequest, 
@@ -14,7 +14,8 @@ import {
   FlowBusinessContext 
 } from '../types/workflow';
 
-const API_BASE = '/api/v1';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
+const API_BASE = `${API_BASE_URL}/api/v1`;
 
 export interface FlowListResponse {
   flows: FlowCard[];
@@ -87,8 +88,28 @@ export class FlowApiService {
     
     const query = params.toString() ? `?${params.toString()}` : '';
     
-    const response = await api.get(`${API_BASE}/flows/businesses/${businessId}/flows${query}`);
-    return response.data;
+    try {
+      const response = await fetch(`${API_BASE}/flows/businesses/${businessId}/flows${query}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching flows:', error);
+      throw error;
+    }
   }
   
   /**
@@ -99,8 +120,29 @@ export class FlowApiService {
     status: string;
     message: string;
   }> {
-    const response = await api.post(`${API_BASE}/flows/businesses/${businessId}/flows`, flowRequest);
-    return response.data;
+    try {
+      const response = await fetch(`${API_BASE}/flows/businesses/${businessId}/flows`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify(flowRequest),
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error creating flow:', error);
+      throw error;
+    }
   }
   
   /**
@@ -109,8 +151,29 @@ export class FlowApiService {
   static async updateFlow(flowId: number, updateRequest: UpdateFlowRequest): Promise<{
     message: string;
   }> {
-    const response = await api.patch(`${API_BASE}/flows/flows/${flowId}`, updateRequest);
-    return response.data;
+    try {
+      const response = await fetch(`${API_BASE}/flows/flows/${flowId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify(updateRequest),
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating flow:', error);
+      throw error;
+    }
   }
   
   /**
@@ -119,8 +182,28 @@ export class FlowApiService {
   static async startFlow(flowId: number): Promise<{
     message: string;
   }> {
-    const response = await api.post(`${API_BASE}/flows/flows/${flowId}/start`);
-    return response.data;
+    try {
+      const response = await fetch(`${API_BASE}/flows/flows/${flowId}/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error starting flow:', error);
+      throw error;
+    }
   }
   
   /**
@@ -133,11 +216,32 @@ export class FlowApiService {
   ): Promise<{
     message: string;
   }> {
-    const response = await api.post(
-      `${API_BASE}/flows/flows/${flowId}/reviews/${stepId}/approve`,
-      approvalRequest
-    );
-    return response.data;
+    try {
+      const response = await fetch(
+        `${API_BASE}/flows/flows/${flowId}/reviews/${stepId}/approve`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${getAuthToken()}`,
+          },
+          body: JSON.stringify(approvalRequest),
+        }
+      );
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error approving review:', error);
+      throw error;
+    }
   }
   
   // =============================================================================
@@ -161,16 +265,56 @@ export class FlowApiService {
     
     const query = params.toString() ? `?${params.toString()}` : '';
     
-    const response = await api.get(`${API_BASE}/flows/templates${query}`);
-    return response.data;
+    try {
+      const response = await fetch(`${API_BASE}/flows/templates${query}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      throw error;
+    }
   }
   
   /**
    * Get template preview (simplified view for users)
    */
   static async getTemplatePreview(templateId: number): Promise<TemplatePreviewResponse> {
-    const response = await api.get(`${API_BASE}/flows/templates/${templateId}/preview`);
-    return response.data;
+    try {
+      const response = await fetch(`${API_BASE}/flows/templates/${templateId}/preview`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching template preview:', error);
+      throw error;
+    }
   }
   
   // =============================================================================
@@ -184,10 +328,26 @@ export class FlowApiService {
   static async getAvailableBusinesses(): Promise<FlowBusinessContext[]> {
     try {
       // Use existing business API endpoint
-      const response = await api.get('/api/v1/businesses/my-businesses');
+      const response = await fetch(`${API_BASE_URL}/api/v1/businesses/my-businesses`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          handleAuthError();
+          throw new Error('Authentication failed');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
       
       // Transform to FlowBusinessContext format
-      const businesses: FlowBusinessContext[] = response.data.businesses.map((business: any) => ({
+      const businesses: FlowBusinessContext[] = data.businesses.map((business: any) => ({
         id: business.id,
         name: business.name,
         agency_id: business.agency_id,

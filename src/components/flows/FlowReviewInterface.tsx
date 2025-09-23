@@ -5,7 +5,7 @@
  * Shows the flow context, current step details, and approval options.
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -18,12 +18,10 @@ import {
   CardContent,
   TextField,
   Alert,
-  Divider,
   Chip,
   LinearProgress,
   Stack,
   IconButton,
-  Tooltip,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -31,10 +29,7 @@ import {
   Close as CloseIcon,
   CheckCircle as ApproveIcon,
   Cancel as RejectIcon,
-  Timeline as ProgressIcon,
   RateReview as ReviewIcon,
-  Visibility as ViewIcon,
-  Business as BusinessIcon,
 } from '@mui/icons-material';
 
 import { FlowCard as FlowCardType, ApproveReviewRequest } from '../../types/workflow';

@@ -8,24 +8,16 @@
  * - Flow creation wizard integration
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
   Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Card,
   CardContent,
   Chip,
-  IconButton,
-  CircularProgress,
   Alert,
-  Tooltip,
   LinearProgress,
-  Grid,
   useTheme,
   alpha,
 } from '@mui/material';
@@ -33,12 +25,10 @@ import {
   Add as AddIcon,
   Business as BusinessIcon,
   PlayArrow as PlayIcon,
-  Pause as PauseIcon,
   Error as ErrorIcon,
   CheckCircle as CompleteIcon,
   Schedule as ScheduleIcon,
   RateReview as ReviewIcon,
-  MoreVert as MoreIcon,
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
@@ -180,7 +170,7 @@ export default function FlowsPage() {
   // FLOW ACTIONS
   // =============================================================================
   
-  const handleFlowCreated = async (flowId: number) => {
+  const handleFlowCreated = async () => {
     setWizardOpen(false);
     await loadFlows();
   };

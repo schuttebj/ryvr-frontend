@@ -266,7 +266,7 @@ const nodePaletteItems: NodePaletteItem[] = [
     label: 'Review Step',
     description: 'Pause workflow for review and approval',
     category: 'Flow Control',
-    color: BRAND_COLORS.warning || '#f59e0b'
+    color: '#f59e0b'
   },
   {
     type: WorkflowNodeType.SEO_KEYWORDS_GOOGLE_ADS,
