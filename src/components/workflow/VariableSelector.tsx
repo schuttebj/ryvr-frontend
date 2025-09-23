@@ -90,42 +90,18 @@ export default function VariableSelector({
       const loadRealNodeData = async () => {
         try {
           // Import workflowApi functions
-          const { getAvailableDataNodes, clearDataNodeCache } = await import('../../services/workflowApi');
+          const { getAvailableDataNodes, clearDataNodeCache, debugWorkflowData } = await import('../../services/workflowApi');
           
           // Clear cache to ensure we get fresh data
           clearDataNodeCache();
           
-          const availableNodes = getAvailableDataNodes();
-          console.log('🔍 Raw available nodes before processing:', availableNodes);
-          console.log('🔍 Available nodes count:', availableNodes.length);
+          // Use the new debug function for comprehensive debugging
+          console.log('🔍 ===== VARIABLE SELECTOR DEBUG =====');
+          debugWorkflowData();
           
-          // Also try to access and display the raw globalWorkflowData
-          try {
-            const workflowApiModule = await import('../../services/workflowApi');
-            const globalData = (workflowApiModule as any).globalWorkflowData || {};
-            const globalKeys = Object.keys(globalData);
-            
-            console.log('📊 GlobalWorkflowData debug info:');
-            console.log('  Keys:', globalKeys);
-            console.log('  Number of stored nodes:', globalKeys.length);
-            
-            if (globalKeys.length > 0) {
-              globalKeys.forEach(key => {
-                const data = globalData[key];
-                console.log(`  Node ${key}:`, {
-                  nodeId: data?.nodeId,
-                  nodeType: data?.nodeType,
-                  status: data?.status,
-                  executedAt: data?.executedAt,
-                  hasData: !!data?.data?.processed
-                });
-              });
-            } else {
-              console.warn('  ⚠️ No data found in globalWorkflowData');
-            }
-          } catch (e) {
-            console.warn('Could not debug globalWorkflowData:', e);
-          }
+          const availableNodes = getAvailableDataNodes();
+          console.log('🔍 Available nodes from getAvailableDataNodes:', availableNodes);
+          console.log('🔍 Available nodes count:', availableNodes.length);
           
           if (isMounted) {
             // If no data, try to get it from globalWorkflowData directly
@@ -353,6 +329,22 @@ export default function VariableSelector({
                   <Button
                     variant="outlined"
                     size="small"
+                    color="info"
+                    onClick={async () => {
+                      try {
+                        const { debugWorkflowData } = await import('../../services/workflowApi');
+                        console.log('🔍 Manual debug check:');
+                        debugWorkflowData();
+                      } catch (error) {
+                        console.error('Debug failed:', error);
+                      }
+                    }}
+                  >
+                    🔍 Debug Data
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
                     color="secondary"
                     onClick={async () => {
                       console.log('🧪 Adding test data...');
@@ -443,9 +435,9 @@ export default function VariableSelector({
       fullWidth
       disablePortal={false}
       sx={{ 
-        zIndex: 9999, // Higher z-index to appear above node settings panels
+        zIndex: 1000000, // Much higher than NodeSettingsPanel's 999999
         '& .MuiBackdrop-root': {
-          zIndex: 9998,
+          zIndex: 999999,
         },
         '& .MuiDialog-paper': {
           width: '95vw',
@@ -453,12 +445,12 @@ export default function VariableSelector({
           height: '90vh',
           maxHeight: '900px',
           position: 'relative',
-          zIndex: 9999,
+          zIndex: 1000000,
         }
       }}
       BackdropProps={{
         sx: {
-          zIndex: 9998,
+          zIndex: 999999,
         }
       }}
     >

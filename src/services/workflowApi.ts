@@ -371,7 +371,19 @@ export const clearWorkflowData = () => {
 export const storeNodeResult = async (nodeId: string, response: StandardNodeResponse) => {
   globalWorkflowData[nodeId] = response;
   clearDataNodeCache(); // Clear cache when new data is added
-  console.log(`📊 Stored node result for ${nodeId}:`, response);
+  
+  console.log(`📊 Stored node result for ${nodeId}:`, {
+    nodeId: response.nodeId,
+    nodeType: response.nodeType,
+    status: response.status,
+    hasProcessedData: !!response.data?.processed,
+    hasRawData: !!response.data?.raw,
+    processedDataKeys: response.data?.processed ? Object.keys(response.data.processed) : [],
+    executedAt: response.executedAt
+  });
+  
+  console.log(`📊 GlobalWorkflowData now contains ${Object.keys(globalWorkflowData).length} nodes:`, Object.keys(globalWorkflowData));
+  
   return { success: true };
 };
 
@@ -383,6 +395,33 @@ export const getStoredNodeData = (nodeId: string) => {
 // Function to get full stored node response
 export const getStoredNodeResponse = (nodeId: string) => {
   return globalWorkflowData[nodeId] || null;
+};
+
+// Debug function to access globalWorkflowData directly (for debugging)
+export const getGlobalWorkflowData = () => {
+  return globalWorkflowData;
+};
+
+// Debug function to check data availability for VariableSelector
+export const debugWorkflowData = () => {
+  const keys = Object.keys(globalWorkflowData);
+  console.log('🔍 DEBUG: GlobalWorkflowData state:');
+  console.log(`  Total nodes: ${keys.length}`);
+  console.log(`  Node IDs: [${keys.join(', ')}]`);
+  
+  keys.forEach(nodeId => {
+    const response = globalWorkflowData[nodeId];
+    console.log(`  Node ${nodeId}:`, {
+      nodeType: response.nodeType,
+      status: response.status,
+      hasData: !!response.data,
+      hasProcessed: !!response.data?.processed,
+      processedKeys: response.data?.processed ? Object.keys(response.data.processed) : [],
+      dataSize: response.data?.processed ? JSON.stringify(response.data.processed).length : 0
+    });
+  });
+  
+  return globalWorkflowData;
 };
 
 // NOTE: Test data population removed - use real workflow execution data instead
@@ -2275,41 +2314,63 @@ export const workflowApi = {
 
   // Test a node configuration
   testNode: async (nodeType: string, config: any) => {
-    // Provide sample data for testing so variables can be processed
-    const sampleInputData = {
-      // Sample SERP results
-      serp_results: {
-        results: [{
-          keyword: "test keyword",
-          total_count: 3,
-          items: [
-            { rank_absolute: 1, url: "https://example1.com", title: "Sample Result 1", description: "Sample description 1" },
-            { rank_absolute: 2, url: "https://example2.com", title: "Sample Result 2", description: "Sample description 2" },
-            { rank_absolute: 3, url: "https://example3.com", title: "Sample Result 3", description: "Sample description 3" }
-          ]
-        }]
-      },
-      // Sample extracted content
-      extracted_content: [
-        { url: "https://example1.com", content: "Sample extracted content from first page...", title: "Sample Title 1", length: 1500 },
-        { url: "https://example2.com", content: "Sample extracted content from second page...", title: "Sample Title 2", length: 1800 },
-        { url: "https://example3.com", content: "Sample extracted content from third page...", title: "Sample Title 3", length: 1200 }
-      ],
-      // Sample AI results
-      ai_result: {
-        content: "Sample AI generated content from previous analysis...",
-        model: "gpt-4o-mini",
-        usage: { prompt_tokens: 150, completion_tokens: 75 }
-      },
-      // Sample previous node data
-      previous_node: {
-        output: "Sample output from previous node",
-        timestamp: new Date().toISOString()
-      }
-    };
+    console.log(`🧪 Testing node: ${nodeType} with config:`, config);
     
-    console.log('Testing node with sample data:', sampleInputData);
-    return workflowApi.executeNode(nodeType, config, sampleInputData);
+    // For real API testing, use minimal input data to allow real API calls
+    const minimalInputData = {};
+    
+    try {
+      // Execute the node (which will make real API calls if integrations are configured)
+      const result = await workflowApi.executeNode(nodeType, config, minimalInputData);
+      
+      console.log(`🧪 Test node result:`, {
+        success: result.success,
+        hasData: !!result.data,
+        dataKeys: result.data ? Object.keys(result.data) : [],
+        nodeType: result.nodeType
+      });
+      
+      return result;
+      
+    } catch (error) {
+      console.error(`🧪 Test node failed:`, error);
+      
+      // Fallback to sample data only if real API call fails
+      const sampleInputData = {
+        // Sample SERP results
+        serp_results: {
+          results: [{
+            keyword: "test keyword",
+            total_count: 3,
+            items: [
+              { rank_absolute: 1, url: "https://example1.com", title: "Sample Result 1", description: "Sample description 1" },
+              { rank_absolute: 2, url: "https://example2.com", title: "Sample Result 2", description: "Sample description 2" },
+              { rank_absolute: 3, url: "https://example3.com", title: "Sample Result 3", description: "Sample description 3" }
+            ]
+          }]
+        },
+        // Sample extracted content
+        extracted_content: [
+          { url: "https://example1.com", content: "Sample extracted content from first page...", title: "Sample Title 1", length: 1500 },
+          { url: "https://example2.com", content: "Sample extracted content from second page...", title: "Sample Title 2", length: 1800 },
+          { url: "https://example3.com", content: "Sample extracted content from third page...", title: "Sample Title 3", length: 1200 }
+        ],
+        // Sample AI results
+        ai_result: {
+          content: "Sample AI generated content from previous analysis...",
+          model: "gpt-4o-mini",
+          usage: { prompt_tokens: 150, completion_tokens: 75 }
+        },
+        // Sample previous node data
+        previous_node: {
+          output: "Sample output from previous node",
+          timestamp: new Date().toISOString()
+        }
+      };
+      
+      console.log('🔄 Falling back to sample data for testing');
+      return workflowApi.executeNode(nodeType, config, sampleInputData);
+    }
   },
 
   // Store node result (used by node testing)
