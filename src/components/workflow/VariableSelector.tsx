@@ -60,13 +60,19 @@ const SafeJsonTreeView = ({
   selectedPaths, 
   onPathToggle, 
   nodeColors, 
-  searchTerm 
+  searchTerm,
+  maxDepth = 5,
+  maxItems = 8,
+  maxProps = 10,
 }: {
   data: any;
   selectedPaths: string[];
   onPathToggle: (path: string) => void;
   nodeColors: Record<string, string>;
   searchTerm: string;
+  maxDepth?: number;
+  maxItems?: number;
+  maxProps?: number;
 }) => {
   const [hasError, setHasError] = useState(false);
 
@@ -97,6 +103,9 @@ const SafeJsonTreeView = ({
         onPathToggle={onPathToggle}
         nodeColors={nodeColors}
         searchTerm={searchTerm}
+        maxDepth={maxDepth}
+        maxItems={maxItems}
+        maxProps={maxProps}
       />
     );
   } catch (error) {
@@ -290,7 +299,7 @@ export default function VariableSelector({
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 300);
+    }, 800); // Increased delay to 800ms for better search experience
     
     return () => clearTimeout(timer);
   }, [searchTerm]);
@@ -460,6 +469,7 @@ export default function VariableSelector({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
               size="small"
               fullWidth
+              helperText={searchTerm !== debouncedSearchTerm ? `Searching for "${searchTerm}"...` : ''}
             />
           </Box>
 
@@ -479,6 +489,9 @@ export default function VariableSelector({
                 onPathToggle={togglePathSelection}
                 nodeColors={nodeColors}
                 searchTerm={debouncedSearchTerm}
+                maxDepth={6}
+                maxItems={15}
+                maxProps={20}
               />
             ) : (
               <Alert severity="info" sx={{ m: 2 }}>

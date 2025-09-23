@@ -6,6 +6,7 @@ import {
   Checkbox,
   IconButton,
   Chip,
+  Button,
   useTheme,
 } from '@mui/material';
 import {
@@ -27,6 +28,9 @@ interface JsonTreeViewProps {
   nodeColors: Record<string, string>;
   searchTerm?: string;
   level?: number;
+  maxDepth?: number;
+  maxItems?: number;
+  maxProps?: number;
 }
 
 interface TreeNodeProps {
@@ -38,6 +42,9 @@ interface TreeNodeProps {
   nodeColors: Record<string, string>;
   searchTerm?: string;
   level: number;
+  maxDepth?: number;
+  maxItems?: number;
+  maxProps?: number;
 }
 
 const getValueType = (value: any): string => {
@@ -101,9 +108,14 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   nodeColors,
   searchTerm = '',
   level,
+  maxDepth = 5,
+  maxItems = 8,
+  maxProps = 10,
 }) => {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(level < 2); // Reduce auto-expand to 2 levels for memory
+  const [localMaxItems, setLocalMaxItems] = useState(maxItems);
+  const [localMaxProps, setLocalMaxProps] = useState(maxProps);
   
   // Simplified circular reference detection - only check if we're getting too deep
   const shouldSkipCircular = useMemo(() => {
@@ -272,18 +284,27 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
             {(() => {
               try {
                 // Prevent rendering too deep to avoid memory issues
-                if (level >= 5) {
+                if (level >= maxDepth) {
                   return (
-                    <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
-                      Max depth reached - close and reopen to continue
-                    </Typography>
+                    <Box sx={{ p: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        Max depth reached ({maxDepth} levels)
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => setExpanded(false)}
+                        sx={{ fontSize: '0.7rem', py: 0.5 }}
+                      >
+                        Collapse to continue deeper
+                      </Button>
+                    </Box>
                   );
                 }
 
                 if (type === 'array' && Array.isArray(value)) {
-                  // Limit array items to prevent memory issues
-                  const maxItems = 8; // Reduced from 10
-                  const safeArray = value.slice(0, maxItems);
+                  // Use local max items that can be increased
+                  const safeArray = value.slice(0, localMaxItems);
                   
                   return (
                     <Box>
@@ -302,23 +323,35 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                             nodeColors={nodeColors}
                             searchTerm={searchTerm}
                             level={level + 1}
+                            maxDepth={maxDepth}
+                            maxItems={maxItems}
+                            maxProps={maxProps}
                           />
                         );
                       })}
-                      {value.length > maxItems && (
-                        <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
-                          ... and {value.length - maxItems} more items (refresh to see more)
-                        </Typography>
+                      {value.length > localMaxItems && (
+                        <Box sx={{ p: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            ... and {value.length - localMaxItems} more items
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setLocalMaxItems(prev => Math.min(prev + 10, value.length))}
+                            sx={{ fontSize: '0.7rem', py: 0.5 }}
+                          >
+                            Load More ({Math.min(10, value.length - localMaxItems)} more)
+                          </Button>
+                        </Box>
                       )}
                     </Box>
                   );
                 } 
                 
                 if (type === 'object' && value && typeof value === 'object') {
-                  // Limit object properties to prevent memory issues
+                  // Use local max props that can be increased
                   const entries = Object.entries(value);
-                  const maxProps = 10; // Reduced from 15
-                  const safeEntries = entries.slice(0, maxProps);
+                  const safeEntries = entries.slice(0, localMaxProps);
                   
                   return (
                     <Box>
@@ -337,13 +370,26 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                             nodeColors={nodeColors}
                             searchTerm={searchTerm}
                             level={level + 1}
+                            maxDepth={maxDepth}
+                            maxItems={maxItems}
+                            maxProps={maxProps}
                           />
                         );
                       })}
-                      {entries.length > maxProps && (
-                        <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
-                          ... and {entries.length - maxProps} more properties (refresh to see more)
-                        </Typography>
+                      {entries.length > localMaxProps && (
+                        <Box sx={{ p: 1 }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                            ... and {entries.length - localMaxProps} more properties
+                          </Typography>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => setLocalMaxProps(prev => Math.min(prev + 10, entries.length))}
+                            sx={{ fontSize: '0.7rem', py: 0.5 }}
+                          >
+                            Load More ({Math.min(10, entries.length - localMaxProps)} more)
+                          </Button>
+                        </Box>
                       )}
                     </Box>
                   );
@@ -374,6 +420,9 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
   nodeColors,
   searchTerm = '',
   level = 0,
+  maxDepth = 5,
+  maxItems = 8,
+  maxProps = 10,
 }) => {
   // Simplified rendering without complex memoization
   if (!data || typeof data !== 'object') {
@@ -410,6 +459,9 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
                 nodeColors={nodeColors}
                 searchTerm={searchTerm}
                 level={level}
+                maxDepth={maxDepth}
+                maxItems={maxItems}
+                maxProps={maxProps}
               />
             );
           })}
@@ -445,6 +497,9 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
               nodeColors={nodeColors}
               searchTerm={searchTerm}
               level={level}
+              maxDepth={maxDepth}
+              maxItems={maxItems}
+              maxProps={maxProps}
             />
           );
         })}
