@@ -57,18 +57,18 @@ export default function VariableTransformationPanel({
   const [livePreview, setLivePreview] = useState(true);
   const [previewResult, setPreviewResult] = useState<any>(null);
   
-  // High z-index for dropdowns to appear above Variable Selector modal
-  // Variable Selector modal has z-index 1000000, so dropdowns need 1000001+
+  // High z-index for dropdowns to appear above Variable Selector modal AND node settings
+  // Variable Selector modal has z-index 1000000, node settings might be higher
   const dropdownMenuProps = {
     PaperProps: {
       sx: {
-        zIndex: 1000002, // Even higher to ensure visibility
+        zIndex: 2000000, // Much higher to ensure visibility above all panels
         boxShadow: theme.shadows[8], // Enhanced shadow for better visibility
         position: 'fixed', // Use fixed positioning
       }
     },
     sx: {
-      zIndex: 1000002, // Even higher to ensure visibility
+      zIndex: 2000000, // Much higher to ensure visibility above all panels
     },
     disablePortal: false, // Allow portal rendering
     keepMounted: false, // Don't keep mounted when closed
@@ -94,6 +94,7 @@ export default function VariableTransformationPanel({
         
         console.log(`🔄 Array detection - checking basePath: ${basePath}, pathParts:`, pathParts);
         console.log(`🔄 Available data keys:`, Object.keys(availableData));
+        console.log(`🔄 Full selected path: ${path}`);
         
         for (const pathPart of pathParts) {
           current = current?.[pathPart];
@@ -102,6 +103,30 @@ export default function VariableTransformationPanel({
         
         if (Array.isArray(current)) {
           console.log(`🔄 Array detected! Length: ${current.length}`);
+          console.log(`🔄 Array contents preview:`, current.slice(0, 3)); // Show first 3 items
+          console.log(`🔄 Full array structure:`, current);
+          
+          // Check if this might be a nested array structure
+          if (current.length > 0 && current[0] && typeof current[0] === 'object') {
+            const firstItem = current[0];
+            console.log(`🔄 First array item structure:`, Object.keys(firstItem));
+            
+            // Look for nested arrays that might contain the actual data
+            Object.keys(firstItem).forEach(key => {
+              if (Array.isArray(firstItem[key])) {
+                console.log(`🔄 Found nested array at key "${key}" with length:`, firstItem[key].length);
+                console.log(`🔄 Nested array sample:`, firstItem[key].slice(0, 2));
+                
+                // Check if this nested array has more items than the parent
+                if (firstItem[key].length > current.length) {
+                  console.log(`⚠️ NESTED ARRAY HAS MORE ITEMS! Consider using: ${basePath}.0.${key} (${firstItem[key].length} items vs ${current.length})`);
+                  console.log(`⚠️ Your selected path was: ${path}`);
+                  console.log(`⚠️ Consider selecting from: ${basePath}.0.${key}.0.{propertyName} instead`);
+                }
+              }
+            });
+          }
+          
           return {
             basePath,
             arrayLength: current.length,
@@ -131,19 +156,29 @@ export default function VariableTransformationPanel({
         basePath: arrayPattern.basePath,
         arrayLength: arrayPattern.arrayLength,
         property: arrayPattern.property,
-        currentCount: arrayIteration.count
+        currentCount: arrayIteration.count,
+        previousBasePath: arrayIteration.basePath
       });
       
-      // Update array iteration settings with detected pattern
-      setArrayIteration(prev => ({
-        ...prev,
-        basePath: arrayPattern.basePath,
-        property: arrayPattern.property,
-        // Set count to min of current count and actual array length, but at least 1
-        count: Math.min(Math.max(prev.count, 1), arrayPattern.arrayLength)
-      }));
+      // Only update if the pattern has actually changed or if we have a better array length
+      const isNewPattern = arrayIteration.basePath !== arrayPattern.basePath || 
+                          arrayIteration.property !== arrayPattern.property;
+      const isBetterLength = arrayPattern.arrayLength > arrayIteration.count;
+      
+      if (isNewPattern || isBetterLength) {
+        console.log(`🔄 Updating array iteration: ${isNewPattern ? 'new pattern' : 'better length'}`);
+        setArrayIteration(prev => ({
+          ...prev,
+          basePath: arrayPattern.basePath,
+          property: arrayPattern.property,
+          // Use the detected array length if it's higher, otherwise keep current count but cap at array length
+          count: Math.min(Math.max(arrayPattern.arrayLength, prev.count, 1), arrayPattern.arrayLength)
+        }));
+      } else {
+        console.log(`🔄 Array pattern unchanged, keeping current state`);
+      }
     } else {
-      // Reset if no array pattern detected
+      // Only reset if we currently have array iteration data
       if (arrayIteration.basePath || arrayIteration.property) {
         console.log(`🔄 No array pattern detected, resetting array iteration state`);
         setArrayIteration(prev => ({
@@ -582,20 +617,20 @@ export default function VariableTransformationPanel({
       <Box 
         sx={{ 
           mb: 2,
-          zIndex: 1000002, // Ensure entire transformations section has high z-index
+          zIndex: 2000000, // Ensure entire transformations section has high z-index
           position: 'relative',
-          // Force all nested dropdowns to appear above modal
+          // Force all nested dropdowns to appear above modal and node settings
           '& .MuiSelect-root': {
-            zIndex: 1000002,
+            zIndex: 2000000,
           },
           '& .MuiMenu-root': {
-            zIndex: 1000002,
+            zIndex: 2000000,
           },
           '& .MuiPaper-root': {
-            zIndex: '1000002 !important',
+            zIndex: '2000000 !important',
           },
           '& .MuiPopper-root': {
-            zIndex: '1000002 !important',
+            zIndex: '2000000 !important',
           }
         }}
       >
@@ -619,7 +654,7 @@ export default function VariableTransformationPanel({
           <Stack 
             spacing={1}
             sx={{
-              zIndex: 1000002, // Ensure stack container has high z-index
+              zIndex: 2000000, // Ensure stack container has high z-index
               position: 'relative',
             }}
           >
@@ -628,10 +663,10 @@ export default function VariableTransformationPanel({
                 key={transformation.id} 
                 defaultExpanded
                 sx={{
-                  zIndex: 1000002, // Ensure accordion doesn't interfere with dropdown z-index
+                  zIndex: 2000000, // Ensure accordion doesn't interfere with dropdown z-index
                   position: 'relative',
                   '& .MuiAccordionDetails-root': {
-                    zIndex: 1000002, // Ensure details section has high z-index
+                    zIndex: 2000000, // Ensure details section has high z-index
                   }
                 }}
               >
@@ -659,7 +694,7 @@ export default function VariableTransformationPanel({
                     <FormControl 
                       size="small"
                       sx={{
-                        zIndex: 1000002, // Ensure form control is above modal
+                        zIndex: 2000000, // Ensure form control is above modal
                         position: 'relative',
                       }}
                     >
@@ -673,7 +708,7 @@ export default function VariableTransformationPanel({
                         })}
                         MenuProps={dropdownMenuProps}
                         sx={{
-                          zIndex: 1000002, // Ensure select is above modal
+                          zIndex: 2000000, // Ensure select is above modal
                           position: 'relative',
                         }}
                       >
@@ -689,7 +724,7 @@ export default function VariableTransformationPanel({
                     <FormControl 
                       size="small"
                       sx={{
-                        zIndex: 1000002, // Ensure form control is above modal
+                        zIndex: 2000000, // Ensure form control is above modal
                         position: 'relative',
                       }}
                     >
@@ -700,7 +735,7 @@ export default function VariableTransformationPanel({
                         onChange={(e) => updateTransformation(transformation.id, { operation: e.target.value })}
                         MenuProps={dropdownMenuProps}
                         sx={{
-                          zIndex: 1000002, // Ensure select is above modal
+                          zIndex: 2000000, // Ensure select is above modal
                           position: 'relative',
                         }}
                       >
@@ -723,7 +758,7 @@ export default function VariableTransformationPanel({
                           parameters: { ...transformation.parameters, [param]: e.target.value }
                         })}
                         sx={{
-                          zIndex: 1000002, // Ensure text fields are also above the modal
+                          zIndex: 2000000, // Ensure text fields are also above the modal
                           position: 'relative',
                         }}
                       />
