@@ -10,6 +10,7 @@ import {
   CircularProgress,
   Button,
   useTheme,
+  styled,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -30,6 +31,88 @@ declare global {
     };
   };
 }
+
+// Styled Dialog with enforced z-index hierarchy
+const HighZIndexDialog = styled(Dialog)(({ theme }) => ({
+  // Force z-index on the Dialog root container (highest level)
+  '&.MuiDialog-root, &.MuiModal-root': {
+    zIndex: '1000000 !important',
+  },
+  // Backdrop styling - LOWER than modal content (user requirement)
+  '& .MuiBackdrop-root': {
+    zIndex: '999998 !important',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  // Dialog container - between backdrop and content
+  '& .MuiDialog-container': {
+    zIndex: '999999 !important',
+  },
+  // Dialog paper (modal content) - HIGHER than backdrop (user requirement)
+  '& .MuiDialog-paper': {
+    zIndex: '999999 !important',
+    position: 'relative',
+  },
+}));
+
+// Safe JsonTreeView wrapper with error handling
+const SafeJsonTreeView = ({ 
+  data, 
+  selectedPaths, 
+  onPathToggle, 
+  nodeColors, 
+  searchTerm 
+}: {
+  data: any;
+  selectedPaths: string[];
+  onPathToggle: (path: string) => void;
+  nodeColors: Record<string, string>;
+  searchTerm: string;
+}) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="warning">
+          <Typography variant="body2">
+            Tree view encountered an error. Try closing and reopening the variable selector.
+          </Typography>
+          <Button
+            size="small"
+            onClick={() => setHasError(false)}
+            sx={{ mt: 1 }}
+          >
+            Try Again
+          </Button>
+        </Alert>
+      </Box>
+    );
+  }
+
+  try {
+    return (
+      <JsonTreeView
+        data={data}
+        selectedPaths={selectedPaths}
+        onPathToggle={onPathToggle}
+        nodeColors={nodeColors}
+        searchTerm={searchTerm}
+      />
+    );
+  } catch (error) {
+    console.error('JsonTreeView render error:', error);
+    setHasError(true);
+    return (
+      <Box sx={{ p: 2 }}>
+        <Alert severity="error">
+          <Typography variant="body2">
+            Failed to render tree view. Please try again.
+          </Typography>
+        </Alert>
+      </Box>
+    );
+  }
+};
 
 interface VariableSelectorProps {
   open: boolean;
@@ -218,6 +301,45 @@ export default function VariableSelector({
       }
     }
   }, [open]);
+
+  // Force z-index CSS injection when modal opens
+  useEffect(() => {
+    if (open) {
+      // Inject CSS to force z-index on all Variable Selector modals
+      const styleId = 'variable-selector-z-index-fix';
+      let existingStyle = document.getElementById(styleId);
+      
+      if (!existingStyle) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          .MuiDialog-root.variable-selector-modal {
+            z-index: 1000000 !important;
+          }
+          .MuiDialog-root.variable-selector-modal .MuiBackdrop-root {
+            z-index: 999998 !important;
+          }
+          .MuiDialog-root.variable-selector-modal .MuiDialog-container {
+            z-index: 999999 !important;
+          }
+          .MuiDialog-root.variable-selector-modal .MuiDialog-paper {
+            z-index: 999999 !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      return () => {
+        // Don't remove the style immediately to prevent flicker
+        setTimeout(() => {
+          const style = document.getElementById(styleId);
+          if (style) {
+            style.remove();
+          }
+        }, 500);
+      };
+    }
+  }, [open]);
   
   const hasRealData = realNodeData && realNodeData.length > 0;
 
@@ -303,7 +425,7 @@ export default function VariableSelector({
                 </Typography>
               </Box>
             ) : hasRealData ? (
-              <JsonTreeView
+              <SafeJsonTreeView
                 data={realNodeData}
                 selectedPaths={selectedPaths}
                 onPathToggle={togglePathSelection}
@@ -428,33 +550,23 @@ export default function VariableSelector({
   }
 
   return (
-    <Dialog 
+    <HighZIndexDialog 
       open={open} 
       onClose={onClose}
       maxWidth={false}
       fullWidth
       disablePortal={false}
+      className="variable-selector-modal"
       sx={{ 
-        zIndex: 1000000, // Much higher than NodeSettingsPanel's 999999
-        '& .MuiBackdrop-root': {
-          zIndex: 999999,
-        },
         '& .MuiDialog-paper': {
           width: '95vw',
           maxWidth: '1600px',
           height: '90vh',
           maxHeight: '900px',
-          position: 'relative',
-          zIndex: 1000000,
-        }
-      }}
-      BackdropProps={{
-        sx: {
-          zIndex: 999999,
         }
       }}
     >
       <VariableSelectorContent />
-    </Dialog>
+    </HighZIndexDialog>
   );
 } 

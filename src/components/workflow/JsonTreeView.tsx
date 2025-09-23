@@ -105,23 +105,22 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const theme = useTheme();
   const [expanded, setExpanded] = useState(level < 2); // Reduce auto-expand to 2 levels for memory
   
-  // Add circular reference detection
-  const hasCircularRef = useMemo(() => {
-    if (typeof value !== 'object' || value === null) return false;
-    try {
-      JSON.stringify(value);
-      return false;
-    } catch (e) {
-      return true; // Circular reference detected
-    }
-  }, [value]);
+  // Simplified circular reference detection - only check if we're getting too deep
+  const shouldSkipCircular = useMemo(() => {
+    if (level > 6 || typeof value !== 'object' || value === null) return level > 6;
+    
+    // Quick check for obvious circular references
+    if (value === globalThis || value === window || value === document) return true;
+    
+    return false;
+  }, [value, level]);
 
-  // If circular reference detected, don't render children
-  if (hasCircularRef && level > 0) {
+  // Early return for circular references or too deep nesting
+  if (shouldSkipCircular) {
     return (
       <Box sx={{ p: 1, color: 'warning.main' }}>
         <Typography variant="caption">
-          Circular reference detected - skipping to prevent memory leak
+          {level > 6 ? 'Max depth reached' : 'Circular reference detected'} - click to expand manually
         </Typography>
       </Box>
     );
@@ -130,37 +129,34 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const type = getValueType(value);
   const isExpandable = type === 'object' || type === 'array';
   
-  // Memoize expensive computations
-  const fullPath = useMemo(() => path.join('.'), [path]);
-  const isSelected = useMemo(() => selectedPaths.includes(fullPath), [selectedPaths, fullPath]);
-  const nodeColor = useMemo(() => nodeColors[path[0]] || theme.palette.primary.main, [nodeColors, path, theme.palette.primary.main]);
-  const typeColor = useMemo(() => getTypeColor(type, theme), [type, theme]);
+  // Simplified computations to prevent re-render loops
+  const fullPath = path.join('.');
+  const isSelected = selectedPaths.includes(fullPath);
+  const nodeColor = nodeColors[path[0]] || theme.palette.primary.main;
+  const typeColor = getTypeColor(type, theme);
   
-  // Memoize search filtering
-  const matchesSearch = useMemo(() => {
-    if (searchTerm === '') return true;
-    const searchLower = searchTerm.toLowerCase();
-    return nodeKey.toLowerCase().includes(searchLower) ||
-           (type === 'string' && String(value).toLowerCase().includes(searchLower));
-  }, [searchTerm, nodeKey, type, value]);
+  // Simplified search filtering
+  const matchesSearch = searchTerm === '' || 
+    nodeKey.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (type === 'string' && String(value).toLowerCase().includes(searchTerm.toLowerCase()));
 
   // Early return for non-matching search results
   if (!matchesSearch && !isExpandable) {
     return null;
   }
 
-  // Memoize event handlers
-  const handleExpand = useCallback(() => {
+  // Simple event handlers
+  const handleExpand = () => {
     if (isExpandable) {
       setExpanded(!expanded);
     }
-  }, [isExpandable, expanded]);
+  };
 
-  const handleSelect = useCallback(() => {
+  const handleSelect = () => {
     if (!isExpandable) {
       onPathToggle(fullPath);
     }
-  }, [isExpandable, onPathToggle, fullPath]);
+  };
 
   const indent = level * 20;
 
@@ -269,85 +265,100 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
         </Typography>
       </Box>
 
-      {/* Children - Memoized and limited for memory safety */}
+      {/* Children - Simplified rendering to prevent blank screen */}
       {isExpandable && expanded && (
         <Collapse in={expanded}>
           <Box>
-            {useMemo(() => {
-              // Prevent rendering too deep to avoid memory issues
-              if (level >= 4) {
+            {(() => {
+              try {
+                // Prevent rendering too deep to avoid memory issues
+                if (level >= 5) {
+                  return (
+                    <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                      Max depth reached - close and reopen to continue
+                    </Typography>
+                  );
+                }
+
+                if (type === 'array' && Array.isArray(value)) {
+                  // Limit array items to prevent memory issues
+                  const maxItems = 8; // Reduced from 10
+                  const safeArray = value.slice(0, maxItems);
+                  
+                  return (
+                    <Box>
+                      {safeArray.map((item: any, index: number) => {
+                        const itemKey = `${fullPath}_${index}`;
+                        const itemPath = [...path, index.toString()];
+                        
+                        return (
+                          <TreeNode
+                            key={itemKey}
+                            nodeKey={`[${index}]`}
+                            value={item}
+                            path={itemPath}
+                            selectedPaths={selectedPaths}
+                            onPathToggle={onPathToggle}
+                            nodeColors={nodeColors}
+                            searchTerm={searchTerm}
+                            level={level + 1}
+                          />
+                        );
+                      })}
+                      {value.length > maxItems && (
+                        <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                          ... and {value.length - maxItems} more items (refresh to see more)
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                } 
+                
+                if (type === 'object' && value && typeof value === 'object') {
+                  // Limit object properties to prevent memory issues
+                  const entries = Object.entries(value);
+                  const maxProps = 10; // Reduced from 15
+                  const safeEntries = entries.slice(0, maxProps);
+                  
+                  return (
+                    <Box>
+                      {safeEntries.map(([key, val]) => {
+                        const propKey = `${fullPath}_${key}`;
+                        const propPath = [...path, key];
+                        
+                        return (
+                          <TreeNode
+                            key={propKey}
+                            nodeKey={key}
+                            value={val}
+                            path={propPath}
+                            selectedPaths={selectedPaths}
+                            onPathToggle={onPathToggle}
+                            nodeColors={nodeColors}
+                            searchTerm={searchTerm}
+                            level={level + 1}
+                          />
+                        );
+                      })}
+                      {entries.length > maxProps && (
+                        <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
+                          ... and {entries.length - maxProps} more properties (refresh to see more)
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                }
+                
+                return null;
+              } catch (error) {
+                console.warn('JsonTreeView render error:', error);
                 return (
-                  <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
-                    Max depth reached - expand manually to continue
+                  <Typography variant="caption" color="error" sx={{ p: 1, display: 'block' }}>
+                    Error rendering content - try refreshing
                   </Typography>
                 );
               }
-
-              if (type === 'array') {
-                // Limit array items to prevent memory issues
-                const maxItems = 10;
-                const limitedArray = value.slice(0, maxItems);
-                
-                return (
-                  <>
-                    {limitedArray.map((item: any, index: number) => {
-                      // Create path once and reuse
-                      const itemPath = [...path, index.toString()];
-                      return (
-                        <TreeNode
-                          key={`${fullPath}[${index}]`}
-                          nodeKey={`[${index}]`}
-                          value={item}
-                          path={itemPath}
-                          selectedPaths={selectedPaths}
-                          onPathToggle={onPathToggle}
-                          nodeColors={nodeColors}
-                          searchTerm={searchTerm}
-                          level={level + 1}
-                        />
-                      );
-                    })}
-                    {value.length > maxItems && (
-                      <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
-                        ... and {value.length - maxItems} more items (limited for performance)
-                      </Typography>
-                    )}
-                  </>
-                );
-              } else {
-                // Limit object properties to prevent memory issues
-                const entries = Object.entries(value);
-                const maxProps = 15;
-                const limitedEntries = entries.slice(0, maxProps);
-                
-                return (
-                  <>
-                    {limitedEntries.map(([key, val]) => {
-                      // Create path once and reuse
-                      const propPath = [...path, key];
-                      return (
-                        <TreeNode
-                          key={`${fullPath}.${key}`}
-                          nodeKey={key}
-                          value={val}
-                          path={propPath}
-                          selectedPaths={selectedPaths}
-                          onPathToggle={onPathToggle}
-                          nodeColors={nodeColors}
-                          searchTerm={searchTerm}
-                          level={level + 1}
-                        />
-                      );
-                    })}
-                    {entries.length > maxProps && (
-                      <Typography variant="caption" color="text.secondary" sx={{ p: 1, display: 'block' }}>
-                        ... and {entries.length - maxProps} more properties (limited for performance)
-                      </Typography>
-                    )}
-                  </>
-                );
-              }
-            }, [type, value, path, fullPath, selectedPaths, onPathToggle, nodeColors, searchTerm, level])}
+            })()}
           </Box>
         </Collapse>
       )}
@@ -364,22 +375,22 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
   searchTerm = '',
   level = 0,
 }) => {
-  // Memoize the rendered content to prevent unnecessary re-renders
-  const renderedContent = useMemo(() => {
-    if (!data || typeof data !== 'object') {
-      return (
-        <Box sx={{ p: 2 }}>
-          <Typography variant="body2" color="text.secondary">
-            No data available to browse
-          </Typography>
-        </Box>
-      );
-    }
+  // Simplified rendering without complex memoization
+  if (!data || typeof data !== 'object') {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          No data available to browse
+        </Typography>
+      </Box>
+    );
+  }
 
+  try {
     // If data is an array of nodes (like our workflow data)
     if (Array.isArray(data)) {
       // Limit the number of top-level nodes for memory safety
-      const maxTopLevelNodes = 10;
+      const maxTopLevelNodes = 8; // Reduced for stability
       const limitedData = data.slice(0, maxTopLevelNodes);
       
       return (
@@ -390,7 +401,7 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
             
             return (
               <TreeNode
-                key={nodeId}
+                key={`${nodeId}_${index}`} // More unique key
                 nodeKey={nodeId}
                 value={node}
                 path={nodePath}
@@ -405,7 +416,7 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
           {data.length > maxTopLevelNodes && (
             <Box sx={{ p: 2 }}>
               <Typography variant="caption" color="text.secondary">
-                ... and {data.length - maxTopLevelNodes} more nodes (limited for performance)
+                ... and {data.length - maxTopLevelNodes} more nodes (close/reopen to see more)
               </Typography>
             </Box>
           )}
@@ -415,7 +426,7 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
 
     // If data is a single object, render its properties
     const entries = Object.entries(data);
-    const maxProperties = 20;
+    const maxProperties = 12; // Reduced for stability
     const limitedEntries = entries.slice(0, maxProperties);
     
     return (
@@ -425,7 +436,7 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
           
           return (
             <TreeNode
-              key={key}
+              key={`${key}_${level}`} // More unique key
               nodeKey={key}
               value={value}
               path={propPath}
@@ -440,15 +451,22 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
         {entries.length > maxProperties && (
           <Box sx={{ p: 2 }}>
             <Typography variant="caption" color="text.secondary">
-              ... and {entries.length - maxProperties} more properties (limited for performance)
+              ... and {entries.length - maxProperties} more properties (close/reopen to see more)
             </Typography>
           </Box>
         )}
       </Box>
     );
-  }, [data, path, selectedPaths, onPathToggle, nodeColors, searchTerm, level]);
-
-  return renderedContent;
+  } catch (error) {
+    console.warn('JsonTreeView error:', error);
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography variant="body2" color="error">
+          Error rendering data - try closing and reopening the variable selector
+        </Typography>
+      </Box>
+    );
+  }
 });
 
 export default JsonTreeView;
