@@ -49,6 +49,7 @@ interface TreeNodeProps {
 
 const getValueType = (value: any): string => {
   if (value === null) return 'null';
+  if (value === undefined) return 'undefined';
   if (Array.isArray(value)) return 'array';
   if (typeof value === 'object') return 'object';
   if (typeof value === 'boolean') return 'boolean';
@@ -65,6 +66,7 @@ const getTypeIcon = (type: string) => {
     case 'number': return <NumberIcon fontSize="small" />;
     case 'boolean': return <BooleanIcon fontSize="small" />;
     case 'null': return <NullIcon fontSize="small" />;
+    case 'undefined': return <NullIcon fontSize="small" />;
     default: return <ObjectIcon fontSize="small" />;
   }
 };
@@ -75,27 +77,37 @@ const getTypeColor = (type: string, theme: any): string => {
     case 'number': return theme.palette.info.main;
     case 'boolean': return theme.palette.warning.main;
     case 'null': return theme.palette.text.disabled;
+    case 'undefined': return theme.palette.text.disabled;
     case 'array': return theme.palette.secondary.main;
     case 'object': return theme.palette.primary.main;
-    default: return theme.palette.text.primary;
+    default: return theme.palette.text.secondary;
   }
 };
 
 const getValuePreview = (value: any, type: string): string => {
   switch (type) {
     case 'string':
+      if (value === '') return '""'; // Empty string
       return value.length > 50 ? `"${value.substring(0, 47)}..."` : `"${value}"`;
     case 'number':
+      return String(value);
     case 'boolean':
       return String(value);
     case 'null':
       return 'null';
+    case 'undefined':
+      return 'undefined';
     case 'array':
-      return `Array(${value.length})`;
+      return `Array(${value?.length || 0})`;
     case 'object':
+      if (!value) return 'null';
       return `{${Object.keys(value).length} keys}`;
+    case 'unknown':
+      if (value === null) return 'null';
+      if (value === undefined) return 'undefined';
+      return String(value) || '(empty)';
     default:
-      return String(value);
+      return String(value) || '(empty)';
   }
 };
 
@@ -165,6 +177,17 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
 
   const type = getValueType(value);
   const isExpandable = type === 'object' || type === 'array';
+  
+  // Debug logging for null/undefined values
+  if ((type === 'null' || type === 'undefined') && level <= 2) {
+    console.log(`🔍 Null/Undefined value detected:`, {
+      nodeKey,
+      type,
+      value,
+      level,
+      path: path.join('.')
+    });
+  }
   
   // Simplified computations to prevent re-render loops
   const fullPath = path.join('.');
@@ -290,12 +313,18 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
         <Typography
           variant="caption"
           sx={{
-            color: theme.palette.text.secondary,
+            color: typeColor,
             fontFamily: 'monospace',
             flex: 1,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            fontStyle: (type === 'null' || type === 'undefined') ? 'italic' : 'normal',
+            fontWeight: (type === 'null' || type === 'undefined') ? 'bold' : 'normal',
+            backgroundColor: (type === 'null' || type === 'undefined') ? 'rgba(128, 128, 128, 0.1)' : 'transparent',
+            px: (type === 'null' || type === 'undefined') ? 0.5 : 0,
+            borderRadius: (type === 'null' || type === 'undefined') ? 1 : 0,
+            border: (type === 'null' || type === 'undefined') ? '1px solid rgba(128, 128, 128, 0.3)' : 'none',
           }}
         >
           {getValuePreview(value, type)}
