@@ -37,11 +37,11 @@ import {
   Business as BusinessIcon,
 } from '@mui/icons-material';
 
-import { FlowCard, ApproveReviewRequest } from '../../types/workflow';
+import { FlowCard as FlowCardType, ApproveReviewRequest } from '../../types/workflow';
 import FlowApiService from '../../services/flowApi';
 
 interface FlowReviewInterfaceProps {
-  flow: FlowCard | null;
+  flow: FlowCardType | null;
   open: boolean;
   onClose: () => void;
   onReviewCompleted: () => void;

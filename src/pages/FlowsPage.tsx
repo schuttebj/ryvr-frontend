@@ -42,10 +42,10 @@ import {
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
-import { FlowCard, FlowStatus, FlowBusinessContext } from '../types/workflow';
+import { FlowCard as FlowCardType, FlowStatus, FlowBusinessContext } from '../types/workflow';
 import FlowApiService from '../services/flowApi';
 import FlowCreationWizard from '../components/flows/FlowCreationWizard';
-import FlowCard as FlowCardComponent from '../components/flows/FlowCard';
+import FlowCard from '../components/flows/FlowCard';
 import BusinessSelector from '../components/flows/BusinessSelector';
 import FlowReviewInterface from '../components/flows/FlowReviewInterface';
 
@@ -64,18 +64,18 @@ export default function FlowsPage() {
   // State management
   const [selectedBusiness, setSelectedBusiness] = useState<FlowBusinessContext | null>(null);
   const [availableBusinesses, setAvailableBusinesses] = useState<FlowBusinessContext[]>([]);
-  const [flows, setFlows] = useState<FlowCard[]>([]);
+  const [flows, setFlows] = useState<FlowCardType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [reviewInterfaceOpen, setReviewInterfaceOpen] = useState(false);
-  const [selectedFlowForReview, setSelectedFlowForReview] = useState<FlowCard | null>(null);
+  const [selectedFlowForReview, setSelectedFlowForReview] = useState<FlowCardType | null>(null);
   
   // Organize flows by status for Kanban columns
   const flowsByStatus = FLOW_COLUMNS.reduce((acc, column) => {
     acc[column.id] = flows.filter(flow => flow.status === column.id);
     return acc;
-  }, {} as Record<string, FlowCard[]>);
+  }, {} as Record<string, FlowCardType[]>);
   
   // =============================================================================
   // INITIALIZATION
@@ -209,7 +209,7 @@ export default function FlowsPage() {
     }
   };
   
-  const handleOpenReviewInterface = (flow: FlowCard) => {
+  const handleOpenReviewInterface = (flow: FlowCardType) => {
     setSelectedFlowForReview(flow);
     setReviewInterfaceOpen(true);
   };
@@ -316,7 +316,7 @@ export default function FlowsPage() {
                         transition: 'transform 0.2s ease',
                       }}
                     >
-                      <FlowCardComponent
+                      <FlowCard
                         flow={flow}
                         onStart={() => handleStartFlow(flow.id)}
                         onApproveReview={(stepId) => handleApproveReview(flow.id, stepId)}
