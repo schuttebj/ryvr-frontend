@@ -18,6 +18,7 @@ import { WorkflowRunsPage } from './pages/WorkflowRunsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FlowTestPage from './pages/FlowTestPage';
+import FlowsPage from './pages/FlowsPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -70,6 +71,7 @@ function AppRoutes() {
                 </AdminLayout>
               } />
               <Route path="workflows/*" element={<WorkflowsPage />} />
+              <Route path="flows" element={<FlowsPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings/*" element={
@@ -94,6 +96,7 @@ function AppRoutes() {
               <Route path="businesses/new" element={<div>Add New Business</div>} />
               <Route path="workflows/*" element={<WorkflowsPage />} />
               <Route path="workflows/builder" element={<FlowTestPage />} />
+              <Route path="flows" element={<FlowsPage />} />
               <Route path="runs" element={<WorkflowRunsPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
@@ -114,6 +117,7 @@ function AppRoutes() {
               <Route path="dashboard" element={<BusinessDashboardPage />} />
               <Route path="workflows/*" element={<WorkflowsPage />} />
               <Route path="workflows/builder" element={<FlowTestPage />} />
+              <Route path="flows" element={<FlowsPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="onboarding" element={<div>Business Onboarding</div>} />

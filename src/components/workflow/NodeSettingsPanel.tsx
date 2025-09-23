@@ -1228,6 +1228,92 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           </Box>
         );
 
+      case WorkflowNodeType.REVIEW:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              Review Step Configuration
+            </Typography>
+            
+            <Alert severity="info" sx={{ mb: 3 }}>
+              This step will pause the workflow for manual review and approval. The flow will move to "In Review" status and require approval to continue.
+            </Alert>
+            
+            <VariableTextField
+              fullWidth
+              label="Review Title"
+              value={formData.config?.reviewTitle || 'Review Required'}
+              onChange={(value) => handleConfigChange('reviewTitle', value)}
+              sx={{ mb: 2 }}
+              helperText="Title shown in the review interface"
+              availableData={{}}
+            />
+            
+            <VariableTextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Review Description"
+              value={formData.config?.reviewDescription || ''}
+              onChange={(value) => handleConfigChange('reviewDescription', value)}
+              sx={{ mb: 2 }}
+              helperText="Instructions for the reviewer. Can use variables from previous steps."
+              availableData={{}}
+            />
+            
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Required Reviewer</InputLabel>
+              <Select
+                value={formData.config?.requiredReviewer || 'agency'}
+                label="Required Reviewer"
+                onChange={(e) => handleConfigChange('requiredReviewer', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="agency">Agency Team</MenuItem>
+                <MenuItem value="client">Client</MenuItem>
+                <MenuItem value="admin">System Admin</MenuItem>
+              </Select>
+              <FormHelperText>
+                Who needs to approve this review step
+              </FormHelperText>
+            </FormControl>
+            
+            <TextField
+              fullWidth
+              type="number"
+              label="Auto-approve After (hours)"
+              value={formData.config?.autoApproveAfter || ''}
+              onChange={(e) => handleConfigChange('autoApproveAfter', e.target.value ? parseInt(e.target.value) : null)}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 1, max: 168 }}
+              helperText="Optional: Auto-approve if no response after specified hours (1-168)"
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.config?.blockingReview !== false}
+                  onChange={(e) => handleConfigChange('blockingReview', e.target.checked)}
+                />
+              }
+              label="Blocking Review"
+              sx={{ mb: 2 }}
+            />
+            <FormHelperText sx={{ mt: -1, mb: 2 }}>
+              If enabled, workflow cannot continue without approval. If disabled, workflow continues after timeout.
+            </FormHelperText>
+            
+            <TextField
+              fullWidth
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'review_result'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this step's output (approved: true/false, comments, reviewer)"
+            />
+          </Box>
+        );
+
       default:
         return (
           <Box sx={{ mt: 2 }}>

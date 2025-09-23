@@ -530,6 +530,9 @@ export enum WorkflowNodeType {
   GOOGLE_SEARCH_CONSOLE = 'google_search_console',
   HOTJAR_ANALYTICS = 'hotjar_analytics',
   MIXPANEL_EVENTS = 'mixpanel_events',
+  
+  // Flow Control
+  REVIEW = 'review',
 }
 
 // Standardized Node Response Interface

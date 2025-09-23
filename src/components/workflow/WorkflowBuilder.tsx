@@ -259,6 +259,15 @@ const nodePaletteItems: NodePaletteItem[] = [
     description: 'Get keyword search volume',
     category: 'Keywords'
   },
+  
+  // Review and Approval
+  {
+    type: WorkflowNodeType.REVIEW,
+    label: 'Review Step',
+    description: 'Pause workflow for review and approval',
+    category: 'Flow Control',
+    color: BRAND_COLORS.warning || '#f59e0b'
+  },
   {
     type: WorkflowNodeType.SEO_KEYWORDS_GOOGLE_ADS,
     label: 'Google Ads Keywords',
