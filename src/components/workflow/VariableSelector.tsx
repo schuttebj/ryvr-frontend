@@ -33,7 +33,7 @@ declare global {
 }
 
 // Styled Dialog with enforced z-index hierarchy
-const HighZIndexDialog = styled(Dialog)(({ theme }) => ({
+const HighZIndexDialog = styled(Dialog)(() => ({
   // Force z-index on the Dialog root container (highest level)
   '&.MuiDialog-root, &.MuiModal-root': {
     zIndex: '1000000 !important',
