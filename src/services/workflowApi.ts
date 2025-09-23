@@ -1257,51 +1257,58 @@ export const workflowApi = {
             successRate: 0,
             lastExecuted: null,
             // Convert V2 steps to V1 nodes format
-            nodes: (template.workflow_config?.steps || template.steps)?.map((step, index) => {
-              // Try to restore original position if saved, otherwise auto-layout
-              const savedPosition = step.input?.bindings?.position;
-              const position = savedPosition || { x: 100 + (index * 200), y: 100 + (index * 150) };
-              
-              // Extract bindings and remove position to avoid duplication
-              const { position: _, ...restBindings } = step.input?.bindings || {};
-              
-              return {
-                id: step.id || `node_${index}`,
-                type: restBindings.nodeType || step.type || 'task',
-                position,
-                data: {
-                  ...restBindings,
-                  label: step.name || restBindings.label || `Step ${index + 1}`,
-                  nodeType: restBindings.nodeType || step.type || 'task',
-                  name: step.name || restBindings.name || `Step ${index + 1}`
-                }
-              };
-            }) || [],
+            nodes: (() => {
+              // Handle both flat structure (interface) and nested structure (API response)
+              const steps = (template as any).workflow_config?.steps || template.steps || [];
+              return steps.map((step: any, index: number) => {
+                // Try to restore original position if saved, otherwise auto-layout
+                const savedPosition = step.input?.bindings?.position;
+                const position = savedPosition || { x: 100 + (index * 200), y: 100 + (index * 150) };
+                
+                // Extract bindings and remove position to avoid duplication
+                const { position: _, ...restBindings } = step.input?.bindings || {};
+                
+                return {
+                  id: step.id || `node_${index}`,
+                  type: restBindings.nodeType || step.type || 'task',
+                  position,
+                  data: {
+                    ...restBindings,
+                    label: step.name || restBindings.label || `Step ${index + 1}`,
+                    nodeType: restBindings.nodeType || step.type || 'task',
+                    name: step.name || restBindings.name || `Step ${index + 1}`
+                  }
+                };
+              });
+            })(),
             // Create basic edges connecting sequential steps
             // Note: V2 uses depends_on for connections, V1 uses source/target edges
-            edges: (template.workflow_config?.steps || template.steps)?.reduce((edges: any[], step, index) => {
-              if (step.depends_on && step.depends_on.length > 0) {
-                // Create edges based on dependencies
-                const stepEdges = step.depends_on.map((dep: string, depIndex: number) => ({
-                  id: `edge_${step.id}_${dep}_${depIndex}`,
-                  source: dep,
-                  target: step.id || `node_${index}`,
-                  type: 'default'
-                }));
-                return [...edges, ...stepEdges];
-              } else if (index > 0) {
-                // Default sequential connection for steps without explicit dependencies
-                const steps = template.workflow_config?.steps || template.steps || [];
-                const prevStep = steps[index - 1];
-                return [...edges, {
-                  id: `edge_${index - 1}_${index}`,
-                  source: prevStep.id || `node_${index - 1}`,
-                  target: step.id || `node_${index}`,
-                  type: 'default'
-                }];
-              }
-              return edges;
-            }, []) || []
+            edges: (() => {
+              // Handle both flat structure (interface) and nested structure (API response)
+              const steps = (template as any).workflow_config?.steps || template.steps || [];
+              return steps.reduce((edges: any[], step: any, index: number) => {
+                if (step.depends_on && step.depends_on.length > 0) {
+                  // Create edges based on dependencies
+                  const stepEdges = step.depends_on.map((dep: string, depIndex: number) => ({
+                    id: `edge_${step.id}_${dep}_${depIndex}`,
+                    source: dep,
+                    target: step.id || `node_${index}`,
+                    type: 'default'
+                  }));
+                  return [...edges, ...stepEdges];
+                } else if (index > 0) {
+                  // Default sequential connection for steps without explicit dependencies
+                  const prevStep = steps[index - 1];
+                  return [...edges, {
+                    id: `edge_${index - 1}_${index}`,
+                    source: prevStep.id || `node_${index - 1}`,
+                    target: step.id || `node_${index}`,
+                    type: 'default'
+                  }];
+                }
+                return edges;
+              }, []);
+            })(),
           };
           
           console.log('Converted V2 template to V1 workflow:', v1Workflow);
