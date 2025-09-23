@@ -604,7 +604,10 @@ export default function VariableSelector({
               if (Array.isArray(realNodeData)) {
                 realNodeData.forEach(node => {
                   if (node.nodeId && node.data) {
-                    dataObject[node.nodeId] = node.data;
+                    // The paths include .data. so we need to nest the data under a 'data' property
+                    dataObject[node.nodeId] = {
+                      data: node.data
+                    };
                   }
                 });
               }
@@ -614,7 +617,9 @@ export default function VariableSelector({
                 realNodeDataLength: Array.isArray(realNodeData) ? realNodeData.length : 'not array',
                 convertedKeys: Object.keys(dataObject),
                 sampleKey: Object.keys(dataObject)[0],
-                sampleData: dataObject[Object.keys(dataObject)[0]]
+                sampleData: dataObject[Object.keys(dataObject)[0]],
+                pathExample: 'seo_serp_analyze-1758631728714.data.processed...',
+                dataStructure: dataObject[Object.keys(dataObject)[0]]?.data ? 'data nested correctly' : 'data missing'
               });
               
               return dataObject;

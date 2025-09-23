@@ -141,6 +141,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   const [localMaxItems, setLocalMaxItems] = useState(maxItems);
   const [localMaxProps, setLocalMaxProps] = useState(maxProps);
   const [localMaxDepth, setLocalMaxDepth] = useState(maxDepth);
+  const [manuallyExpanded, setManuallyExpanded] = useState(false); // Track if user manually expanded this
   
   // Calculate type and expandability first
   const type = getValueType(value);
@@ -163,13 +164,14 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
     }
   }, [maxDepth, localMaxDepth, nodeKey]);
   
-  // Auto-expand when this node or children become selected
+  // Auto-expand when this node or children become selected (but don't interfere with manual expansion)
   useEffect(() => {
-    if (shouldStayExpanded && !expanded && isExpandable) {
-      console.log(`📌 Auto-expanding ${nodeKey} because it has selected children`);
+    if (shouldStayExpanded && !expanded && isExpandable && !manuallyExpanded) {
+      console.log(`📌 Auto-expanding ${nodeKey} because it has selected children (not manually collapsed)`);
       setExpanded(true);
     }
-  }, [shouldStayExpanded, expanded, isExpandable, nodeKey]);
+    // Don't auto-collapse - let user maintain their expansion state
+  }, [shouldStayExpanded, isExpandable, nodeKey, manuallyExpanded]);
   
   // Debug logging for state changes
   useEffect(() => {
@@ -261,12 +263,15 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   // Simple event handlers
   const handleExpand = () => {
     if (isExpandable) {
-      // Prevent collapsing if this node should stay expanded due to selections
-      if (expanded && shouldStayExpanded) {
-        console.log(`🔒 Preventing collapse of ${nodeKey} because it has selected items`);
+      // More flexible collapse prevention - only prevent if directly selected or critical path
+      if (expanded && shouldStayExpanded && (isNodeSelected || hasSelectedChildren)) {
+        console.log(`🔒 Preventing collapse of ${nodeKey} because it has selected items (selected: ${isNodeSelected}, hasChildren: ${hasSelectedChildren})`);
         return;
       }
-      setExpanded(!expanded);
+      const newExpanded = !expanded;
+      setExpanded(newExpanded);
+      setManuallyExpanded(newExpanded); // Track manual expansion
+      console.log(`👆 User ${newExpanded ? 'expanded' : 'collapsed'} ${nodeKey} manually`);
     }
   };
 
@@ -429,6 +434,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                             const newDepth = localMaxDepth + 3;
                             console.log(`🔄 Increasing depth limit for this branch from ${localMaxDepth} to ${newDepth}`);
                             setLocalMaxDepth(newDepth);
+                            setManuallyExpanded(true); // Mark as manually expanded to preserve state
                           }}
                           sx={{ 
                             fontSize: '0.7rem', 
@@ -451,6 +457,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                             e.preventDefault();
                             console.log(`🔄 Collapsing node at level ${level} to allow deeper expansion`);
                             setExpanded(false);
+                            setManuallyExpanded(false); // Reset manual expansion state
                           }}
                           sx={{ fontSize: '0.7rem', py: 0.5, px: 1 }}
                         >
@@ -506,6 +513,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                                 console.log('📈 Array maxItems updated:', prev, '→', newMax);
                                 return newMax;
                               });
+                              setManuallyExpanded(true); // Mark as manually expanded to preserve state
                             }}
                             sx={{ 
                               fontSize: '0.7rem', 
@@ -571,6 +579,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
                                 console.log('📈 Object maxProps updated:', prev, '→', newMax);
                                 return newMax;
                               });
+                              setManuallyExpanded(true); // Mark as manually expanded to preserve state
                             }}
                             sx={{ 
                               fontSize: '0.7rem', 
