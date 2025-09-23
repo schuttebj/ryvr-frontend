@@ -549,7 +549,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [workflowDescription, setWorkflowDescription] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [validating, setValidating] = useState(false);

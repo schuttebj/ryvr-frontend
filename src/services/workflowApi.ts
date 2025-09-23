@@ -1262,17 +1262,18 @@ export const workflowApi = {
               const savedPosition = step.input?.bindings?.position;
               const position = savedPosition || { x: 100 + (index * 200), y: 100 + (index * 150) };
               
+              // Extract bindings and remove position to avoid duplication
+              const { position: _, ...restBindings } = step.input?.bindings || {};
+              
               return {
                 id: step.id || `node_${index}`,
-                type: step.type || 'task',
+                type: restBindings.nodeType || step.type || 'task',
                 position,
                 data: {
-                  ...step.input?.bindings,
-                  label: step.name || `Step ${index + 1}`,
-                  nodeType: step.type || 'task',
-                  // Remove position from data since it's now in the position property
-                  position: undefined,
-                  ...step.input
+                  ...restBindings,
+                  label: step.name || restBindings.label || `Step ${index + 1}`,
+                  nodeType: restBindings.nodeType || step.type || 'task',
+                  name: step.name || restBindings.name || `Step ${index + 1}`
                 }
               };
             }) || [],

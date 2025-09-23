@@ -140,6 +140,9 @@ export default function WorkflowsPage() {
 
   const handleWorkflowSave = useCallback(async (workflow: any) => {
     try {
+      // Check if we're editing an existing workflow or creating a new one
+      const isEditing = editingWorkflowId && !isNaN(parseInt(editingWorkflowId));
+      
       // Convert workflow to standard format
       const workflowTemplate: WorkflowTemplateV2 = {
         schema_version: "ryvr.workflow.v1" as const,
@@ -149,20 +152,42 @@ export default function WorkflowsPage() {
         tags: workflow.tags || [],
         inputs: {},
         globals: {},
-        steps: workflow.nodes?.map((node: any, index: number) => ({
-          id: node.id || `step_${index}`,
-          type: node.type || 'task',
-          name: node.name || `Step ${index + 1}`,
-          depends_on: [],
-          input: { bindings: node.data || {} }
-        })) || [],
+        steps: workflow.nodes?.map((node: any, index: number) => {
+          // Find dependencies from edges
+          const incomingEdges = workflow.edges?.filter((edge: any) => edge.target === node.id) || [];
+          const depends_on = incomingEdges.map((edge: any) => edge.source);
+          
+          return {
+            id: node.id || `step_${index}`,
+            type: node.data?.nodeType || node.type || 'task',
+            name: node.data?.label || node.data?.name || `Step ${index + 1}`,
+            depends_on,
+            input: { 
+              bindings: {
+                ...node.data,
+                // Preserve node position for reconstruction
+                position: node.position
+              }
+            }
+          };
+        }) || [],
         execution: {
           execution_mode: "simulate" as const,
           dry_run: true
         }
       };
       
-      const result = await workflowApi.createWorkflowTemplate(workflowTemplate);
+      let result;
+      
+      if (isEditing) {
+        // Update existing template
+        console.log('Updating existing workflow template:', editingWorkflowId);
+        result = await workflowApi.updateWorkflowTemplate(parseInt(editingWorkflowId), workflowTemplate);
+      } else {
+        // Create new template
+        console.log('Creating new workflow template');
+        result = await workflowApi.createWorkflowTemplate(workflowTemplate);
+      }
       
       if (result.success && result.template) {
         console.log('Successfully saved workflow template:', result.template);
@@ -170,9 +195,10 @@ export default function WorkflowsPage() {
         // Update the workflows list with the saved template
         setWorkflows(prev => {
           const template = result.template!;
-          const existingIndex = prev.findIndex(w => w.id === template.id?.toString());
+          const templateId = template.id?.toString() || '';
+          const existingIndex = prev.findIndex(w => w.id === templateId);
           const workflowSummary: WorkflowSummary = {
-            id: template.id?.toString() || '',
+            id: templateId,
             name: template.name,
             description: template.description || '',
             isActive: true,
@@ -191,13 +217,18 @@ export default function WorkflowsPage() {
             return [...prev, workflowSummary];
           }
         });
+        
+        // Update editing state to reflect the saved template ID
+        if (!isEditing && result.template.id) {
+          setEditingWorkflowId(result.template.id.toString());
+        }
       } else {
         console.error('Failed to save workflow template:', result.error);
       }
     } catch (error) {
       console.error('Failed to save workflow:', error);
     }
-  }, []);
+  }, [editingWorkflowId]);
 
   const handleCreateWorkflow = () => {
     // Don't create a workflow summary here - let the builder handle the creation
