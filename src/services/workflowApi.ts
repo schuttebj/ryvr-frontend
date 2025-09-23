@@ -1118,39 +1118,113 @@ export const workflowApi = {
     try {
       console.log('Saving workflow:', workflow);
       
-      // Standardize workflow format
-      const standardizedWorkflow = {
-        id: workflow.id,
-        name: workflow.name,
-        description: workflow.description || '',
-        nodes: workflow.nodes || [],
-        edges: workflow.edges || [],
-        isActive: workflow.isActive || false,
-        createdAt: workflow.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        tags: workflow.tags || [],
-        executionCount: workflow.executionCount || 0,
-        lastExecuted: workflow.lastExecuted || null,
-        successRate: workflow.successRate || 0,
-      };
+      // If this workflow has an ID and it's a number, it's likely a V2 template
+      const workflowId = workflow.id;
+      const isV2Template = !isNaN(parseInt(workflowId)) && workflowId;
       
-      // For now, save to localStorage since backend might not be ready
-      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
-      const existingIndex = workflows.findIndex((w: any) => w.id === standardizedWorkflow.id);
-      
-      if (existingIndex >= 0) {
-        workflows[existingIndex] = standardizedWorkflow;
+      if (isV2Template) {
+        // Convert V1 workflow format to V2 template format and update via V2 API
+        const workflowTemplate: WorkflowTemplateV2 = {
+          schema_version: "ryvr.workflow.v1" as const,
+          name: workflow.name,
+          description: workflow.description || '',
+          category: "general",
+          tags: workflow.tags || [],
+          inputs: {},
+          globals: {},
+          steps: workflow.nodes?.map((node: any, index: number) => {
+            // Find dependencies from edges
+            const incomingEdges = workflow.edges?.filter((edge: any) => edge.target === node.id) || [];
+            const depends_on = incomingEdges.map((edge: any) => edge.source);
+            
+            return {
+              id: node.id || `step_${index}`,
+              type: node.data?.nodeType || node.type || 'task',
+              name: node.data?.label || node.data?.name || `Step ${index + 1}`,
+              depends_on,
+              input: { 
+                bindings: {
+                  ...node.data,
+                  // Preserve node position for reconstruction
+                  position: node.position
+                }
+              }
+            };
+          }) || [],
+          execution: {
+            execution_mode: "simulate" as const,
+            dry_run: true
+          }
+        };
+        
+        console.log('Updating V2 template:', workflowTemplate);
+        
+        // Update existing template using PUT method
+        const result = await workflowApi.updateWorkflowTemplate(parseInt(workflowId), workflowTemplate);
+        
+        if (result.success) {
+          // Also save to localStorage for immediate access
+          const standardizedWorkflow = {
+            id: result.template?.id?.toString() || workflowId,
+            name: workflow.name,
+            description: workflow.description || '',
+            nodes: workflow.nodes || [],
+            edges: workflow.edges || [],
+            isActive: workflow.isActive !== false,
+            createdAt: workflow.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            tags: workflow.tags || [],
+            executionCount: workflow.executionCount || 0,
+            lastExecuted: workflow.lastExecuted || null,
+            successRate: workflow.successRate || 0,
+          };
+          
+          const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+          const existingIndex = workflows.findIndex((w: any) => w.id === standardizedWorkflow.id);
+          
+          if (existingIndex >= 0) {
+            workflows[existingIndex] = standardizedWorkflow;
+          } else {
+            workflows.push(standardizedWorkflow);
+          }
+          
+          localStorage.setItem('workflows', JSON.stringify(workflows));
+          
+          return { success: true, workflow: standardizedWorkflow };
+        } else {
+          throw new Error(result.error || 'Failed to update V2 template');
+        }
       } else {
-        workflows.push(standardizedWorkflow);
+        // Standard V1 workflow - save to localStorage
+        const standardizedWorkflow = {
+          id: workflow.id || `workflow_${Date.now()}`,
+          name: workflow.name,
+          description: workflow.description || '',
+          nodes: workflow.nodes || [],
+          edges: workflow.edges || [],
+          isActive: workflow.isActive !== false,
+          createdAt: workflow.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          tags: workflow.tags || [],
+          executionCount: workflow.executionCount || 0,
+          lastExecuted: workflow.lastExecuted || null,
+          successRate: workflow.successRate || 0,
+        };
+        
+        const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+        const existingIndex = workflows.findIndex((w: any) => w.id === standardizedWorkflow.id);
+        
+        if (existingIndex >= 0) {
+          workflows[existingIndex] = standardizedWorkflow;
+        } else {
+          workflows.push(standardizedWorkflow);
+        }
+        
+        localStorage.setItem('workflows', JSON.stringify(workflows));
+        
+        return { success: true, workflow: standardizedWorkflow };
       }
       
-      localStorage.setItem('workflows', JSON.stringify(workflows));
-      
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await api.post('/api/v1/workflows', workflow);
-      // return response.data;
-      
-      return { success: true, workflow: standardizedWorkflow };
     } catch (error: any) {
       console.error('Failed to save workflow:', error);
       throw new Error('Failed to save workflow: ' + error.message);
@@ -1160,19 +1234,91 @@ export const workflowApi = {
   // Load workflow from backend
   loadWorkflow: async (workflowId: string) => {
     try {
-      // For now, load from localStorage
+      // First try to load from V2 backend API
+      const templateId = parseInt(workflowId);
+      if (!isNaN(templateId)) {
+        console.log('Loading V2 workflow template:', templateId);
+        const result = await workflowApi.getWorkflowTemplate(templateId);
+        
+        if (result.success && result.template) {
+          const template = result.template;
+          console.log('Loaded V2 template:', template);
+          
+          // Convert V2 template format to V1 workflow format expected by WorkflowBuilder
+          const v1Workflow = {
+            id: template.id?.toString() || workflowId,
+            name: template.name,
+            description: template.description || '',
+            isActive: true,
+            createdAt: template.created_at || new Date().toISOString(),
+            updatedAt: template.updated_at || new Date().toISOString(),
+            tags: template.tags || [],
+            executionCount: 0,
+            successRate: 0,
+            lastExecuted: null,
+            // Convert V2 steps to V1 nodes format
+            nodes: template.steps?.map((step, index) => {
+              // Try to restore original position if saved, otherwise auto-layout
+              const savedPosition = step.input?.bindings?.position;
+              const position = savedPosition || { x: 100 + (index * 200), y: 100 + (index * 150) };
+              
+              return {
+                id: step.id || `node_${index}`,
+                type: step.type || 'task',
+                position,
+                data: {
+                  ...step.input?.bindings,
+                  label: step.name || `Step ${index + 1}`,
+                  nodeType: step.type || 'task',
+                  // Remove position from data since it's now in the position property
+                  position: undefined,
+                  ...step.input
+                }
+              };
+            }) || [],
+            // Create basic edges connecting sequential steps
+            // Note: V2 uses depends_on for connections, V1 uses source/target edges
+            edges: template.steps?.reduce((edges: any[], step, index) => {
+              if (step.depends_on && step.depends_on.length > 0) {
+                // Create edges based on dependencies
+                const stepEdges = step.depends_on.map((dep: string, depIndex: number) => ({
+                  id: `edge_${step.id}_${dep}_${depIndex}`,
+                  source: dep,
+                  target: step.id || `node_${index}`,
+                  type: 'default'
+                }));
+                return [...edges, ...stepEdges];
+              } else if (index > 0) {
+                // Default sequential connection for steps without explicit dependencies
+                const prevStep = template.steps![index - 1];
+                return [...edges, {
+                  id: `edge_${index - 1}_${index}`,
+                  source: prevStep.id || `node_${index - 1}`,
+                  target: step.id || `node_${index}`,
+                  type: 'default'
+                }];
+              }
+              return edges;
+            }, []) || []
+          };
+          
+          console.log('Converted V2 template to V1 workflow:', v1Workflow);
+          return v1Workflow;
+        }
+      }
+      
+      // Fallback to localStorage for V1 workflows
+      console.log('V2 template not found, checking localStorage for V1 workflow');
       const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
       const workflow = workflows.find((w: any) => w.id === workflowId);
       
-      if (!workflow) {
-        throw new Error('Workflow not found');
+      if (workflow) {
+        console.log('Found V1 workflow in localStorage:', workflow);
+        return workflow;
       }
       
-      // TODO: Replace with actual API call when backend is ready
-      // const response = await api.get(`/api/v1/workflows/${workflowId}`);
-      // return response.data;
+      throw new Error('Workflow not found in V2 templates or localStorage');
       
-      return workflow;
     } catch (error: any) {
       console.error('Failed to load workflow:', error);
       throw new Error('Failed to load workflow: ' + error.message);
@@ -2615,6 +2761,32 @@ export const workflowApi = {
       return { success: true, template: result };
     } catch (error: any) {
       console.error('Failed to create workflow template V2:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // Update workflow template
+  updateWorkflowTemplate: async (templateId: number, template: WorkflowTemplateV2): Promise<{ success: boolean; template?: WorkflowTemplateV2; error?: string }> => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(template)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update workflow template');
+      }
+
+      const result = await response.json();
+      return { success: true, template: result };
+    } catch (error: any) {
+      console.error('Failed to update workflow template V2:', error);
       return { success: false, error: error.message };
     }
   },

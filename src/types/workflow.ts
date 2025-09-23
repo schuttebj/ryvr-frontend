@@ -10,7 +10,8 @@ export enum WorkflowStepType {
   FOREACH = 'foreach',
   GATE = 'gate',
   CONDITION = 'condition',
-  ASYNC_TASK = 'async_task'
+  ASYNC_TASK = 'async_task',
+  REVIEW = 'review'  // New: Review/approval step for flow management
 }
 
 // V2 Workflow Step Configuration
@@ -103,6 +104,17 @@ export interface WorkflowStepV2 {
   io_contract?: {
     outputs?: string[];
   };
+  
+  // Flow Management: Fields that can be customized when starting a flow
+  editable_fields?: string[];  // Array of field paths that users can modify
+  
+  // Review Step Configuration
+  review_config?: {
+    title?: string;
+    description?: string;
+    required_approvers?: string[];  // Role/user IDs who can approve
+    auto_approve_after?: number;    // Hours before auto-approval (optional)
+  };
 }
 
 // V2 Workflow Template
@@ -192,6 +204,20 @@ export interface WorkflowExecutionV2 {
   step_results: Record<string, any>;
   error_message?: string;
   step_executions: WorkflowStepExecutionV2[];
+  
+  // Flow Management: Kanban-style status tracking
+  flow_status: 'new' | 'scheduled' | 'in_progress' | 'in_review' | 'complete' | 'error';
+  flow_title?: string;           // User-friendly flow name
+  custom_field_values?: Record<string, any>;  // Values for editable fields
+  review_data?: {
+    pending_reviews: Array<{
+      step_id: string;
+      reviewer_id?: number;
+      approved_at?: string;
+      approved_by?: number;
+      comments?: string;
+    }>;
+  };
 }
 
 // V2 Step Execution Tracking
@@ -723,4 +749,106 @@ export interface ValidationError {
   type: 'error' | 'warning';
   message: string;
   field?: string;
+}
+
+// =============================================================================
+// FLOW MANAGEMENT TYPES (Frontend Kanban Interface)
+// =============================================================================
+
+// Kanban column statuses for Flow interface
+export enum FlowStatus {
+  NEW = 'new',
+  SCHEDULED = 'scheduled', 
+  IN_PROGRESS = 'in_progress',
+  IN_REVIEW = 'in_review',
+  COMPLETE = 'complete',
+  ERROR = 'error'
+}
+
+// Flow card for Kanban interface
+export interface FlowCard {
+  id: number;                        // WorkflowExecution ID
+  title: string;                     // User-friendly flow name
+  template_name: string;             // Original workflow template name
+  template_id: number;               // Reference to WorkflowTemplate
+  business_id: number;               // Business this flow belongs to
+  status: FlowStatus;                // Current Kanban status
+  progress: number;                  // 0-100 percentage based on completed steps
+  current_step: string | null;       // Name of current step
+  total_steps: number;               // Total number of steps in flow
+  completed_steps: number;           // Number of completed steps
+  created_at: string;                // When flow was started
+  created_by: number;                // User who started the flow
+  credits_used: number;              // Credits consumed so far
+  estimated_duration?: number;       // Expected completion time in minutes
+  custom_field_values?: Record<string, any>;  // User-customized field values
+  pending_reviews?: Array<{
+    step_id: string;
+    reviewer_needed: string;         // 'agency' | 'client' | 'admin'
+    submitted_at: string;
+  }>;
+  tags?: string[];                   // Tags from template + custom tags
+  error_message?: string;            // If status is ERROR
+}
+
+// Flow creation request
+export interface CreateFlowRequest {
+  template_id: number;
+  business_id: number;
+  title?: string;                    // Optional custom title
+  custom_field_values?: Record<string, any>;  // Values for editable fields
+  execution_mode?: 'simulate' | 'record' | 'live';
+  scheduled_for?: string;            // ISO date if scheduling for later
+}
+
+// Flow update request  
+export interface UpdateFlowRequest {
+  status?: FlowStatus;
+  title?: string;
+  custom_field_values?: Record<string, any>;
+  scheduled_for?: string;
+}
+
+// Review approval request
+export interface ApproveReviewRequest {
+  step_id: string;
+  comments?: string;
+  approved: boolean;
+}
+
+// Flow wizard step for creating flows
+export interface FlowWizardStep {
+  id: string;
+  title: string;
+  description?: string;
+  fields: FlowFieldConfig[];
+}
+
+// Editable field configuration for wizard
+export interface FlowFieldConfig {
+  path: string;                      // JSON path to the field (e.g., "input.static.prompt")
+  label: string;                     // Human-readable label
+  type: 'text' | 'textarea' | 'number' | 'select' | 'boolean';
+  description?: string;              // Help text
+  required?: boolean;                // Is field required
+  default_value?: any;               // Default value
+  options?: Array<{                  // For select fields
+    label: string;
+    value: any;
+  }>;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+  };
+}
+
+// Business context for flow management
+export interface FlowBusinessContext {
+  id: number;
+  name: string;
+  agency_id: number;
+  active_flows_count: number;
+  credits_remaining: number;
+  tier: string;
 } 

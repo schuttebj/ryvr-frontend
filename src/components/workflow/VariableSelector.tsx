@@ -8,21 +8,13 @@ import {
   Alert,
   IconButton,
   useTheme,
-  List,
-  ListItemText,
-  ListItemIcon,
-  ListItemButton,
-  Breadcrumbs,
-  Link,
-  Checkbox,
 } from '@mui/material';
 import {
-  ExpandMore as ExpandMoreIcon,
   Close as CloseIcon,
-  CheckCircle,
   Storage as DataIcon,
 } from '@mui/icons-material';
 import VariableTransformationPanel from './VariableTransformationPanel';
+import JsonTreeView from './JsonTreeView';
 
 interface VariableSelectorProps {
   open: boolean;
@@ -41,8 +33,6 @@ export default function VariableSelector({
 }: VariableSelectorProps) {
   const theme = useTheme();
   const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
-  const [navigationPath, setNavigationPath] = useState<string[]>([]);
-  const [currentData, setCurrentData] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
   const [nodeColors, setNodeColors] = useState<Record<string, string>>({});
@@ -96,70 +86,6 @@ export default function VariableSelector({
 
   const hasRealData = realNodeData && realNodeData.length > 0;
 
-  // Navigate through object properties (Zapier-like)
-  const navigateToProperty = (property: string, value: any) => {
-    const newPath = [...navigationPath, property];
-    setNavigationPath(newPath);
-    setCurrentData(value);
-  };
-
-  // Navigate back in breadcrumb
-  const navigateBack = (index: number) => {
-    const newPath = navigationPath.slice(0, index + 1);
-    setNavigationPath(newPath);
-    
-    // Navigate to the data at that path
-    let data: any = realNodeData;
-    for (const pathSegment of newPath) {
-      data = data?.[pathSegment as keyof typeof data];
-    }
-    setCurrentData(data);
-  };
-
-  // Get filtered properties for current data
-  const getFilteredProperties = (data: any) => {
-    if (!data || typeof data !== 'object') return [];
-    
-    const properties = Object.keys(data);
-    if (!searchTerm) return properties;
-    
-    return properties.filter(prop => 
-      prop.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  // Get property type for display
-  const getPropertyType = (value: any): string => {
-    if (Array.isArray(value)) return 'array';
-    if (value === null) return 'null';
-    return typeof value;
-  };
-
-  // Get property preview
-  const getPropertyPreview = (value: any): string => {
-    if (value === null) return 'null';
-    if (Array.isArray(value)) return `[${value.length} items]`;
-    if (typeof value === 'object') return `{${Object.keys(value).length} props}`;
-    if (typeof value === 'string') return value.length > 50 ? `"${value.substring(0, 50)}..."` : `"${value}"`;
-    return String(value);
-  };
-
-  // Create variable path from navigation
-  const createVariablePath = (property?: string) => {
-    const fullPath = property ? [...navigationPath, property] : navigationPath;
-    return fullPath.join('.');
-  };
-
-  // Get node color for a variable path
-  const getNodeColor = (path: string): string => {
-    const nodeId = path.split('.')[0];
-    return nodeColors[nodeId] || theme.palette.primary.main;
-  };
-
-  // Check if path is selected
-  const isPathSelected = (path: string): boolean => {
-    return selectedPaths.includes(path);
-  };
 
   // Handle variable generation from transformation panel
   const handleVariableGenerated = (variable: string) => {
@@ -214,9 +140,9 @@ export default function VariableSelector({
 
       {/* Main Content - Side by Side Layout */}
       <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-        {/* Left Panel - Data Browser */}
+        {/* Left Panel - Data Browser (70% width for more data space) */}
         <Box sx={{ 
-          width: '50%', 
+          width: '70%', 
           borderRight: `1px solid ${theme.palette.divider}`,
           display: 'flex',
           flexDirection: 'column',
@@ -233,172 +159,16 @@ export default function VariableSelector({
             />
           </Box>
 
-          {/* Breadcrumb Navigation */}
-          {navigationPath.length > 0 && (
-            <Box sx={{ p: 1, borderBottom: `1px solid ${theme.palette.divider}` }}>
-              <Breadcrumbs>
-                <Link 
-                  component="button" 
-                  onClick={() => {
-                    setNavigationPath([]);
-                    setCurrentData(realNodeData);
-                  }}
-                  sx={{ 
-                    color: theme.palette.primary.main,
-                    textDecoration: 'none',
-                    '&:hover': { textDecoration: 'underline' }
-                  }}
-                >
-                  Root
-                </Link>
-                {navigationPath.map((segment: string, index: number) => (
-                  <Link
-                    key={index}
-                    component="button"
-                    onClick={() => navigateBack(index)}
-                    sx={{ 
-                      color: index === navigationPath.length - 1 
-                        ? theme.palette.text.primary 
-                        : theme.palette.primary.main,
-                      textDecoration: 'none',
-                      '&:hover': { textDecoration: 'underline' }
-                    }}
-                  >
-                    {segment}
-                  </Link>
-                ))}
-              </Breadcrumbs>
-            </Box>
-          )}
-
-          {/* Data Content */}
-          <Box sx={{ flex: 1, overflow: 'auto' }}>
+          {/* JSON Tree View */}
+          <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
             {hasRealData ? (
-              navigationPath.length === 0 ? (
-                // Root level - show nodes with colors
-                <List dense>
-                  {realNodeData.map((node: any) => (
-                    <ListItemButton
-                      key={node.nodeId}
-                      onClick={() => navigateToProperty(node.nodeId, node)}
-                      sx={{ 
-                        borderRadius: 1,
-                        m: 1,
-                        backgroundColor: theme.palette.mode === 'dark' 
-                          ? 'rgba(255,255,255,0.05)' 
-                          : 'rgba(0,0,0,0.02)',
-                        borderLeft: `4px solid ${nodeColors[node.nodeId] || theme.palette.primary.main}`,
-                        '&:hover': {
-                          backgroundColor: theme.palette.mode === 'dark' 
-                            ? 'rgba(255,255,255,0.1)' 
-                            : 'rgba(0,0,0,0.04)',
-                        }
-                      }}
-                    >
-                      <ListItemIcon>
-                        <CheckCircle 
-                          sx={{ color: nodeColors[node.nodeId] || theme.palette.primary.main }} 
-                          fontSize="small" 
-                        />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={node.nodeId}
-                        secondary="Click to explore data"
-                        primaryTypographyProps={{
-                          sx: { color: nodeColors[node.nodeId] || theme.palette.primary.main, fontWeight: 'medium' }
-                        }}
-                      />
-                    </ListItemButton>
-                  ))}
-                </List>
-              ) : (
-                // Property level - show object properties with selection
-                <List dense>
-                  {getFilteredProperties(currentData).map((property) => {
-                    const value = currentData[property];
-                    const type = getPropertyType(value);
-                    const preview = getPropertyPreview(value);
-                    const isExpandable = (typeof value === 'object' && value !== null);
-                    const fullPath = createVariablePath(property);
-                    const nodeColor = getNodeColor(fullPath);
-                    const isSelected = isPathSelected(fullPath);
-                    
-                    return (
-                      <ListItemButton
-                        key={property}
-                        onClick={() => {
-                          if (isExpandable) {
-                            navigateToProperty(property, value);
-                          } else {
-                            togglePathSelection(fullPath);
-                          }
-                        }}
-                        sx={{ 
-                          borderRadius: 1,
-                          m: 0.5,
-                          backgroundColor: isSelected
-                            ? nodeColor + '20'
-                            : 'transparent',
-                          border: isSelected ? `1px solid ${nodeColor}` : '1px solid transparent',
-                          '&:hover': {
-                            backgroundColor: nodeColor + '10',
-                          }
-                        }}
-                      >
-                        {!isExpandable && (
-                          <ListItemIcon sx={{ minWidth: 36 }}>
-                            <Checkbox
-                              edge="start"
-                              checked={isSelected}
-                              size="small"
-                              sx={{ 
-                                color: nodeColor,
-                                '&.Mui-checked': { color: nodeColor }
-                              }}
-                            />
-                          </ListItemIcon>
-                        )}
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 'medium', color: nodeColor }}>
-                                {property}
-                              </Typography>
-                              <Chip 
-                                label={type} 
-                                size="small" 
-                                variant="outlined"
-                                sx={{ 
-                                  height: 18, 
-                                  fontSize: '0.7rem',
-                                  borderColor: nodeColor + '50',
-                                  color: nodeColor
-                                }} 
-                              />
-                            </Box>
-                          }
-                          secondary={
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: theme.palette.text.secondary,
-                                fontFamily: 'monospace' 
-                              }}
-                            >
-                              {preview}
-                            </Typography>
-                          }
-                        />
-                        {isExpandable && (
-                          <ListItemIcon sx={{ minWidth: 'auto' }}>
-                            <ExpandMoreIcon sx={{ transform: 'rotate(-90deg)', color: nodeColor }} />
-                          </ListItemIcon>
-                        )}
-                      </ListItemButton>
-                    );
-                  })}
-                </List>
-              )
+              <JsonTreeView
+                data={realNodeData}
+                selectedPaths={selectedPaths}
+                onPathToggle={togglePathSelection}
+                nodeColors={nodeColors}
+                searchTerm={searchTerm}
+              />
             ) : (
               <Alert severity="info" sx={{ m: 2 }}>
                 <Typography variant="body2">
@@ -409,9 +179,9 @@ export default function VariableSelector({
           </Box>
         </Box>
 
-        {/* Right Panel - Transformation Panel */}
+        {/* Right Panel - Transformation Panel (30% width) */}
         <Box sx={{ 
-          width: '50%', 
+          width: '30%', 
           backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)',
           overflow: 'auto',
           position: 'relative',
@@ -419,7 +189,7 @@ export default function VariableSelector({
         }}>
           <VariableTransformationPanel
             selectedPaths={selectedPaths}
-            availableData={currentData || {}}
+            availableData={realNodeData || {}}
             onVariableGenerated={handleVariableGenerated}
             nodeColors={nodeColors}
           />
@@ -438,13 +208,24 @@ export default function VariableSelector({
       onClose={onClose}
       maxWidth={false}
       fullWidth
+      disablePortal={false}
       sx={{ 
         zIndex: 999999,
+        '& .MuiBackdrop-root': {
+          zIndex: 999998,
+        },
         '& .MuiDialog-paper': {
           width: '95vw',
-          maxWidth: '1400px',
-          height: '85vh',
-          maxHeight: '800px',
+          maxWidth: '1600px',
+          height: '90vh',
+          maxHeight: '900px',
+          zIndex: 999999,
+          position: 'relative',
+        }
+      }}
+      BackdropProps={{
+        sx: {
+          zIndex: 999998,
         }
       }}
     >
