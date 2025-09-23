@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Dialog,
   Box,
@@ -36,9 +36,10 @@ export default function VariableSelector({
   const [searchTerm, setSearchTerm] = useState('');
   const [realNodeData, setRealNodeData] = useState<any[]>([]);
   const [nodeColors, setNodeColors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Enhanced path selection with multiple support
-  const togglePathSelection = (path: string) => {
+  // Memoized path selection handler
+  const togglePathSelection = useCallback((path: string) => {
     setSelectedPaths((prev: string[]) => {
       if (prev.includes(path)) {
         return prev.filter((p: string) => p !== path);
@@ -47,10 +48,10 @@ export default function VariableSelector({
       }
     });
     console.log('🎯 Toggled path selection:', path);
-  };
+  }, []);
 
-  // Generate node colors based on node types
-  const generateNodeColors = (nodeData: any[]) => {
+  // Memoized node color generation
+  const generateNodeColors = useCallback((nodeData: any[]) => {
     const colors = [
       '#5f5eff', '#1affd5', '#ff6b6b', '#4ecdc4', '#45b7d1', 
       '#96ceb4', '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd'
@@ -62,38 +63,59 @@ export default function VariableSelector({
     });
     
     return colorMap;
-  };
+  }, []);
 
-  // Load real node data when component opens
+  // Optimized data loading with proper async handling
   useEffect(() => {
-    if (open) {
+    let isMounted = true;
+    
+    if (open && !isLoading) {
+      setIsLoading(true);
+      
       const loadRealNodeData = async () => {
         try {
+          // Import once and cache the result
           const { getAvailableDataNodes } = await import('../../services/workflowApi');
           const availableNodes = getAvailableDataNodes();
-          setRealNodeData(availableNodes);
-          setNodeColors(generateNodeColors(availableNodes));
-          console.log('🔄 VariableSelector loaded node data:', availableNodes);
+          
+          if (isMounted) {
+            setRealNodeData(availableNodes);
+            setNodeColors(generateNodeColors(availableNodes));
+            console.log('🔄 VariableSelector loaded node data:', availableNodes);
+          }
         } catch (error) {
           console.warn('Failed to load real node data:', error);
-          setRealNodeData([]);
-          setNodeColors({});
+          if (isMounted) {
+            setRealNodeData([]);
+            setNodeColors({});
+          }
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       };
+      
       loadRealNodeData();
     }
-  }, [open]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [open, generateNodeColors, isLoading]);
 
+  // Memoized search term for performance
+  const debouncedSearchTerm = useMemo(() => searchTerm, [searchTerm]);
+  
   const hasRealData = realNodeData && realNodeData.length > 0;
 
-
-  // Handle variable generation from transformation panel
-  const handleVariableGenerated = (variable: string) => {
-      onInsert(variable);
+  // Memoized variable generation handler
+  const handleVariableGenerated = useCallback((variable: string) => {
+    onInsert(variable);
     if (position === 'dialog') {
       onClose();
     }
-  };
+  }, [onInsert, onClose, position]);
 
   // Enhanced content component with side-by-side layout
   const VariableSelectorContent = () => (
@@ -167,7 +189,7 @@ export default function VariableSelector({
                 selectedPaths={selectedPaths}
                 onPathToggle={togglePathSelection}
                 nodeColors={nodeColors}
-                searchTerm={searchTerm}
+                searchTerm={debouncedSearchTerm}
               />
             ) : (
               <Alert severity="info" sx={{ m: 2 }}>
@@ -210,22 +232,13 @@ export default function VariableSelector({
       fullWidth
       disablePortal={false}
       sx={{ 
-        zIndex: 999999,
-        '& .MuiBackdrop-root': {
-          zIndex: 999998,
-        },
+        zIndex: 1400, // Use Material-UI standard high z-index instead of extreme values
         '& .MuiDialog-paper': {
           width: '95vw',
           maxWidth: '1600px',
           height: '90vh',
           maxHeight: '900px',
-          zIndex: 999999,
           position: 'relative',
-        }
-      }}
-      BackdropProps={{
-        sx: {
-          zIndex: 999998,
         }
       }}
     >

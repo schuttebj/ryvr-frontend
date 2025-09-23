@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import {
   Box,
   Typography,
@@ -92,7 +92,7 @@ const getValuePreview = (value: any, type: string): string => {
   }
 };
 
-const TreeNode: React.FC<TreeNodeProps> = ({
+const TreeNode: React.FC<TreeNodeProps> = memo(({
   nodeKey,
   value,
   path,
@@ -277,9 +277,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       )}
     </Box>
   );
-};
+});
 
-const JsonTreeView: React.FC<JsonTreeViewProps> = ({
+const JsonTreeView: React.FC<JsonTreeViewProps> = memo(({
   data,
   path = [],
   selectedPaths,
@@ -337,6 +337,6 @@ const JsonTreeView: React.FC<JsonTreeViewProps> = ({
       ))}
     </Box>
   );
-};
+});
 
 export default JsonTreeView;
