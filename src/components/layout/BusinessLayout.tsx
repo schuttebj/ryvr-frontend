@@ -7,6 +7,7 @@ import {
   SettingsOutlined as SettingsIcon,
   SupportOutlined as SupportIcon,
   InsightsOutlined as InsightsIcon,
+  DynamicFeedOutlined as FlowsIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -40,6 +41,13 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({
       path: '/business/dashboard',
       active: isActive('/business/dashboard'),
       onClick: () => navigate('/business/dashboard'),
+    },
+    {
+      label: 'Flows',
+      icon: <FlowsIcon />,
+      path: '/business/flows',
+      active: isActive('/business/flows'),
+      onClick: () => navigate('/business/flows'),
     },
     {
       label: 'Analytics',

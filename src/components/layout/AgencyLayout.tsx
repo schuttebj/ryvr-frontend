@@ -7,6 +7,7 @@ import {
   SettingsOutlined as SettingsIcon,
   PeopleOutlined as PeopleIcon,
   ExtensionOutlined as IntegrationIcon,
+  DynamicFeedOutlined as FlowsIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -56,6 +57,13 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({
       path: '/agency/workflows',
       active: isActive('/agency/workflows'),
       onClick: () => navigate('/agency/workflows'),
+    },
+    {
+      label: 'Flows',
+      icon: <FlowsIcon />,
+      path: '/agency/flows',
+      active: isActive('/agency/flows'),
+      onClick: () => navigate('/agency/flows'),
     },
     {
       label: 'Analytics',

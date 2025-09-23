@@ -12,6 +12,7 @@ import {
   PaymentOutlined as BillingIcon,
   SecurityOutlined as SecurityIcon,
   SupportOutlined as SupportIcon,
+  DynamicFeedOutlined as FlowsIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -59,6 +60,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       path: '/admin/workflows',
       active: isActive('/admin/workflows'),
       onClick: () => navigate('/admin/workflows'),
+    },
+    {
+      label: 'Flows',
+      icon: <FlowsIcon />,
+      path: '/admin/flows',
+      active: isActive('/admin/flows'),
+      onClick: () => navigate('/admin/flows'),
     },
     {
       label: 'System Analytics',
