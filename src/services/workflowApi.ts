@@ -110,18 +110,21 @@ const extractSummaryFromResponse = (rawResponse: any, nodeType: WorkflowNodeType
 */
 
 // Enhanced function to analyze complete data structure for comprehensive JSON access
-const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 50): DataStructureItem[] => {
-  // Only stop if we've seen this exact object before (circular reference detection)
+const analyzeDataStructure = (data: any, path: string = '', level: number = 0, maxDepth: number = 3): DataStructureItem[] => {
+  // Reduce max depth for performance - only analyze top 3 levels initially
   if (level > maxDepth) {
-    console.warn(`🔄 Max depth ${maxDepth} reached at path: ${path}`);
     return [{
       path: path + '[...]',
-      label: `Deep structure (${maxDepth}+ levels) - continue exploring`,
+      label: `Deeper structure available (${maxDepth}+ levels)`,
       type: 'object',
-      sampleValue: 'Object with deeper nesting available',
+      sampleValue: 'Click to explore deeper',
       children: []
     }];
   }
+  
+  // Limit array processing to prevent performance issues
+  const MAX_ARRAY_ITEMS = 3;
+  const MAX_OBJECT_PROPS = 10;
   
   const items: DataStructureItem[] = [];
   
@@ -137,8 +140,8 @@ const analyzeDataStructure = (data: any, path: string = '', level: number = 0, m
       children: data.length > 0 && typeof data[0] === 'object' ? analyzeDataStructure(data[0], path + '[0]', level + 1, maxDepth) : []
     });
     
-    // Add specific index accessors for first few items
-    const maxIndexes = Math.min(data.length, 5); // Show first 5 items
+    // Add specific index accessors for first few items only
+    const maxIndexes = Math.min(data.length, MAX_ARRAY_ITEMS); // Limit to 3 items for performance
     for (let i = 0; i < maxIndexes; i++) {
       const indexPath = `${path}[${i}]`;
       const item = data[i];
@@ -149,15 +152,16 @@ const analyzeDataStructure = (data: any, path: string = '', level: number = 0, m
         type: Array.isArray(item) ? 'array' : typeof item as any,
         isArray: Array.isArray(item),
         sampleValue: typeof item === 'object' ? `${Array.isArray(item) ? 'Array' : 'Object'} with ${Object.keys(item || {}).length} properties` : item,
-        children: typeof item === 'object' && item !== null ? analyzeDataStructure(item, indexPath, level + 1, maxDepth) : []
+        children: typeof item === 'object' && item !== null && level < maxDepth - 1 ? 
+          analyzeDataStructure(item, indexPath, level + 1, maxDepth) : []
       });
     }
     
     // If array has more items, add a note
-    if (data.length > 5) {
+    if (data.length > MAX_ARRAY_ITEMS) {
       items.push({
-        path: `${path}[5+]`,
-        label: `... and ${data.length - 5} more items`,
+        path: `${path}[${MAX_ARRAY_ITEMS}+]`,
+        label: `... and ${data.length - MAX_ARRAY_ITEMS} more items`,
         type: 'info',
         sampleValue: `Use [*] to access all items or specify index like [${data.length - 1}]`
       });
@@ -171,7 +175,10 @@ const analyzeDataStructure = (data: any, path: string = '', level: number = 0, m
       ...allKeys.filter(key => !commonKeys.includes(key)).sort()
     ];
     
-    sortedKeys.forEach(key => {
+    // Limit object properties for performance
+    const limitedKeys = sortedKeys.slice(0, MAX_OBJECT_PROPS);
+    
+    limitedKeys.forEach(key => {
       const value = data[key];
       const newPath = path ? `${path}.${key}` : key;
       const type = Array.isArray(value) ? 'array' : typeof value as any;
@@ -193,9 +200,20 @@ const analyzeDataStructure = (data: any, path: string = '', level: number = 0, m
         type,
         isArray: Array.isArray(value),
         sampleValue,
-        children: typeof value === 'object' && value !== null ? analyzeDataStructure(value, newPath, level + 1, maxDepth) : []
+        children: typeof value === 'object' && value !== null && level < maxDepth - 1 ? 
+          analyzeDataStructure(value, newPath, level + 1, maxDepth) : []
       });
     });
+    
+    // If object has more properties, add a note
+    if (sortedKeys.length > MAX_OBJECT_PROPS) {
+      items.push({
+        path: `${path}[...]`,
+        label: `... and ${sortedKeys.length - MAX_OBJECT_PROPS} more properties`,
+        type: 'info',
+        sampleValue: `Object has ${sortedKeys.length} total properties`
+      });
+    }
   } else {
     // Primitive value
     items.push({
@@ -241,8 +259,23 @@ const analyzeCompleteDataStructure = (nodeResponse: StandardNodeResponse): any =
   return structure;
 };
 
+// Cache for analyzed data to prevent re-analysis
+let dataNodeCache: AvailableDataNode[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 30000; // 30 seconds cache
+
 // Function to get available data from executed nodes with comprehensive structure
 export const getAvailableDataNodes = (): AvailableDataNode[] => {
+  const now = Date.now();
+  
+  // Return cached data if it's still fresh
+  if (dataNodeCache && (now - cacheTimestamp) < CACHE_DURATION) {
+    console.log('📋 Using cached workflow data nodes');
+    return dataNodeCache;
+  }
+  
+  console.log('🔄 Analyzing workflow data nodes...');
+  
   const workflowNodes = Object.values(globalWorkflowData)
     .filter(response => response.status === 'success')
     .map(response => ({
@@ -302,22 +335,42 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
     }));
 
     console.log(`📊 Added ${clientNodes.length} client business profiles to available data nodes`);
-    return [...workflowNodes, ...clientNodes];
+    const allNodes = [...workflowNodes, ...clientNodes];
+    
+    // Cache the result
+    dataNodeCache = allNodes;
+    cacheTimestamp = now;
+    
+    return allNodes;
   } catch (error) {
     console.warn('Failed to load client business profiles for variables:', error);
+    
+    // Cache workflow nodes only
+    dataNodeCache = workflowNodes;
+    cacheTimestamp = now;
+    
     return workflowNodes;
   }
+};
+
+// Function to clear data cache
+export const clearDataNodeCache = () => {
+  dataNodeCache = null;
+  cacheTimestamp = 0;
+  console.log('🧹 Data node cache cleared');
 };
 
 // Function to clear workflow data (for development reset)
 export const clearWorkflowData = () => {
   globalWorkflowData = {};
+  clearDataNodeCache(); // Clear cache when workflow data changes
   console.log('🧹 Workflow data cleared');
 };
 
 // Function to store node result (used by node testing)
 export const storeNodeResult = async (nodeId: string, response: StandardNodeResponse) => {
   globalWorkflowData[nodeId] = response;
+  clearDataNodeCache(); // Clear cache when new data is added
   console.log(`📊 Stored node result for ${nodeId}:`, response);
   return { success: true };
 };

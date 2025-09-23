@@ -7,6 +7,7 @@ import {
   TextField,
   Alert,
   IconButton,
+  CircularProgress,
   useTheme,
 } from '@mui/material';
 import {
@@ -65,7 +66,7 @@ export default function VariableSelector({
     return colorMap;
   }, []);
 
-  // Optimized data loading with proper async handling
+  // Optimized data loading with proper async handling and size checks
   useEffect(() => {
     let isMounted = true;
     
@@ -79,9 +80,16 @@ export default function VariableSelector({
           const availableNodes = getAvailableDataNodes();
           
           if (isMounted) {
-            setRealNodeData(availableNodes);
-            setNodeColors(generateNodeColors(availableNodes));
-            console.log('🔄 VariableSelector loaded node data:', availableNodes);
+            // Limit data size for performance - only show first 20 nodes max
+            const limitedNodes = availableNodes.slice(0, 20);
+            
+            if (limitedNodes.length < availableNodes.length) {
+              console.warn(`📊 Limited data to ${limitedNodes.length} of ${availableNodes.length} nodes for performance`);
+            }
+            
+            setRealNodeData(limitedNodes);
+            setNodeColors(generateNodeColors(limitedNodes));
+            console.log('🔄 VariableSelector loaded node data:', limitedNodes);
           }
         } catch (error) {
           console.warn('Failed to load real node data:', error);
@@ -183,7 +191,14 @@ export default function VariableSelector({
 
           {/* JSON Tree View */}
           <Box sx={{ flex: 1, overflow: 'auto', p: 1 }}>
-            {hasRealData ? (
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
+                <CircularProgress size={40} />
+                <Typography variant="body2" sx={{ ml: 2 }}>
+                  Loading workflow data...
+                </Typography>
+              </Box>
+            ) : hasRealData ? (
               <JsonTreeView
                 data={realNodeData}
                 selectedPaths={selectedPaths}
