@@ -128,17 +128,23 @@ export default function VariableTransformationPanel({
     setTransformations(prev => prev.filter(t => t.id !== id));
   };
 
-  // Generate variable string based on current configuration
+  // Generate variable string based on current configuration with null/undefined handling
   const generateVariableString = useMemo(() => {
     if (selectedPaths.length === 0) return '';
 
     if (transformations.length === 0) {
       // Simple variable without transformations
       if (selectedPaths.length === 1) {
-        return `{{${selectedPaths[0]}}}`;
+        const path = selectedPaths[0];
+        
+        // Check if this path likely contains null/undefined values
+        console.log(`🔧 Generating variable for path: ${path}`);
+        
+        // For null/undefined values, provide a fallback
+        return `{{${path} ?? "null"}}`;  // Use nullish coalescing to show "null" for null/undefined
       } else {
-        // Multiple paths - default to comma-separated list
-        return selectedPaths.map(path => `{{${path}}}`).join(' + ');
+        // Multiple paths - default to comma-separated list with null handling
+        return selectedPaths.map(path => `{{${path} ?? "null"}}`).join(' + ');
       }
     }
 
@@ -151,7 +157,8 @@ export default function VariableTransformationPanel({
       return paramStr ? `${t.operation}(${paramStr})` : t.operation;
     }).join('|');
 
-    return `{{${baseVariable}|${transformPipes}}}`;
+    // Add null handling to complex transformations too
+    return `{{${baseVariable} ?? "null" | ${transformPipes}}}`;
   }, [selectedPaths, transformations]);
 
   // Live preview of transformation result
@@ -162,13 +169,40 @@ export default function VariableTransformationPanel({
     }
 
     try {
-      // Simulate transformation result
+      // Simulate transformation result with proper null/undefined handling
       const mockData = selectedPaths.map(path => {
+        console.log(`🔍 Resolving path: ${path}`);
         const pathParts = path.split('.');
         let current = availableData;
-        for (const part of pathParts) {
-          current = current?.[part];
+        
+        for (let i = 0; i < pathParts.length; i++) {
+          const part = pathParts[i];
+          
+          // Handle array indices like [0], [1], etc.
+          if (part.startsWith('[') && part.endsWith(']')) {
+            const index = parseInt(part.slice(1, -1));
+            if (Array.isArray(current) && !isNaN(index)) {
+              current = current[index];
+            } else {
+              console.warn(`Invalid array access: ${part} on`, current);
+              current = undefined;
+              break;
+            }
+          } else {
+            // Handle object property access
+            if (current && typeof current === 'object') {
+              current = current[part];
+            } else {
+              console.warn(`Cannot access property ${part} on`, current);
+              current = undefined;
+              break;
+            }
+          }
+          
+          console.log(`  Step ${i + 1}: ${part} → `, current);
         }
+        
+        console.log(`✅ Final resolved value for ${path}:`, current);
         return current;
       });
 
@@ -287,20 +321,58 @@ export default function VariableTransformationPanel({
         <Paper sx={{ p: 2, mb: 2, backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Variables:</Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-            {selectedPaths.map((path, index) => (
-              <Chip
-                key={index}
-                label={path.split('.').pop()}
-                size="small"
-                sx={{
-                  backgroundColor: getNodeColor(path) + '20',
-                  borderColor: getNodeColor(path),
-                  color: getNodeColor(path),
-                  fontFamily: 'monospace',
-                }}
-                variant="outlined"
-              />
-            ))}
+            {selectedPaths.map((path, index) => {
+              // Resolve the actual value for this path to show in chip
+              const pathParts = path.split('.');
+              let current = availableData;
+              let resolvedValue = 'unknown';
+              
+              try {
+                for (const part of pathParts) {
+                  if (part.startsWith('[') && part.endsWith(']')) {
+                    const index = parseInt(part.slice(1, -1));
+                    current = Array.isArray(current) ? current[index] : undefined;
+                  } else {
+                    current = current?.[part];
+                  }
+                }
+                
+                // Format the resolved value for display
+                if (current === null) resolvedValue = 'null';
+                else if (current === undefined) resolvedValue = 'undefined';
+                else if (typeof current === 'string') resolvedValue = `"${current.length > 20 ? current.substring(0, 17) + '...' : current}"`;
+                else if (typeof current === 'number') resolvedValue = String(current);
+                else if (typeof current === 'boolean') resolvedValue = String(current);
+                else if (Array.isArray(current)) resolvedValue = `Array(${current.length})`;
+                else if (typeof current === 'object') resolvedValue = `{${Object.keys(current || {}).length} keys}`;
+                else resolvedValue = String(current);
+              } catch (error) {
+                resolvedValue = 'error';
+              }
+              
+              return (
+                <Chip
+                  key={index}
+                  label={`${path.split('.').pop()}: ${resolvedValue}`}
+                  size="small"
+                  sx={{
+                    backgroundColor: getNodeColor(path) + '20',
+                    borderColor: getNodeColor(path),
+                    color: getNodeColor(path),
+                    fontFamily: 'monospace',
+                    // Special styling for null/undefined values
+                    ...(current === null || current === undefined ? {
+                      backgroundColor: 'rgba(255, 0, 0, 0.1)',
+                      borderColor: 'error.main',
+                      color: 'error.main',
+                      fontStyle: 'italic',
+                      fontWeight: 'bold'
+                    } : {}),
+                  }}
+                  variant="outlined"
+                />
+              );
+            })}
           </Stack>
         </Paper>
       )}
@@ -427,6 +499,24 @@ export default function VariableTransformationPanel({
           >
             ✂️ Slice Array
           </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            color="error"
+            onClick={() => {
+              // Add a custom transformation for null handling
+              const newTransformation: TransformationRule = {
+                id: Date.now().toString(),
+                type: 'format',
+                operation: 'nullish_coalescing',
+                parameters: { fallback: '(empty)' },
+                alias: 'null_safe'
+              };
+              setTransformations(prev => [...prev, newTransformation]);
+            }}
+          >
+            🚫 Handle Nulls
+          </Button>
         </Stack>
       </Box>
 
@@ -449,7 +539,30 @@ export default function VariableTransformationPanel({
             {previewResult?.error ? (
               <Typography color="error">{previewResult.error}</Typography>
             ) : (
-              <pre>{JSON.stringify(previewResult, null, 2)}</pre>
+              <pre style={{ 
+                margin: 0,
+                color: (previewResult === null || previewResult === undefined) ? theme.palette.error.main : 'inherit',
+                fontStyle: (previewResult === null || previewResult === undefined) ? 'italic' : 'normal',
+                fontWeight: (previewResult === null || previewResult === undefined) ? 'bold' : 'normal'
+              }}>
+                {(() => {
+                  // Custom JSON stringify that highlights null/undefined values
+                  if (previewResult === null) return 'null';
+                  if (previewResult === undefined) return 'undefined';
+                  if (Array.isArray(previewResult)) {
+                    return '[' + previewResult.map(item => {
+                      if (item === null) return 'null';
+                      if (item === undefined) return 'undefined';
+                      return JSON.stringify(item);
+                    }).join(', ') + ']';
+                  }
+                  return JSON.stringify(previewResult, (key, value) => {
+                    if (value === null) return 'null';
+                    if (value === undefined) return 'undefined';
+                    return value;
+                  }, 2);
+                })()}
+              </pre>
             )}
           </Box>
         </Paper>
