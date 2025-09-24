@@ -107,7 +107,7 @@ export default function IntegrationsPage() {
   const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'custom' | null>(null);
   
   // Use OpenAI models hook
-  const { models, loading: modelsLoading, getModelOptions } = useOpenAIModels();
+  const { loading: modelsLoading, getModelOptions } = useOpenAIModels();
   
   // WordPress API key generation and display
   const [generatedCredentials, setGeneratedCredentials] = useState<{

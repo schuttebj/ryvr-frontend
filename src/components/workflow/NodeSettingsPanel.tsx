@@ -71,7 +71,7 @@ interface NodeSettingsPanelProps {
 
 export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: NodeSettingsPanelProps) {
   const theme = useTheme();
-  const { getModelOptions, loading: modelsLoading } = useOpenAIModels();
+  const { getModelOptions } = useOpenAIModels();
   const [formData, setFormData] = useState<WorkflowNodeData>(
     node?.data || {
       id: '',
