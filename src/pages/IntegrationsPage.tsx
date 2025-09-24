@@ -151,6 +151,7 @@ export default function IntegrationsPage() {
     // Custom fields
     baseUrl: '',
     headers: '{}',
+    testMode: false,
   });
 
   // Load integrations on mount

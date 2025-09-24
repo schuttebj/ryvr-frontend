@@ -1471,7 +1471,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             rows={3}
             variant="outlined"
             value={workflowDescription}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWorkflowDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setWorkflowDescription(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
