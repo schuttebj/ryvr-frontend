@@ -824,28 +824,44 @@ export const processVariables = (text: string, workflowData: Record<string, any>
     topLevelKeys: typeof workflowData[key] === 'object' ? Object.keys(workflowData[key]) : []
   })));
   
-  // Replace variables in format {{node_id.property}} or {{node_id.property|format}}
+  // Replace variables in format {{node_id.property}} or {{node_id.property ?? "fallback"}} or {{node_id.property|format}}
   return text.replace(/\{\{([^}]+)\}\}/g, (match, variableExpression) => {
     try {
-      // Split format if exists (e.g., "node_id.path|list")
-      const [path, format] = variableExpression.split('|');
-      const trimmedPath = path.trim();
+      // First handle nullish coalescing operator (??)
+      let path = variableExpression.trim();
+      let fallbackValue = '';
+      let format = '';
       
-      console.log(`🔍 Processing variable: ${trimmedPath}, format: ${format || 'none'}`);
-      
-      // Resolve the data path
-      let value = resolveVariablePath(trimmedPath, workflowData);
-      
-      if (value === undefined || value === null) {
-        console.warn(`❌ Variable ${trimmedPath} not found in workflow data`);
-        return match; // Return original if not found
+      // Check for nullish coalescing operator first
+      if (path.includes('??')) {
+        const [mainPath, fallbackPart] = path.split('??').map((s: string) => s.trim());
+        path = mainPath;
+        // Remove quotes from fallback value if present
+        fallbackValue = fallbackPart.replace(/^["']|["']$/g, '');
       }
       
-      console.log(`✅ Variable ${trimmedPath} resolved to:`, value);
+      // Then handle format specifiers (after nullish coalescing)
+      if (path.includes('|')) {
+        const [pathPart, formatPart] = path.split('|').map((s: string) => s.trim());
+        path = pathPart;
+        format = formatPart;
+      }
+      
+      console.log(`🔍 Processing variable: ${path}, fallback: "${fallbackValue}", format: ${format || 'none'}`);
+      
+      // Resolve the data path
+      let value = resolveVariablePath(path, workflowData);
+      
+      if (value === undefined || value === null) {
+        console.log(`🔄 Variable ${path} not found, using fallback: "${fallbackValue}"`);
+        value = fallbackValue;
+      } else {
+        console.log(`✅ Variable ${path} resolved to:`, value);
+      }
       
       // Apply formatting if specified
-      if (format) {
-        value = applyVariableFormat(value, format.trim());
+      if (format && value !== fallbackValue) {
+        value = applyVariableFormat(value, format);
       }
       
       return String(value || '');
@@ -1582,9 +1598,8 @@ export const workflowApi = {
           Object.keys(globalWorkflowData).forEach(nodeId => {
             const nodeResponse = globalWorkflowData[nodeId];
             if (nodeResponse && nodeResponse.data && !aiVariableData[nodeId]) {
-              aiVariableData[nodeId] = {
-                data: nodeResponse.data  // Match the nodeId.data.processed structure
-              };
+              // Use the same structure as globalWorkflowData to match paths like nodeId.data.processed
+              aiVariableData[nodeId] = nodeResponse;
             }
           });
           
@@ -1676,9 +1691,8 @@ export const workflowApi = {
           Object.keys(globalWorkflowData).forEach(nodeId => {
             const nodeResponse = globalWorkflowData[nodeId];
             if (nodeResponse && nodeResponse.data) {
-              variableData[nodeId] = {
-                data: nodeResponse.data  // Match the nodeId.data.processed structure
-              };
+              // Use the same structure as globalWorkflowData to match paths like nodeId.data.processed
+              variableData[nodeId] = nodeResponse;
             }
           });
           
@@ -1859,14 +1873,16 @@ export const workflowApi = {
           if (finalConfig.urlSource && inputData) {
             console.log('🔗 Processing URL source:', finalConfig.urlSource);
             
-            // Create variable data for processing
+            // Create variable data for processing - use the same structure as globalWorkflowData
             const contentVariableData: Record<string, any> = {};
             
-            // Get available node data
-            const availableNodes = getAvailableDataNodes();
-            availableNodes.forEach(node => {
-              if (node.data) {
-                contentVariableData[node.id] = { data: node.data };
+            // Get data directly from globalWorkflowData to ensure consistent structure
+            const workflowDataKeys = Object.keys(globalWorkflowData);
+            workflowDataKeys.forEach(nodeId => {
+              const nodeResponse = globalWorkflowData[nodeId];
+              if (nodeResponse && nodeResponse.data) {
+                // Use the same structure as the original workflow data
+                contentVariableData[nodeId] = nodeResponse;
               }
             });
             
