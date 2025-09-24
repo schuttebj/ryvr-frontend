@@ -212,6 +212,7 @@ export default function IntegrationsPage() {
         defaultAuthorId: integration.config.defaultAuthorId || '',
         baseUrl: integration.config.baseUrl || '',
         headers: JSON.stringify(integration.config.headers || {}, null, 2),
+        testMode: integration.config.testMode || false,
       });
     } else {
       setEditingIntegration(null);
@@ -242,6 +243,7 @@ export default function IntegrationsPage() {
         defaultAuthorId: '',
         baseUrl: '',
         headers: '{}',
+        testMode: false,
       });
     }
     setShowDialog(true);
@@ -279,6 +281,8 @@ export default function IntegrationsPage() {
       syncTaxonomies: true,
       twoWaySync: true,
       defaultAuthorId: '',
+      baseUrl: '',
+      headers: '{}',
       testMode: false
     });
   };
