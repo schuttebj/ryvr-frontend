@@ -3,7 +3,9 @@
  * Handles communication with backend OpenAI endpoints
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { getAuthToken } from '../utils/auth';
+
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
 
 export interface OpenAIModel {
   id: string;
@@ -60,9 +62,9 @@ class OpenAIApiService {
     method: 'GET' | 'POST' = 'GET',
     body?: any
   ): Promise<T> {
-    const token = localStorage.getItem('token');
+    const token = getAuthToken();
     
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1${endpoint}`, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -72,7 +74,14 @@ class OpenAIApiService {
     });
 
     if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`OpenAI API request failed:`, {
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     return response.json();
