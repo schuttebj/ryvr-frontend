@@ -52,6 +52,7 @@ import VariableSelector from './VariableSelector';
 import ValidationResultsDialog from './ValidationResultsDialog';
 import WorkflowExecutionPanel from './WorkflowExecutionPanel';
 import BaseNode from './BaseNode';
+import ExpandableBasicTextField from './ExpandableBasicTextField';
 import { workflowApi } from '../../services/workflowApi';
 
 // Custom node components
@@ -1462,7 +1463,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWorkflowName(e.target.value)}
             sx={{ mb: 2 }}
           />
-          <TextField
+          <ExpandableBasicTextField
             margin="dense"
             label="Description"
             fullWidth
@@ -1470,7 +1471,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             rows={3}
             variant="outlined"
             value={workflowDescription}
-                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWorkflowDescription(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWorkflowDescription(e.target.value)}
           />
         </DialogContent>
         <DialogActions>

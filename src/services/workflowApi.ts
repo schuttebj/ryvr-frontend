@@ -1650,7 +1650,44 @@ export const workflowApi = {
           const taskModel = finalConfig.modelOverride || finalConfig.model || 'gpt-4o-mini';
           const taskTemperature = finalConfig.temperatureOverride !== undefined ? 
             finalConfig.temperatureOverride : 
-            (finalConfig.temperature || 0.7);
+            (finalConfig.temperature || 1.0);
+          const taskTopP = finalConfig.topPOverride !== undefined ?
+            finalConfig.topPOverride :
+            (finalConfig.topP || 1.0);
+          const taskFrequencyPenalty = finalConfig.frequencyPenaltyOverride !== undefined ?
+            finalConfig.frequencyPenaltyOverride :
+            (finalConfig.frequencyPenalty || 0.0);
+          const taskPresencePenalty = finalConfig.presencePenaltyOverride !== undefined ?
+            finalConfig.presencePenaltyOverride :
+            (finalConfig.presencePenalty || 0.0);
+          const taskStopSequences = finalConfig.stopSequencesOverride !== undefined ?
+            finalConfig.stopSequencesOverride :
+            (finalConfig.stopSequences || null);
+          
+          // Prepare API payload
+          const apiPayload: any = {
+            model: taskModel,
+            messages: taskMessages,
+            temperature: taskTemperature,
+            top_p: taskTopP,
+            frequency_penalty: taskFrequencyPenalty,
+            presence_penalty: taskPresencePenalty,
+            max_completion_tokens: finalConfig.maxCompletionTokens || finalConfig.maxTokens || 32768,
+          };
+
+          // Add stop sequences if provided
+          if (taskStopSequences && taskStopSequences.length > 0) {
+            apiPayload.stop = taskStopSequences;
+          }
+
+          // Add response format
+          if (finalConfig.jsonResponse) {
+            apiPayload.response_format = { type: 'json_object' };
+          } else if (finalConfig.responseFormat === 'json_object') {
+            apiPayload.response_format = { type: 'json_object' };
+          } else {
+            apiPayload.response_format = { type: 'text' };
+          }
           
           const openaiTaskResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -1658,13 +1695,7 @@ export const workflowApi = {
               'Authorization': `Bearer ${finalConfig.apiKey}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              model: taskModel,
-              messages: taskMessages,
-              temperature: taskTemperature,
-              max_completion_tokens: finalConfig.maxCompletionTokens || finalConfig.maxTokens || 32768,
-              ...(finalConfig.jsonResponse && { response_format: { type: 'json_object' } })
-            })
+            body: JSON.stringify(apiPayload)
           });
           
           if (!openaiTaskResponse.ok) {

@@ -19,8 +19,13 @@ const testIntegrations = () => {
         config: { 
           apiKey: 'sk-test...', 
           model: 'gpt-4o-mini',
-          temperature: 0.7,
-          maxCompletionTokens: 32768
+          temperature: 1.0,
+          maxCompletionTokens: 32768,
+          topP: 1.0,
+          frequencyPenalty: 0.0,
+          presencePenalty: 0.0,
+          stopSequences: [],
+          responseFormat: 'text'
         },
         lastTested: new Date().toISOString(),
         createdAt: new Date().toISOString(),

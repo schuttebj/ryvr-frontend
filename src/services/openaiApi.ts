@@ -84,7 +84,7 @@ class OpenAIApiService {
   }
 
   /**
-   * Get available OpenAI models
+   * Get available OpenAI models (static fallback)
    */
   async getAvailableModels(): Promise<ModelsResponse> {
     try {
@@ -98,6 +98,18 @@ class OpenAIApiService {
         { id: 'gpt-4-turbo', created: 0, owned_by: 'openai' },
         { id: 'gpt-3.5-turbo', created: 0, owned_by: 'openai' },
       ];
+    }
+  }
+
+  /**
+   * Fetch models using a specific API key
+   */
+  async fetchModelsWithApiKey(apiKey: string): Promise<ModelsResponse> {
+    try {
+      return await this.makeRequest<ModelsResponse>('/ai/models/fetch-with-key', 'POST', { api_key: apiKey });
+    } catch (error) {
+      console.error('Failed to fetch models with API key:', error);
+      throw error;
     }
   }
 

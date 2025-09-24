@@ -4,7 +4,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField,
   Button,
   Box,
   Typography,
@@ -23,6 +22,7 @@ import {
   Code as CodeIcon,
   Description as DescriptionIcon,
 } from '@mui/icons-material';
+import ExpandableBasicTextField from './ExpandableBasicTextField';
 
 interface JsonSchemaBuilderProps {
   open: boolean;
@@ -197,7 +197,7 @@ Guidelines:
 
         <TabPanel value={tabValue} index={0}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <TextField
+            <ExpandableBasicTextField
               label="Describe your JSON structure"
               multiline
               rows={6}
@@ -266,7 +266,8 @@ Guidelines:
 
             {generatedSchema ? (
               <Box>
-                <TextField
+                <ExpandableBasicTextField
+                  label="Generated JSON Schema"
                   multiline
                   rows={20}
                   fullWidth

@@ -38,6 +38,7 @@ import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import { Client } from '../../types/client';
 import DataMappingSelector from './DataMappingSelector';
 import VariableTextField from './VariableTextField';
+import ExpandableTextField from './ExpandableTextField';
 import JsonSchemaBuilder from './JsonSchemaBuilder';
 
 interface ClientForSelection {
@@ -71,7 +72,7 @@ interface NodeSettingsPanelProps {
 
 export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: NodeSettingsPanelProps) {
   const theme = useTheme();
-  const { getModelOptions } = useOpenAIModels();
+  const { getModelOptions, fetchModelsWithApiKey } = useOpenAIModels();
   const [formData, setFormData] = useState<WorkflowNodeData>(
     node?.data || {
       id: '',
@@ -86,6 +87,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
   const [testing, setTesting] = useState(false);
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [isJsonSchemaBuilderOpen, setIsJsonSchemaBuilderOpen] = useState(false);
+  const [fetchingModelsFromIntegration, setFetchingModelsFromIntegration] = useState(false);
   
   // Real data will be loaded from executed nodes - no more hardcoded samples
 
@@ -344,6 +346,38 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         [key]: value,
       },
     }));
+  };
+
+  const handleFetchModelsFromIntegration = async () => {
+    const selectedIntegrationId = formData.config?.integrationId;
+    if (!selectedIntegrationId) {
+      alert('Please select an integration first');
+      return;
+    }
+
+    const selectedIntegration = integrations.find(i => i.id === selectedIntegrationId);
+    if (!selectedIntegration || !selectedIntegration.config?.apiKey) {
+      alert('Selected integration does not have a valid API key');
+      return;
+    }
+
+    setFetchingModelsFromIntegration(true);
+    try {
+      const models = await fetchModelsWithApiKey(selectedIntegration.config.apiKey);
+      console.log('✅ Fetched', models.length, 'models from integration');
+      
+      // Optionally set the first model as default
+      if (models.length > 0) {
+        handleConfigChange('modelOverride', models[0].id);
+      }
+      
+      alert(`Successfully fetched ${models.length} models from OpenAI using integration "${selectedIntegration.name}"!`);
+    } catch (error) {
+      console.error('❌ Failed to fetch models from integration:', error);
+      alert('Failed to fetch models from integration. Please check the integration API key.');
+    } finally {
+      setFetchingModelsFromIntegration(false);
+    }
   };
 
   // Load available data nodes on component mount
@@ -740,27 +774,25 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               Task Configuration
             </Typography>
             
-            <VariableTextField
+            <ExpandableTextField
               fullWidth
               multiline
               rows={3}
               label="System Prompt"
               value={formData.config?.systemPrompt || ''}
               onChange={(value) => handleConfigChange('systemPrompt', value)}
-              sx={{ mb: 2 }}
               helperText="Define the AI's role and behavior. Click the variable icon to insert data from previous nodes."
               placeholder="You are a helpful AI assistant that..."
               availableData={{}}
             />
             
-            <VariableTextField
+            <ExpandableTextField
               fullWidth
               multiline
               rows={4}
               label="User Prompt"
               value={formData.config?.userPrompt || ''}
               onChange={(value) => handleConfigChange('userPrompt', value)}
-              sx={{ mb: 2 }}
               helperText="Main task description. Click the variable icon to insert data from previous nodes."
               placeholder="Analyze the following data: {{serp_results.results[0].items[*].url|list}}"
               availableData={{}}
@@ -771,30 +803,45 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               Advanced Settings
             </Typography>
             
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Model Override</InputLabel>
-              <Select
-                value={formData.config?.modelOverride || ''}
-                label="Model Override"
-                onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
-                MenuProps={selectMenuProps}
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, mb: 2 }}>
+              <FormControl fullWidth>
+                <InputLabel>Model Override</InputLabel>
+                <Select
+                  value={formData.config?.modelOverride || ''}
+                  label="Model Override"
+                  onChange={(e) => handleConfigChange('modelOverride', e.target.value)}
+                  MenuProps={selectMenuProps}
+                  disabled={fetchingModelsFromIntegration}
+                >
+                  <MenuItem value="">Use integration default</MenuItem>
+                  {getModelOptions().map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                      {option.description && (
+                        <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                          ({option.description})
+                        </Typography>
+                      )}
+                    </MenuItem>
+                  ))}
+                  {getModelOptions().length === 0 && (
+                    <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+              <Button
+                variant="outlined"
+                onClick={handleFetchModelsFromIntegration}
+                disabled={!formData.config?.integrationId || fetchingModelsFromIntegration}
+                sx={{ minWidth: 'auto', px: 2, py: 1.75 }}
+                title="Fetch live models from selected integration"
               >
-                <MenuItem value="">Use integration default</MenuItem>
-                {getModelOptions().map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                    {option.description && (
-                      <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                        ({option.description})
-                      </Typography>
-                    )}
-                  </MenuItem>
-                ))}
-                {getModelOptions().length === 0 && (
-                  <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</MenuItem>
-                )}
-              </Select>
-            </FormControl>
+                {fetchingModelsFromIntegration ? '...' : '🔄'}
+              </Button>
+            </Box>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              💡 Select an integration above, then click 🔄 to fetch live models
+            </Typography>
             
             <TextField
               fullWidth
@@ -817,6 +864,51 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               inputProps={{ min: 1, max: 32768 }}
               helperText="Maximum response length (1-32768 tokens)"
             />
+
+            <TextField
+              fullWidth
+              type="number"
+              label="Top P Override"
+              value={formData.config?.topPOverride ?? ''}
+              onChange={(e) => handleConfigChange('topPOverride', e.target.value ? parseFloat(e.target.value) : undefined)}
+              sx={{ mb: 2 }}
+              inputProps={{ min: 0, max: 1, step: 0.1 }}
+              helperText="Leave empty to use integration default (0-1, controls diversity)"
+            />
+
+            <TextField
+              fullWidth
+              type="number"
+              label="Frequency Penalty Override"
+              value={formData.config?.frequencyPenaltyOverride ?? ''}
+              onChange={(e) => handleConfigChange('frequencyPenaltyOverride', e.target.value ? parseFloat(e.target.value) : undefined)}
+              sx={{ mb: 2 }}
+              inputProps={{ min: -2, max: 2, step: 0.1 }}
+              helperText="Leave empty to use integration default (-2 to 2, reduces repetition)"
+            />
+
+            <TextField
+              fullWidth
+              type="number"
+              label="Presence Penalty Override"
+              value={formData.config?.presencePenaltyOverride ?? ''}
+              onChange={(e) => handleConfigChange('presencePenaltyOverride', e.target.value ? parseFloat(e.target.value) : undefined)}
+              sx={{ mb: 2 }}
+              inputProps={{ min: -2, max: 2, step: 0.1 }}
+              helperText="Leave empty to use integration default (-2 to 2, encourages new topics)"
+            />
+
+            <TextField
+              fullWidth
+              label="Stop Sequences Override"
+              value={formData.config?.stopSequencesOverride ? formData.config.stopSequencesOverride.join(', ') : ''}
+              onChange={(e) => handleConfigChange('stopSequencesOverride', 
+                e.target.value ? e.target.value.split(',').map(s => s.trim()).filter(s => s) : undefined
+              )}
+              sx={{ mb: 2 }}
+              placeholder="Enter stop sequences separated by commas"
+              helperText="Leave empty to use integration default (e.g., \\n, END, ###)"
+            />
             
             <FormControlLabel
               control={
@@ -832,7 +924,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             {formData.config?.jsonResponse && (
               <Box sx={{ mb: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                  <VariableTextField
+                  <ExpandableTextField
                     fullWidth
                     multiline
                     rows={3}
@@ -879,14 +971,13 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               URL Sources
             </Typography>
             
-            <VariableTextField
+            <ExpandableTextField
               fullWidth
               multiline
               rows={3}
               label="URL Source"
               value={formData.config?.urlSource || ''}
               onChange={(value) => handleConfigChange('urlSource', value)}
-              sx={{ mb: 2 }}
               placeholder="{{seo_serp_analyze.data.processed.all_results[*].url|list}} or https://example.com, https://example2.com"
               helperText="URLs to extract content from. Can use variables from previous nodes, comma-separated URLs, or one URL per line."
               availableData={{}}
@@ -1130,7 +1221,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               availableData={{}}
             />
             
-            <VariableTextField
+            <ExpandableTextField
               fullWidth
               multiline
               rows={4}
@@ -1260,14 +1351,13 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               availableData={{}}
             />
             
-            <VariableTextField
+            <ExpandableTextField
               fullWidth
               multiline
               rows={3}
               label="Review Description"
               value={formData.config?.reviewDescription || ''}
               onChange={(value) => handleConfigChange('reviewDescription', value)}
-              sx={{ mb: 2 }}
               helperText="Instructions for the reviewer. Can use variables from previous steps."
               availableData={{}}
             />
@@ -1471,14 +1561,13 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   availableData={{}}
                 />
 
-                <VariableTextField
+                <ExpandableTextField
                   fullWidth
                   multiline
                   rows={4}
                   label="Post Content"
                   value={formData.config?.content || ''}
                   onChange={(value) => handleConfigChange('content', value)}
-                  sx={{ mb: 2 }}
                   helperText="HTML content for the post/page"
                   availableData={{}}
                 />
@@ -1682,14 +1771,13 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
           availableData={{}}
         />
 
-        <VariableTextField
+        <ExpandableTextField
           fullWidth
           multiline
           rows={2}
           label="Description"
           value={formData.description || ''}
           onChange={(value) => setFormData((prev: WorkflowNodeData) => ({ ...prev, description: value }))}
-          sx={{ mb: 2 }}
           helperText="Node description. Click the variable icon to insert data from previous nodes."
           availableData={{}}
         />

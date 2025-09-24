@@ -107,7 +107,7 @@ export default function IntegrationsPage() {
   const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'custom' | null>(null);
   
   // Use OpenAI models hook
-  const { loading: modelsLoading, getModelOptions } = useOpenAIModels();
+  const { loading: modelsLoading, getModelOptions, fetchModelsWithApiKey } = useOpenAIModels();
   
   // WordPress API key generation and display
   const [generatedCredentials, setGeneratedCredentials] = useState<{
@@ -119,6 +119,7 @@ export default function IntegrationsPage() {
   const [showCredentials, setShowCredentials] = useState(false);
   const [copySuccess, setCopySuccess] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [fetchingModels, setFetchingModels] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -129,6 +130,11 @@ export default function IntegrationsPage() {
     model: 'gpt-4o-mini',
     temperature: 1.0,
     maxCompletionTokens: 32768,
+    topP: 1.0,
+    frequencyPenalty: 0.0,
+    presencePenalty: 0.0,
+    stopSequences: [] as string[],
+    responseFormat: 'text' as 'text' | 'json_object',
     // DataForSEO fields
     login: '',
     password: '',
@@ -186,6 +192,11 @@ export default function IntegrationsPage() {
         model: integration.config.model || 'gpt-4o-mini',
         temperature: integration.config.temperature || 1.0,
         maxCompletionTokens: integration.config.maxCompletionTokens || integration.config.maxTokens || 32768,
+        topP: integration.config.topP || 1.0,
+        frequencyPenalty: integration.config.frequencyPenalty || 0.0,
+        presencePenalty: integration.config.presencePenalty || 0.0,
+        stopSequences: integration.config.stopSequences || [],
+        responseFormat: integration.config.responseFormat || 'text',
         login: integration.config.login || '',
         password: integration.config.password || '',
         useSandbox: integration.config.useSandbox !== false,
@@ -211,6 +222,11 @@ export default function IntegrationsPage() {
         model: 'gpt-4o-mini',
         temperature: 1.0,
         maxCompletionTokens: 32768,
+        topP: 1.0,
+        frequencyPenalty: 0.0,
+        presencePenalty: 0.0,
+        stopSequences: [],
+        responseFormat: 'text',
         login: '',
         password: '',
         useSandbox: true,
@@ -239,6 +255,56 @@ export default function IntegrationsPage() {
     setGeneratedCredentials(null);
     setShowCredentials(false);
     setCopySuccess('');
+    setFormData({
+      name: '',
+      type: 'openai',
+      apiKey: '',
+      model: 'gpt-4o-mini',
+      temperature: 1.0,
+      maxCompletionTokens: 32768,
+      topP: 1.0,
+      frequencyPenalty: 0.0,
+      presencePenalty: 0.0,
+      stopSequences: [],
+      responseFormat: 'text',
+      login: '',
+      password: '',
+      useSandbox: true,
+      siteUrl: '',
+      wpApiKey: '',
+      syncPostTypes: ['post', 'page'],
+      syncAcfFields: true,
+      syncRankmathData: true,
+      syncTaxonomies: true,
+      twoWaySync: true,
+      defaultAuthorId: '',
+      testMode: false
+    });
+  };
+
+  const handleFetchModels = async () => {
+    if (!formData.apiKey || !formData.apiKey.trim()) {
+      alert('Please enter an API key first');
+      return;
+    }
+
+    setFetchingModels(true);
+    try {
+      const models = await fetchModelsWithApiKey(formData.apiKey);
+      console.log('✅ Fetched', models.length, 'models from OpenAI API');
+      
+      // Optionally set the first model as default
+      if (models.length > 0) {
+        setFormData(prev => ({ ...prev, model: models[0].id }));
+      }
+      
+      alert(`Successfully fetched ${models.length} models from OpenAI!`);
+    } catch (error) {
+      console.error('❌ Failed to fetch models:', error);
+      alert('Failed to fetch models. Please check your API key.');
+    } finally {
+      setFetchingModels(false);
+    }
   };
 
   // Generate API key for WordPress integration
@@ -277,6 +343,11 @@ export default function IntegrationsPage() {
         config.model = formData.model;
         config.temperature = formData.temperature;
         config.maxCompletionTokens = formData.maxCompletionTokens;
+        config.topP = formData.topP;
+        config.frequencyPenalty = formData.frequencyPenalty;
+        config.presencePenalty = formData.presencePenalty;
+        config.stopSequences = formData.stopSequences;
+        config.responseFormat = formData.responseFormat;
       } else if (formData.type === 'dataforseo') {
         config.login = formData.login;
         config.password = formData.password;
@@ -666,29 +737,42 @@ export default function IntegrationsPage() {
                   helperText="Get your API key from platform.openai.com"
                 />
 
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel>Default Model</InputLabel>
-                  <Select
-                    value={formData.model}
-                    label="Default Model"
-                    onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                    disabled={modelsLoading}
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, mb: 2 }}>
+                  <FormControl fullWidth>
+                    <InputLabel>Default Model</InputLabel>
+                    <Select
+                      value={formData.model}
+                      label="Default Model"
+                      onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                      disabled={modelsLoading || fetchingModels}
+                    >
+                      {getModelOptions().map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                          {option.description && (
+                            <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                              ({option.description})
+                            </Typography>
+                          )}
+                        </MenuItem>
+                      ))}
+                      {getModelOptions().length === 0 && (
+                        <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</MenuItem>
+                      )}
+                    </Select>
+                  </FormControl>
+                  <Button
+                    variant="outlined"
+                    onClick={handleFetchModels}
+                    disabled={!formData.apiKey || fetchingModels || modelsLoading}
+                    sx={{ minWidth: 'auto', px: 2, py: 1.75 }}
                   >
-                    {getModelOptions().map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                        {option.description && (
-                          <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
-                            ({option.description})
-                          </Typography>
-                        )}
-                      </MenuItem>
-                    ))}
-                    {getModelOptions().length === 0 && (
-                      <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</MenuItem>
-                    )}
-                  </Select>
-                </FormControl>
+                    {fetchingModels ? '...' : '🔄'}
+                  </Button>
+                </Box>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                  💡 Enter your API key above, then click 🔄 to fetch live models from OpenAI
+                </Typography>
 
                 <TextField
                   fullWidth
@@ -711,6 +795,67 @@ export default function IntegrationsPage() {
                   inputProps={{ min: 1, max: 32768, step: 1 }}
                   helperText="Maximum response length (1-32768 tokens)"
                 />
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Default Top P"
+                  value={formData.topP}
+                  onChange={(e) => setFormData({ ...formData, topP: parseFloat(e.target.value) })}
+                  sx={{ mb: 2 }}
+                  inputProps={{ min: 0, max: 1, step: 0.1 }}
+                  helperText="Nucleus sampling parameter (0-1, controls diversity)"
+                />
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Default Frequency Penalty"
+                  value={formData.frequencyPenalty}
+                  onChange={(e) => setFormData({ ...formData, frequencyPenalty: parseFloat(e.target.value) })}
+                  sx={{ mb: 2 }}
+                  inputProps={{ min: -2, max: 2, step: 0.1 }}
+                  helperText="Reduces repetition (-2 to 2, 0 = neutral)"
+                />
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Default Presence Penalty"
+                  value={formData.presencePenalty}
+                  onChange={(e) => setFormData({ ...formData, presencePenalty: parseFloat(e.target.value) })}
+                  sx={{ mb: 2 }}
+                  inputProps={{ min: -2, max: 2, step: 0.1 }}
+                  helperText="Encourages new topics (-2 to 2, 0 = neutral)"
+                />
+
+                <TextField
+                  fullWidth
+                  label="Default Stop Sequences"
+                  value={formData.stopSequences.join(', ')}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    stopSequences: e.target.value.split(',').map(s => s.trim()).filter(s => s) 
+                  })}
+                  sx={{ mb: 2 }}
+                  placeholder="Enter stop sequences separated by commas"
+                  helperText="Sequences where the API will stop generating (e.g., \\n, END, ###)"
+                />
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Default Response Format</InputLabel>
+                  <Select
+                    value={formData.responseFormat}
+                    label="Default Response Format"
+                    onChange={(e) => setFormData({ ...formData, responseFormat: e.target.value as 'text' | 'json_object' })}
+                  >
+                    <MenuItem value="text">Text</MenuItem>
+                    <MenuItem value="json_object">JSON Object</MenuItem>
+                  </Select>
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    Format for AI responses (JSON for structured data)
+                  </Typography>
+                </FormControl>
               </Box>
             )}
 
@@ -929,6 +1074,11 @@ export default function IntegrationsPage() {
                   model: formData.model,
                   temperature: formData.temperature,
                   maxCompletionTokens: formData.maxCompletionTokens,
+                  topP: formData.topP,
+                  frequencyPenalty: formData.frequencyPenalty,
+                  presencePenalty: formData.presencePenalty,
+                  stopSequences: formData.stopSequences,
+                  responseFormat: formData.responseFormat,
                 } : formData.type === 'dataforseo' ? {
                   login: formData.login,
                   password: formData.password,
