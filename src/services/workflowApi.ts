@@ -1662,7 +1662,7 @@ export const workflowApi = {
               model: taskModel,
               messages: taskMessages,
               temperature: taskTemperature,
-              max_tokens: finalConfig.maxTokens || 1000,
+              max_completion_tokens: finalConfig.maxCompletionTokens || finalConfig.maxTokens || 32768,
               ...(finalConfig.jsonResponse && { response_format: { type: 'json_object' } })
             })
           });

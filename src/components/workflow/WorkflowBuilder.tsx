@@ -969,7 +969,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             systemPrompt: 'You are a marketing analyst. Analyze the provided search results and identify key trends and insights.',
             userPrompt: 'Please analyze these search results: {{serp-1.data.processed.results[0].items}}',
             model: 'gpt-4o-mini',
-            maxTokens: 1000,
+            maxCompletionTokens: 16384,
             temperature: 0.3,
             integrationId: '', // Will need to be set by user
             outputVariable: 'analysis_result'
@@ -990,7 +990,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             systemPrompt: 'You are a professional report writer. Create concise, actionable summaries.',
             userPrompt: 'Based on this analysis: {{ai-1.data.processed}}, create a 3-point executive summary with actionable recommendations.',
             model: 'gpt-4o-mini',
-            maxTokens: 500,
+            maxCompletionTokens: 8192,
             temperature: 0.2,
             integrationId: '', // Will need to be set by user
             outputVariable: 'final_summary'

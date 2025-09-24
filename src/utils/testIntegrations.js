@@ -20,7 +20,7 @@ const testIntegrations = () => {
           apiKey: 'sk-test...', 
           model: 'gpt-4o-mini',
           temperature: 0.7,
-          maxTokens: 1000
+          maxCompletionTokens: 32768
         },
         lastTested: new Date().toISOString(),
         createdAt: new Date().toISOString(),

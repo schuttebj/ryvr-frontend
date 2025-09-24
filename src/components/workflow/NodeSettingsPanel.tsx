@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useOpenAIModels } from '../../hooks/useOpenAIModels';
 import {
   Box,
   Typography,
@@ -70,6 +71,7 @@ interface NodeSettingsPanelProps {
 
 export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: NodeSettingsPanelProps) {
   const theme = useTheme();
+  const { getModelOptions, loading: modelsLoading } = useOpenAIModels();
   const [formData, setFormData] = useState<WorkflowNodeData>(
     node?.data || {
       id: '',
@@ -778,10 +780,19 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 MenuProps={selectMenuProps}
               >
                 <MenuItem value="">Use integration default</MenuItem>
-                <MenuItem value="gpt-4o-mini">GPT-4o Mini</MenuItem>
-                <MenuItem value="gpt-4o">GPT-4o</MenuItem>
-                <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
-                <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+                {getModelOptions().map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                    {option.description && (
+                      <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                        ({option.description})
+                      </Typography>
+                    )}
+                  </MenuItem>
+                ))}
+                {getModelOptions().length === 0 && (
+                  <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</MenuItem>
+                )}
               </Select>
             </FormControl>
             
@@ -799,12 +810,12 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
             <TextField
               fullWidth
               type="number"
-              label="Max Tokens"
-              value={formData.config?.maxTokens || 1000}
-              onChange={(e) => handleConfigChange('maxTokens', parseInt(e.target.value))}
+              label="Max Completion Tokens"
+              value={formData.config?.maxCompletionTokens || formData.config?.maxTokens || 32768}
+              onChange={(e) => handleConfigChange('maxCompletionTokens', parseInt(e.target.value))}
               sx={{ mb: 2 }}
-              inputProps={{ min: 1, max: 4000 }}
-              helperText="Maximum response length"
+              inputProps={{ min: 1, max: 32768 }}
+              helperText="Maximum response length (1-32768 tokens)"
             />
             
             <FormControlLabel

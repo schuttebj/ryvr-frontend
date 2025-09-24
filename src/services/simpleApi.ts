@@ -448,7 +448,7 @@ Where client answers are missing or vague, infer the most likely scenario based 
             { role: 'user', content: userPrompt }
           ],
           temperature: 0.3,
-          max_tokens: 3000,
+          max_completion_tokens: 16384,
           response_format: { type: 'json_object' }
         })
       });

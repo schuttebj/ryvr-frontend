@@ -48,6 +48,7 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
+import { useOpenAIModels } from '../hooks/useOpenAIModels';
 
 interface Integration {
   id: string;
@@ -105,6 +106,9 @@ export default function IntegrationsPage() {
   const [testing, setTesting] = useState(false);
   const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'custom' | null>(null);
   
+  // Use OpenAI models hook
+  const { models, loading: modelsLoading, getModelOptions } = useOpenAIModels();
+  
   // WordPress API key generation and display
   const [generatedCredentials, setGeneratedCredentials] = useState<{
     apiKey: string;
@@ -123,8 +127,8 @@ export default function IntegrationsPage() {
     // OpenAI fields
     apiKey: '',
     model: 'gpt-4o-mini',
-    temperature: 0.7,
-    maxTokens: 1000,
+    temperature: 1.0,
+    maxCompletionTokens: 32768,
     // DataForSEO fields
     login: '',
     password: '',
@@ -180,8 +184,8 @@ export default function IntegrationsPage() {
         type: integration.type,
         apiKey: integration.config.apiKey || '',
         model: integration.config.model || 'gpt-4o-mini',
-        temperature: integration.config.temperature || 0.7,
-        maxTokens: integration.config.maxTokens || 1000,
+        temperature: integration.config.temperature || 1.0,
+        maxCompletionTokens: integration.config.maxCompletionTokens || integration.config.maxTokens || 32768,
         login: integration.config.login || '',
         password: integration.config.password || '',
         useSandbox: integration.config.useSandbox !== false,
@@ -205,8 +209,8 @@ export default function IntegrationsPage() {
         type: integrationType || 'openai',
         apiKey: '',
         model: 'gpt-4o-mini',
-        temperature: 0.7,
-        maxTokens: 1000,
+        temperature: 1.0,
+        maxCompletionTokens: 32768,
         login: '',
         password: '',
         useSandbox: true,
@@ -272,7 +276,7 @@ export default function IntegrationsPage() {
         config.apiKey = formData.apiKey;
         config.model = formData.model;
         config.temperature = formData.temperature;
-        config.maxTokens = formData.maxTokens;
+        config.maxCompletionTokens = formData.maxCompletionTokens;
       } else if (formData.type === 'dataforseo') {
         config.login = formData.login;
         config.password = formData.password;
@@ -353,8 +357,8 @@ export default function IntegrationsPage() {
           body: JSON.stringify({
             model: integration.config.model,
             messages: [{ role: 'user', content: 'Hello, this is a test message.' }],
-            max_tokens: 50,
-            temperature: 0.7,
+            max_completion_tokens: 50,
+            temperature: 1.0,
           })
         });
 
@@ -668,11 +672,21 @@ export default function IntegrationsPage() {
                     value={formData.model}
                     label="Default Model"
                     onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                    disabled={modelsLoading}
                   >
-                    <MenuItem value="gpt-4o-mini">GPT-4o Mini (Recommended)</MenuItem>
-                    <MenuItem value="gpt-4o">GPT-4o</MenuItem>
-                    <MenuItem value="gpt-4-turbo">GPT-4 Turbo</MenuItem>
-                    <MenuItem value="gpt-3.5-turbo">GPT-3.5 Turbo</MenuItem>
+                    {getModelOptions().map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                        {option.description && (
+                          <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                            ({option.description})
+                          </Typography>
+                        )}
+                      </MenuItem>
+                    ))}
+                    {getModelOptions().length === 0 && (
+                      <MenuItem value="gpt-4o-mini">GPT-4o Mini (Fallback)</MenuItem>
+                    )}
                   </Select>
                 </FormControl>
 
@@ -690,11 +704,12 @@ export default function IntegrationsPage() {
                 <TextField
                   fullWidth
                   type="number"
-                  label="Default Max Tokens"
-                  value={formData.maxTokens}
-                  onChange={(e) => setFormData({ ...formData, maxTokens: parseInt(e.target.value) })}
+                  label="Default Max Completion Tokens"
+                  value={formData.maxCompletionTokens}
+                  onChange={(e) => setFormData({ ...formData, maxCompletionTokens: parseInt(e.target.value) })}
                   sx={{ mb: 2 }}
-                  helperText="Maximum response length"
+                  inputProps={{ min: 1, max: 32768, step: 1 }}
+                  helperText="Maximum response length (1-32768 tokens)"
                 />
               </Box>
             )}
@@ -913,7 +928,7 @@ export default function IntegrationsPage() {
                   apiKey: formData.apiKey,
                   model: formData.model,
                   temperature: formData.temperature,
-                  maxTokens: formData.maxTokens,
+                  maxCompletionTokens: formData.maxCompletionTokens,
                 } : formData.type === 'dataforseo' ? {
                   login: formData.login,
                   password: formData.password,

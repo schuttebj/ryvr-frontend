@@ -109,7 +109,7 @@ Guidelines:
             }
           ],
           temperature: 0.3,
-          max_tokens: 2000,
+          max_completion_tokens: 16384,
           response_format: { type: 'json_object' }
         })
       });
