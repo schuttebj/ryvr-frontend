@@ -246,7 +246,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     }
   };
 
-  const getIntegrationsByType = (type: 'openai' | 'dataforseo') => {
+  const getIntegrationsByType = (type: 'openai' | 'dataforseo' | 'wordpress') => {
     const filtered = integrations.filter(i => i.type === type && i.status === 'connected');
     console.log(`getIntegrationsByType(${type}): found ${filtered.length} integrations:`, filtered);
     return filtered;
@@ -1321,6 +1321,310 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
               onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
               sx={{ mb: 2 }}
               helperText="Name for this step's output (approved: true/false, comments, reviewer)"
+            />
+          </Box>
+        );
+
+      case WorkflowNodeType.WORDPRESS_POSTS:
+      case WorkflowNodeType.WORDPRESS_PAGES:
+      case WorkflowNodeType.WORDPRESS_EXTRACT:
+      case WorkflowNodeType.WORDPRESS_PUBLISH:
+      case WorkflowNodeType.WORDPRESS_SYNC:
+      case WorkflowNodeType.WORDPRESS_SITE_INFO:
+        const wordpressIntegrations = getIntegrationsByType('wordpress');
+        
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              WordPress Content Settings
+            </Typography>
+            
+            {wordpressIntegrations.length > 0 ? (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select WordPress Integration</InputLabel>
+                <Select
+                  value={formData.config?.integrationId || ''}
+                  label="Select WordPress Integration"
+                  onChange={(e) => handleConfigChange('integrationId', e.target.value)}
+                  MenuProps={selectMenuProps}
+                >
+                  {wordpressIntegrations.map(integration => (
+                    <MenuItem key={integration.id} value={integration.id}>
+                      {integration.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No WordPress integrations configured. 
+                <strong> Please set up a WordPress integration first.</strong>
+              </Alert>
+            )}
+
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Operation Type</InputLabel>
+              <Select
+                value={formData.config?.operation || 'extract_posts'}
+                label="Operation Type"
+                onChange={(e) => handleConfigChange('operation', e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                <MenuItem value="extract_posts">Extract Posts/Pages</MenuItem>
+                <MenuItem value="publish_content">Publish Content</MenuItem>
+                <MenuItem value="sync_content">Sync Content</MenuItem>
+                <MenuItem value="get_site_info">Get Site Info</MenuItem>
+              </Select>
+              <FormHelperText>
+                Choose what action to perform with WordPress
+              </FormHelperText>
+            </FormControl>
+
+            {/* Extract Posts Configuration */}
+            {formData.config?.operation === 'extract_posts' && (
+              <>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Post Type</InputLabel>
+                  <Select
+                    value={formData.config?.postType || 'post'}
+                    label="Post Type"
+                    onChange={(e) => handleConfigChange('postType', e.target.value)}
+                    MenuProps={selectMenuProps}
+                  >
+                    <MenuItem value="post">Posts</MenuItem>
+                    <MenuItem value="page">Pages</MenuItem>
+                    <MenuItem value="any">All Types</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Post Status</InputLabel>
+                  <Select
+                    value={formData.config?.postStatus || 'publish'}
+                    label="Post Status"
+                    onChange={(e) => handleConfigChange('postStatus', e.target.value)}
+                    MenuProps={selectMenuProps}
+                  >
+                    <MenuItem value="publish">Published</MenuItem>
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="private">Private</MenuItem>
+                    <MenuItem value="any">All Status</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Limit"
+                  value={formData.config?.limit || 25}
+                  onChange={(e) => handleConfigChange('limit', parseInt(e.target.value))}
+                  sx={{ mb: 2 }}
+                  inputProps={{ min: 1, max: 100 }}
+                  helperText="Number of posts to extract (1-100)"
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.config?.includeAcf !== false}
+                      onChange={(e) => handleConfigChange('includeAcf', e.target.checked)}
+                    />
+                  }
+                  label="Include ACF Fields"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.config?.includeSeo !== false}
+                      onChange={(e) => handleConfigChange('includeSeo', e.target.checked)}
+                    />
+                  }
+                  label="Include SEO Data"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.config?.includeTaxonomies !== false}
+                      onChange={(e) => handleConfigChange('includeTaxonomies', e.target.checked)}
+                    />
+                  }
+                  label="Include Categories & Tags"
+                  sx={{ mb: 2, display: 'block' }}
+                />
+              </>
+            )}
+
+            {/* Publish Content Configuration */}
+            {formData.config?.operation === 'publish_content' && (
+              <>
+                <VariableTextField
+                  fullWidth
+                  label="Post Title"
+                  value={formData.config?.title || ''}
+                  onChange={(value) => handleConfigChange('title', value)}
+                  sx={{ mb: 2 }}
+                  helperText="Title for the post/page"
+                  availableData={getAvailableData()}
+                />
+
+                <VariableTextField
+                  fullWidth
+                  multiline
+                  rows={4}
+                  label="Post Content"
+                  value={formData.config?.content || ''}
+                  onChange={(value) => handleConfigChange('content', value)}
+                  sx={{ mb: 2 }}
+                  helperText="HTML content for the post/page"
+                  availableData={getAvailableData()}
+                />
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Post Type</InputLabel>
+                  <Select
+                    value={formData.config?.postType || 'post'}
+                    label="Post Type"
+                    onChange={(e) => handleConfigChange('postType', e.target.value)}
+                    MenuProps={selectMenuProps}
+                  >
+                    <MenuItem value="post">Post</MenuItem>
+                    <MenuItem value="page">Page</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Post Status</InputLabel>
+                  <Select
+                    value={formData.config?.postStatus || 'draft'}
+                    label="Post Status"
+                    onChange={(e) => handleConfigChange('postStatus', e.target.value)}
+                    MenuProps={selectMenuProps}
+                  >
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="publish">Publish</MenuItem>
+                    <MenuItem value="private">Private</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <VariableTextField
+                  fullWidth
+                  label="Categories (comma-separated)"
+                  value={formData.config?.categories || ''}
+                  onChange={(value) => handleConfigChange('categories', value)}
+                  sx={{ mb: 2 }}
+                  helperText="Category names separated by commas"
+                  availableData={getAvailableData()}
+                />
+
+                <VariableTextField
+                  fullWidth
+                  label="Tags (comma-separated)"
+                  value={formData.config?.tags || ''}
+                  onChange={(value) => handleConfigChange('tags', value)}
+                  sx={{ mb: 2 }}
+                  helperText="Tag names separated by commas"
+                  availableData={getAvailableData()}
+                />
+
+                <VariableTextField
+                  fullWidth
+                  label="SEO Title"
+                  value={formData.config?.seoTitle || ''}
+                  onChange={(value) => handleConfigChange('seoTitle', value)}
+                  sx={{ mb: 2 }}
+                  helperText="SEO title for RankMath (optional)"
+                  availableData={getAvailableData()}
+                />
+
+                <VariableTextField
+                  fullWidth
+                  label="Meta Description"
+                  value={formData.config?.metaDescription || ''}
+                  onChange={(value) => handleConfigChange('metaDescription', value)}
+                  sx={{ mb: 2 }}
+                  helperText="Meta description for SEO (optional)"
+                  availableData={getAvailableData()}
+                />
+              </>
+            )}
+
+            {/* Sync Content Configuration */}
+            {formData.config?.operation === 'sync_content' && (
+              <>
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Sync Direction</InputLabel>
+                  <Select
+                    value={formData.config?.direction || 'both'}
+                    label="Sync Direction"
+                    onChange={(e) => handleConfigChange('direction', e.target.value)}
+                    MenuProps={selectMenuProps}
+                  >
+                    <MenuItem value="to_wordpress">RYVR → WordPress</MenuItem>
+                    <MenuItem value="from_wordpress">WordPress → RYVR</MenuItem>
+                    <MenuItem value="both">Bidirectional</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Conflict Resolution</InputLabel>
+                  <Select
+                    value={formData.config?.conflictResolution || 'skip'}
+                    label="Conflict Resolution"
+                    onChange={(e) => handleConfigChange('conflictResolution', e.target.value)}
+                    MenuProps={selectMenuProps}
+                  >
+                    <MenuItem value="skip">Skip Conflicts</MenuItem>
+                    <MenuItem value="overwrite_wp">Overwrite WordPress</MenuItem>
+                    <MenuItem value="overwrite_ryvr">Overwrite RYVR</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.config?.syncAcf !== false}
+                      onChange={(e) => handleConfigChange('syncAcf', e.target.checked)}
+                    />
+                  }
+                  label="Sync ACF Fields"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.config?.syncSeo !== false}
+                      onChange={(e) => handleConfigChange('syncSeo', e.target.checked)}
+                    />
+                  }
+                  label="Sync SEO Data"
+                  sx={{ mb: 1, display: 'block' }}
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.config?.syncTaxonomies !== false}
+                      onChange={(e) => handleConfigChange('syncTaxonomies', e.target.checked)}
+                    />
+                  }
+                  label="Sync Categories & Tags"
+                  sx={{ mb: 2, display: 'block' }}
+                />
+              </>
+            )}
+
+            <TextField
+              fullWidth
+              label="Output Variable Name"
+              value={formData.config?.outputVariable || 'wordpress_result'}
+              onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+              sx={{ mb: 2 }}
+              helperText="Name for this step's output data"
             />
           </Box>
         );

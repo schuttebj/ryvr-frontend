@@ -491,6 +491,10 @@ export enum WorkflowNodeType {
   // WordPress Integration
   WORDPRESS_POSTS = 'wordpress_posts',
   WORDPRESS_PAGES = 'wordpress_pages',
+  WORDPRESS_EXTRACT = 'wordpress_extract',
+  WORDPRESS_PUBLISH = 'wordpress_publish',
+  WORDPRESS_SYNC = 'wordpress_sync',
+  WORDPRESS_SITE_INFO = 'wordpress_site_info',
   WORDPRESS_MEDIA = 'wordpress_media',
   WORDPRESS_USERS = 'wordpress_users',
   WORDPRESS_PLUGINS = 'wordpress_plugins',

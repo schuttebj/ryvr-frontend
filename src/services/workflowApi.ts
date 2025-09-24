@@ -2340,6 +2340,206 @@ export const workflowApi = {
           throw new Error(`Legacy node type 'ai_ads_generate' is deprecated. Please use the new V2 workflow system with backend integrations.`);
           break;
           
+        // WordPress Content Management
+        case 'wordpress_posts':
+        case WorkflowNodeType.WORDPRESS_POSTS:
+        case 'wordpress_pages':
+        case WorkflowNodeType.WORDPRESS_PAGES:
+        case 'wordpress_extract':
+        case WorkflowNodeType.WORDPRESS_EXTRACT:
+        case 'wordpress_publish':
+        case WorkflowNodeType.WORDPRESS_PUBLISH:
+        case 'wordpress_sync':
+        case WorkflowNodeType.WORDPRESS_SYNC:
+        case 'wordpress_site_info':
+        case WorkflowNodeType.WORDPRESS_SITE_INFO:
+          if (!finalConfig.siteUrl) {
+            throw new Error('WordPress site URL is required. Please configure a WordPress integration.');
+          }
+          if (!finalConfig.wpApiKey) {
+            throw new Error('WordPress API key is required. Please configure a WordPress integration.');
+          }
+          
+          console.log(`🌐 WordPress ${finalConfig.operation || 'extract_posts'} operation started`);
+          console.log('⚙️ WordPress Config:', {
+            siteUrl: finalConfig.siteUrl,
+            operation: finalConfig.operation,
+            postType: finalConfig.postType,
+            hasApiKey: !!finalConfig.wpApiKey
+          });
+
+          const operation = finalConfig.operation || 'extract_posts';
+          
+          try {
+            let wpResult;
+            const businessId = finalConfig.businessId || '1'; // This should come from context
+            
+            // Build the API endpoint for WordPress operations
+            const wpEndpoint = `${API_BASE}/api/v1/integrations/business/${businessId}/wordpress`;
+            
+            switch (operation) {
+              case 'extract_posts':
+                console.log('📥 Extracting WordPress posts...');
+                
+                const extractParams = new URLSearchParams({
+                  post_type: finalConfig.postType || 'post',
+                  status: finalConfig.postStatus || 'publish',
+                  per_page: (finalConfig.limit || 25).toString(),
+                  include_acf: (finalConfig.includeAcf !== false).toString(),
+                  include_seo: (finalConfig.includeSeo !== false).toString(),
+                  include_taxonomies: (finalConfig.includeTaxonomies !== false).toString()
+                });
+                
+                const extractResponse = await fetch(`${wpEndpoint}/content?${extractParams}`, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`,
+                    'Content-Type': 'application/json',
+                    'X-WordPress-Site': finalConfig.siteUrl,
+                    'X-WordPress-API-Key': finalConfig.wpApiKey
+                  }
+                });
+                
+                if (!extractResponse.ok) {
+                  throw new Error(`WordPress API error: ${extractResponse.status} ${extractResponse.statusText}`);
+                }
+                
+                wpResult = await extractResponse.json();
+                console.log(`📥 Extracted ${wpResult.posts?.length || 0} WordPress posts`);
+                break;
+                
+              case 'publish_content':
+                console.log('📤 Publishing content to WordPress...');
+                
+                if (!finalConfig.title || !finalConfig.content) {
+                  throw new Error('Title and content are required for publishing');
+                }
+                
+                // Process variables in content
+                let processedTitle = finalConfig.title;
+                let processedContent = finalConfig.content;
+                let processedCategories = finalConfig.categories || '';
+                let processedTags = finalConfig.tags || '';
+                let processedSeoTitle = finalConfig.seoTitle || '';
+                let processedMetaDescription = finalConfig.metaDescription || '';
+                
+                // Simple variable replacement - in production this should be more robust
+                Object.keys(globalWorkflowData).forEach(nodeId => {
+                  const nodeData = globalWorkflowData[nodeId];
+                  if (nodeData && nodeData.data) {
+                    const placeholder = `{{${nodeId}}}`;
+                    const jsonData = JSON.stringify(nodeData.data, null, 2);
+                    
+                    processedTitle = processedTitle.replace(placeholder, jsonData);
+                    processedContent = processedContent.replace(placeholder, jsonData);
+                    processedCategories = processedCategories.replace(placeholder, jsonData);
+                    processedTags = processedTags.replace(placeholder, jsonData);
+                    processedSeoTitle = processedSeoTitle.replace(placeholder, jsonData);
+                    processedMetaDescription = processedMetaDescription.replace(placeholder, jsonData);
+                  }
+                });
+                
+                const publishData = {
+                  title: processedTitle,
+                  content: processedContent,
+                  post_type: finalConfig.postType || 'post',
+                  status: finalConfig.postStatus || 'draft',
+                  categories: processedCategories ? processedCategories.split(',').map((c: string) => c.trim()) : [],
+                  tags: processedTags ? processedTags.split(',').map((t: string) => t.trim()) : [],
+                  seo_title: processedSeoTitle,
+                  meta_description: processedMetaDescription,
+                  author_id: finalConfig.defaultAuthorId
+                };
+                
+                const publishResponse = await fetch(`${wpEndpoint}/content`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`,
+                    'Content-Type': 'application/json',
+                    'X-WordPress-Site': finalConfig.siteUrl,
+                    'X-WordPress-API-Key': finalConfig.wpApiKey
+                  },
+                  body: JSON.stringify(publishData)
+                });
+                
+                if (!publishResponse.ok) {
+                  throw new Error(`WordPress publish error: ${publishResponse.status} ${publishResponse.statusText}`);
+                }
+                
+                wpResult = await publishResponse.json();
+                console.log(`📤 Published content to WordPress: ${wpResult.post?.title || 'Unknown title'}`);
+                break;
+                
+              case 'sync_content':
+                console.log('🔄 Syncing WordPress content...');
+                
+                const syncData = {
+                  direction: finalConfig.direction || 'both',
+                  conflict_resolution: finalConfig.conflictResolution || 'skip',
+                  sync_acf: finalConfig.syncAcf !== false,
+                  sync_seo: finalConfig.syncSeo !== false,
+                  sync_taxonomies: finalConfig.syncTaxonomies !== false,
+                  post_types: [finalConfig.postType || 'post']
+                };
+                
+                const syncResponse = await fetch(`${wpEndpoint}/content`, {
+                  method: 'PUT',
+                  headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`,
+                    'Content-Type': 'application/json',
+                    'X-WordPress-Site': finalConfig.siteUrl,
+                    'X-WordPress-API-Key': finalConfig.wpApiKey
+                  },
+                  body: JSON.stringify(syncData)
+                });
+                
+                if (!syncResponse.ok) {
+                  throw new Error(`WordPress sync error: ${syncResponse.status} ${syncResponse.statusText}`);
+                }
+                
+                wpResult = await syncResponse.json();
+                console.log(`🔄 Synchronized ${wpResult.stats?.synced || 0} items with WordPress`);
+                break;
+                
+              case 'get_site_info':
+                console.log('ℹ️ Getting WordPress site info...');
+                
+                const statusResponse = await fetch(`${wpEndpoint}/status`, {
+                  method: 'GET',
+                  headers: {
+                    'Authorization': `Bearer ${getAuthToken()}`,
+                    'Content-Type': 'application/json',
+                    'X-WordPress-Site': finalConfig.siteUrl,
+                    'X-WordPress-API-Key': finalConfig.wpApiKey
+                  }
+                });
+                
+                if (!statusResponse.ok) {
+                  throw new Error(`WordPress status error: ${statusResponse.status} ${statusResponse.statusText}`);
+                }
+                
+                wpResult = await statusResponse.json();
+                console.log(`ℹ️ Retrieved WordPress site info: ${wpResult.site?.name || 'Unknown site'}`);
+                break;
+                
+              default:
+                throw new Error(`Unsupported WordPress operation: ${operation}`);
+            }
+            
+            result = {
+              success: true,
+              operation: operation,
+              site_url: finalConfig.siteUrl,
+              data: wpResult,
+              timestamp: new Date().toISOString()
+            };
+            
+          } catch (error: any) {
+            console.error('WordPress operation failed:', error);
+            throw new Error(`WordPress ${operation} failed: ${error.message}`);
+          }
+          break;
+          
         default:
           throw new Error(`Unsupported node type: ${nodeType}`);
       }

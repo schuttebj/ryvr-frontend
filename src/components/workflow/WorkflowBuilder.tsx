@@ -474,16 +474,44 @@ const nodePaletteItems: NodePaletteItem[] = [
   
   // WordPress
   {
+    type: WorkflowNodeType.WORDPRESS_EXTRACT,
+    label: 'Extract Content',
+    description: 'Extract posts, pages and content from WordPress',
+    category: 'WordPress',
+    color: BRAND_COLORS.wordpress
+  },
+  {
+    type: WorkflowNodeType.WORDPRESS_PUBLISH,
+    label: 'Publish Content',
+    description: 'Publish new posts or pages to WordPress',
+    category: 'WordPress',
+    color: BRAND_COLORS.wordpress
+  },
+  {
+    type: WorkflowNodeType.WORDPRESS_SYNC,
+    label: 'Sync Content',
+    description: 'Bidirectional content synchronization',
+    category: 'WordPress',
+    color: BRAND_COLORS.wordpress
+  },
+  {
+    type: WorkflowNodeType.WORDPRESS_SITE_INFO,
+    label: 'Site Information',
+    description: 'Get WordPress site details and status',
+    category: 'WordPress',
+    color: BRAND_COLORS.wordpress
+  },
+  {
     type: WorkflowNodeType.WORDPRESS_POSTS,
     label: 'Post Management',
-    description: 'Manage WordPress posts',
+    description: 'Advanced post management operations',
     category: 'WordPress',
     color: BRAND_COLORS.wordpress
   },
   {
     type: WorkflowNodeType.WORDPRESS_PAGES,
     label: 'Page Management',
-    description: 'Manage WordPress pages',
+    description: 'Advanced page management operations',
     category: 'WordPress',
     color: BRAND_COLORS.wordpress
   },

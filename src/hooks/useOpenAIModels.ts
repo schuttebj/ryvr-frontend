@@ -64,14 +64,14 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
     setError(null);
 
     try {
-      const response = await openaiApiService.getAvailableModels();
+      const models = await openaiApiService.getAvailableModels();
       
-      if (response.success && response.models) {
-        setModels(response.models);
+      if (Array.isArray(models) && models.length > 0) {
+        setModels(models);
         
         // Cache the models
         const cacheData: CachedModels = {
-          models: response.models,
+          models: models,
           timestamp: Date.now(),
         };
         localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cacheData));

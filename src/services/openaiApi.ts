@@ -13,11 +13,7 @@ export interface OpenAIModel {
   owned_by: string;
 }
 
-export interface ModelsResponse {
-  success: boolean;
-  models: OpenAIModel[];
-  count: number;
-}
+export type ModelsResponse = OpenAIModel[];
 
 export interface RecommendedModelResponse {
   success: boolean;
@@ -96,16 +92,12 @@ class OpenAIApiService {
     } catch (error) {
       console.error('Failed to fetch available models:', error);
       // Return fallback models if API fails
-      return {
-        success: false,
-        models: [
-          { id: 'gpt-4o', created: 0, owned_by: 'openai' },
-          { id: 'gpt-4o-mini', created: 0, owned_by: 'openai' },
-          { id: 'gpt-4-turbo', created: 0, owned_by: 'openai' },
-          { id: 'gpt-3.5-turbo', created: 0, owned_by: 'openai' },
-        ],
-        count: 4,
-      };
+      return [
+        { id: 'gpt-4o', created: 0, owned_by: 'openai' },
+        { id: 'gpt-4o-mini', created: 0, owned_by: 'openai' },
+        { id: 'gpt-4-turbo', created: 0, owned_by: 'openai' },
+        { id: 'gpt-3.5-turbo', created: 0, owned_by: 'openai' },
+      ];
     }
   }
 
