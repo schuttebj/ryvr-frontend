@@ -17,6 +17,7 @@ import {
   Storage as DataIcon,
 } from '@mui/icons-material';
 import VariableTransformationPanel from './VariableTransformationPanel';
+import { Z_INDEX } from '../../constants/zIndex';
 import JsonTreeView from './JsonTreeView';
 
 // Type declarations for development tools
@@ -36,20 +37,20 @@ declare global {
 const HighZIndexDialog = styled(Dialog)(() => ({
   // Force z-index on the Dialog root container (highest level)
   '&.MuiDialog-root, &.MuiModal-root': {
-    zIndex: '1000000 !important',
+    zIndex: `${Z_INDEX.VARIABLE_SELECTOR} !important`,
   },
   // Backdrop styling - LOWER than modal content (user requirement)
   '& .MuiBackdrop-root': {
-    zIndex: '999998 !important',
+    zIndex: `${Z_INDEX.VARIABLE_SELECTOR - 2} !important`,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   // Dialog container - between backdrop and content
   '& .MuiDialog-container': {
-    zIndex: '999999 !important',
+    zIndex: `${Z_INDEX.VARIABLE_SELECTOR - 1} !important`,
   },
   // Dialog paper (modal content) - HIGHER than backdrop (user requirement)
   '& .MuiDialog-paper': {
-    zIndex: '999999 !important',
+    zIndex: `${Z_INDEX.VARIABLE_SELECTOR - 1} !important`,
     position: 'relative',
   },
 }));
@@ -360,16 +361,16 @@ export default function VariableSelector({
         style.id = styleId;
         style.textContent = `
           .MuiDialog-root.variable-selector-modal {
-            z-index: 1000000 !important;
+            z-index: ${Z_INDEX.VARIABLE_SELECTOR} !important;
           }
           .MuiDialog-root.variable-selector-modal .MuiBackdrop-root {
-            z-index: 999998 !important;
+            z-index: ${Z_INDEX.VARIABLE_SELECTOR - 2} !important;
           }
           .MuiDialog-root.variable-selector-modal .MuiDialog-container {
-            z-index: 999999 !important;
+            z-index: ${Z_INDEX.VARIABLE_SELECTOR - 1} !important;
           }
           .MuiDialog-root.variable-selector-modal .MuiDialog-paper {
-            z-index: 999999 !important;
+            z-index: ${Z_INDEX.VARIABLE_SELECTOR - 1} !important;
           }
         `;
         document.head.appendChild(style);

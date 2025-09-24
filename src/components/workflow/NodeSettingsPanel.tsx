@@ -40,6 +40,7 @@ import DataMappingSelector from './DataMappingSelector';
 import VariableTextField from './VariableTextField';
 import ExpandableTextField from './ExpandableTextField';
 import JsonSchemaBuilder from './JsonSchemaBuilder';
+import { Z_INDEX } from '../../constants/zIndex';
 
 interface ClientForSelection {
   id: string;
@@ -96,11 +97,11 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     PaperProps: {
       style: { 
         maxHeight: 300, 
-        zIndex: 999999, // Extremely high z-index 
+        zIndex: Z_INDEX.SELECT_MENU, // Proper z-index hierarchy 
         position: 'absolute' as const // Use absolute positioning
       },
       sx: {
-        zIndex: 999999, // Consistent z-index value
+        zIndex: Z_INDEX.SELECT_MENU, // Consistent z-index value
         backgroundColor: theme.palette.background.paper, // Theme-aware background
         '& .MuiMenuItem-root': {
           backgroundColor: 'transparent',
@@ -131,7 +132,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
     // Menu list styling
     MenuListProps: {
       sx: {
-        zIndex: 999999,
+        zIndex: Z_INDEX.SELECT_MENU,
         maxHeight: '300px',
         '& .MuiMenuItem-root': {
           minHeight: 48,

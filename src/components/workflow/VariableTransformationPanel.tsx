@@ -31,6 +31,7 @@ import {
   Functions as FunctionIcon,
   Transform as TransformIcon,
 } from '@mui/icons-material';
+import { Z_INDEX } from '../../constants/zIndex';
 
 interface TransformationRule {
   id: string;
@@ -63,7 +64,7 @@ export default function VariableTransformationPanel({
   const dropdownMenuProps = {
     PaperProps: {
       sx: {
-        zIndex: 2000000, // Much higher to ensure visibility above all panels
+        zIndex: Z_INDEX.DROPDOWN, // Proper z-index for dropdowns
         boxShadow: theme.shadows[8], // Enhanced shadow for better visibility
         position: 'fixed', // Use fixed positioning
       }
@@ -835,26 +836,26 @@ export default function VariableTransformationPanel({
       <Box 
         sx={{ 
           mb: 2,
-          zIndex: 2000000, // Ensure entire transformations section has high z-index
+          zIndex: Z_INDEX.DROPDOWN, // Ensure transformations appear above modals
           position: 'relative',
           // Force all nested dropdowns to appear above modal and node settings
           '& .MuiSelect-root': {
-            zIndex: 2000000,
+            zIndex: Z_INDEX.DROPDOWN,
           },
           '& .MuiMenu-root': {
-            zIndex: '2000000 !important',
+            zIndex: `${Z_INDEX.DROPDOWN} !important`,
           },
           '& .MuiPopover-root': {
-            zIndex: '2000000 !important',
+            zIndex: `${Z_INDEX.DROPDOWN} !important`,
           },
           '& .MuiModal-root': {
-            zIndex: '2000000 !important',
+            zIndex: `${Z_INDEX.DROPDOWN} !important`,
           },
           '& .MuiPaper-root': {
-            zIndex: '2000000 !important',
+            zIndex: `${Z_INDEX.DROPDOWN} !important`,
           },
           '& .MuiPopper-root': {
-            zIndex: '2000000 !important',
+            zIndex: `${Z_INDEX.DROPDOWN} !important`,
           }
         }}
       >
@@ -878,7 +879,7 @@ export default function VariableTransformationPanel({
           <Stack 
             spacing={1}
             sx={{
-              zIndex: 2000000, // Ensure stack container has high z-index
+              zIndex: Z_INDEX.DROPDOWN, // Ensure stack container has proper z-index
               position: 'relative',
             }}
           >
@@ -887,10 +888,10 @@ export default function VariableTransformationPanel({
                 key={transformation.id} 
                 defaultExpanded
                 sx={{
-                  zIndex: 2000000, // Ensure accordion doesn't interfere with dropdown z-index
+                  zIndex: Z_INDEX.DROPDOWN, // Ensure accordion doesn't interfere with dropdown z-index
                   position: 'relative',
                   '& .MuiAccordionDetails-root': {
-                    zIndex: 2000000, // Ensure details section has high z-index
+                    zIndex: Z_INDEX.DROPDOWN, // Ensure details section has proper z-index
                   }
                 }}
               >

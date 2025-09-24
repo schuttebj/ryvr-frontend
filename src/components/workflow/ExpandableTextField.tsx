@@ -17,6 +17,7 @@ import {
   Save as SaveIcon,
 } from '@mui/icons-material';
 import VariableTextField from './VariableTextField';
+import { Z_INDEX } from '../../constants/zIndex';
 
 interface ExpandableTextFieldProps {
   value: string;
@@ -79,18 +80,19 @@ export default function ExpandableTextField({
           size="small"
           onClick={handleExpandClick}
           sx={{
-            position: 'absolute',
-            top: 8,
-            right: enableVariables ? 80 : 40, // Account for variable button
-            zIndex: 1,
-            backgroundColor: alpha(theme.palette.background.paper, 0.8),
-            '&:hover': {
-              backgroundColor: alpha(theme.palette.primary.main, 0.1),
-            },
+            ml: 1,
+            p: 0.5,
+            minWidth: 'auto',
+            backgroundColor: alpha(theme.palette.primary.main, 0.08),
+            color: theme.palette.primary.main,
             border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.primary.main, 0.15),
+            },
           }}
         >
-          <ExpandIcon fontSize="small" />
+          <ExpandIcon sx={{ fontSize: 14 }} />
         </IconButton>
       </Tooltip>
     );
@@ -98,11 +100,37 @@ export default function ExpandableTextField({
 
   return (
     <>
-      <Box sx={{ position: 'relative' }}>
+      <Box sx={{ mb: 2 }}>
+        {/* Label and Expand Icon Row */}
+        {label && (
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            mb: 0.5,
+            gap: 1
+          }}>
+            <Box component="label" sx={{ 
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              color: theme.palette.text.primary,
+              ...(required && {
+                '&::after': {
+                  content: '" *"',
+                  color: theme.palette.error.main,
+                }
+              })
+            }}>
+              {label}
+            </Box>
+            {renderExpandIcon()}
+          </Box>
+        )}
+        
+        {/* Text Field */}
         <VariableTextField
           value={value}
           onChange={onChange}
-          label={label}
+          label="" // Remove label since we're showing it above
           placeholder={placeholder}
           rows={rows}
           fullWidth={fullWidth}
@@ -114,7 +142,6 @@ export default function ExpandableTextField({
           showPreview={showPreview}
           {...props}
         />
-        {renderExpandIcon()}
       </Box>
 
       {/* Expansion Modal */}
@@ -123,6 +150,9 @@ export default function ExpandableTextField({
         onClose={handleModalCancel}
         maxWidth="md"
         fullWidth
+        sx={{
+          zIndex: Z_INDEX.EXPANDABLE_TEXT_MODAL, // Higher than NodeSettingsPanel but lower than dropdowns
+        }}
         PaperProps={{
           sx: {
             height: '80vh',

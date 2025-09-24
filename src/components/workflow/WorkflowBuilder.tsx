@@ -49,6 +49,7 @@ import { WorkflowNodeData, WorkflowNodeType } from '../../types/workflow';
 import { Search as SearchIcon } from '@mui/icons-material';
 import NodeSettingsPanel from './NodeSettingsPanel';
 import VariableSelector from './VariableSelector';
+import { Z_INDEX } from '../../constants/zIndex';
 import ValidationResultsDialog from './ValidationResultsDialog';
 import WorkflowExecutionPanel from './WorkflowExecutionPanel';
 import BaseNode from './BaseNode';
@@ -1245,10 +1246,10 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
               {`
                 /* Global override for Material-UI dropdown z-index */
                 .MuiPopover-root, .MuiMenu-root, .MuiSelect-root .MuiPopover-paper {
-                  z-index: 999999 !important;
+                  z-index: ${Z_INDEX.DROPDOWN} !important;
                 }
                 .MuiBackdrop-root {
-                  z-index: 999998 !important;
+                  z-index: ${Z_INDEX.DROPDOWN - 1} !important;
                 }
                 
                 ${theme.palette.mode === 'dark' ? `
@@ -1425,7 +1426,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
           top: 0,
           height: '100vh',
           width: 400,
-          zIndex: 50000, // Much higher z-index to ensure dropdown visibility
+          zIndex: Z_INDEX.NODE_SETTINGS_PANEL, // Proper z-index hierarchy
           borderRadius: 0,
           borderLeft: `1px solid ${theme.palette.divider}`,
           overflow: 'auto',
