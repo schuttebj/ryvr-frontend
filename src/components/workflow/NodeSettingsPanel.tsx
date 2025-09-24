@@ -1468,7 +1468,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(value) => handleConfigChange('title', value)}
                   sx={{ mb: 2 }}
                   helperText="Title for the post/page"
-                  availableData={getAvailableData()}
+                  availableData={{}}
                 />
 
                 <VariableTextField
@@ -1480,7 +1480,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(value) => handleConfigChange('content', value)}
                   sx={{ mb: 2 }}
                   helperText="HTML content for the post/page"
-                  availableData={getAvailableData()}
+                  availableData={{}}
                 />
 
                 <FormControl fullWidth sx={{ mb: 2 }}>
@@ -1517,7 +1517,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(value) => handleConfigChange('categories', value)}
                   sx={{ mb: 2 }}
                   helperText="Category names separated by commas"
-                  availableData={getAvailableData()}
+                  availableData={{}}
                 />
 
                 <VariableTextField
@@ -1527,7 +1527,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(value) => handleConfigChange('tags', value)}
                   sx={{ mb: 2 }}
                   helperText="Tag names separated by commas"
-                  availableData={getAvailableData()}
+                  availableData={{}}
                 />
 
                 <VariableTextField
@@ -1537,7 +1537,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(value) => handleConfigChange('seoTitle', value)}
                   sx={{ mb: 2 }}
                   helperText="SEO title for RankMath (optional)"
-                  availableData={getAvailableData()}
+                  availableData={{}}
                 />
 
                 <VariableTextField
@@ -1547,7 +1547,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                   onChange={(value) => handleConfigChange('metaDescription', value)}
                   sx={{ mb: 2 }}
                   helperText="Meta description for SEO (optional)"
-                  availableData={getAvailableData()}
+                  availableData={{}}
                 />
               </>
             )}
