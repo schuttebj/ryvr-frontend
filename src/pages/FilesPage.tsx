@@ -9,10 +9,6 @@ import {
   Tab,
   Grid,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
   FormControl,
   InputLabel,
@@ -23,13 +19,11 @@ import {
   LinearProgress,
   Alert,
   Snackbar,
-  Tooltip,
   Menu,
   MenuList,
   ListItemIcon,
   ListItemText,
   Divider,
-  Paper,
   InputAdornment,
 } from '@mui/material';
 import {
@@ -37,7 +31,6 @@ import {
   Folder as FolderIcon,
   Business as BusinessIcon,
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Download as DownloadIcon,
   Delete as DeleteIcon,
   Edit as EditIcon,
@@ -209,10 +202,9 @@ interface FileListProps {
   files: FileItem[];
   loading: boolean;
   onFileAction: (action: string, file: FileItem) => void;
-  onRefresh: () => void;
 }
 
-const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction, onRefresh }) => {
+const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   
@@ -270,7 +262,6 @@ const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction, onRef
     <>
       <Grid container spacing={2}>
         {files.map((file) => {
-          const { color } = fileApi.getFileTypeInfo(file.file_type);
           const statusInfo = fileApi.getProcessingStatusInfo(file.processing_status);
           
           return (
@@ -750,7 +741,7 @@ export default function FilesPage() {
             <Box sx={{ mb: 3 }}>
               <BusinessSelector 
                 variant="compact"
-                onBusinessChange={(businessId) => setSelectedBusinessId(businessId)}
+                onBusinessChange={(businessId) => setSelectedBusinessId(businessId ? Number(businessId) : undefined)}
               />
             </Box>
           )}
@@ -761,7 +752,6 @@ export default function FilesPage() {
               files={currentFiles}
               loading={loading}
               onFileAction={handleFileAction}
-              onRefresh={loadFiles}
             />
           </TabPanel>
           
@@ -771,7 +761,6 @@ export default function FilesPage() {
                 files={currentFiles}
                 loading={loading}
                 onFileAction={handleFileAction}
-                onRefresh={loadFiles}
               />
             ) : (
               <Alert severity="info" sx={{ mt: 2 }}>

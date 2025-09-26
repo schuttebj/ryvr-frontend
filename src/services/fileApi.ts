@@ -24,7 +24,7 @@ export interface FileItem {
   summary_credits_used: number;
   processing_status: 'pending' | 'processing' | 'completed' | 'failed';
   tags: string[];
-  metadata: Record<string, any>;
+  file_metadata: Record<string, any>;
   is_active: boolean;
   created_at: string;
   updated_at?: string;
@@ -417,7 +417,7 @@ export const fileApi = {
     const supportedExtensions = ['txt', 'pdf', 'docx', 'doc', 'md', 'rtf'];
     const extension = file.name.split('.').pop()?.toLowerCase();
     
-    return supportedTypes.includes(file.type) || (extension && supportedExtensions.includes(extension));
+    return supportedTypes.includes(file.type) || (extension ? supportedExtensions.includes(extension) : false);
   },
   
   /**
