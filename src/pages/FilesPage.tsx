@@ -348,20 +348,35 @@ const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction }) => 
                     </Box>
                   )}
                   
-                  {file.summary && (
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      sx={{ 
-                        mt: 1,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {file.summary}
-                    </Typography>
+                  {file.summary && file.summary !== "Auto-generated summary unavailable. Content preview: ..." && (
+                    <Box sx={{ mt: 2, p: 1.5, bgcolor: 'success.light', borderRadius: 1, border: '1px solid', borderColor: 'success.main' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <SummaryIcon sx={{ fontSize: 16, color: 'success.dark', mr: 0.5 }} />
+                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.dark' }}>
+                          AI Summary
+                        </Typography>
+                      </Box>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'success.dark',
+                          fontSize: '0.8rem',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          '&:hover': { textDecoration: 'underline' }
+                        }}
+                        onClick={() => {
+                          // Create a simple dialog/alert with full summary
+                          alert(`Full Summary:\n\n${file.summary}`);
+                        }}
+                        title="Click to view full summary"
+                      >
+                        {file.summary}
+                      </Typography>
+                    </Box>
                   )}
                 </CardContent>
               </Card>

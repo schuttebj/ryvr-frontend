@@ -77,24 +77,8 @@ interface Integration {
   is_enabled_for_businesses?: boolean;
 }
 
-// Available integrations - these are the ones users can add
+// Available account-level integrations - system integrations (OpenAI, DataForSEO) are managed separately
 const availableIntegrations = [
-  {
-    type: 'openai' as const,
-    name: 'OpenAI',
-    description: 'AI-powered content generation and analysis',
-    icon: <AiIcon />,
-    color: '#10a37f',
-    category: 'AI Tools',
-  },
-  {
-    type: 'dataforseo' as const,
-    name: 'DataForSEO',
-    description: 'SEO data and SERP analysis APIs',
-    icon: <SeoIcon />,
-    color: '#1976d2',
-    category: 'SEO Tools',
-  },
   {
     type: 'wordpress' as const,
     name: 'WordPress',
@@ -654,10 +638,9 @@ export default function IntegrationsPage() {
   const filteredIntegrations = selectedTab === 0 
     ? integrations 
     : integrations.filter(i => {
-        if (selectedTab === 1) return i.type === 'openai';
-        if (selectedTab === 2) return i.type === 'dataforseo';
-        if (selectedTab === 3) return i.type === 'google_analytics';
-        if (selectedTab === 4) return i.type === 'custom';
+        if (selectedTab === 1) return i.type === 'wordpress';
+        if (selectedTab === 2) return i.type === 'google_analytics';
+        if (selectedTab === 3) return i.type === 'custom';
         return true;
       });
 
@@ -800,8 +783,7 @@ export default function IntegrationsPage() {
           <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
             <Tabs value={selectedTab} onChange={handleTabChange}>
               <Tab label="All Integrations" />
-              <Tab label="OpenAI" />
-              <Tab label="DataForSEO" />
+              <Tab label="WordPress" />
               <Tab label="Google Analytics" />
               <Tab label="Custom" />
             </Tabs>

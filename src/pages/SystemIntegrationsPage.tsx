@@ -65,7 +65,15 @@ export default function SystemIntegrationsPage() {
   const [loading, setLoading] = useState(true);
   const [configuring, setConfiguring] = useState<number | null>(null);
   const [openAIDialog, setOpenAIDialog] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  const [editingIntegration, setEditingIntegration] = useState<SystemIntegration | null>(null);
+  
+  // OpenAI configuration form
+  const [formData, setFormData] = useState({
+    apiKey: '',
+    model: 'gpt-4o-mini',
+    maxTokens: 2000,
+    temperature: 0.7,
+  });
 
   useEffect(() => {
     loadSystemIntegrationStatuses();
@@ -106,32 +114,60 @@ export default function SystemIntegrationsPage() {
       }
     } else {
       // Enable system integration
-      if (integration.provider === 'openai') {
-        setOpenAIDialog(true);
-      } else {
-        // For other integrations, just enable without configuration for now
-        try {
-          setConfiguring(integration.id);
-          await toggleSystemIntegration(integration.id, {});
-          await loadSystemIntegrationStatuses();
-        } catch (error) {
-          console.error(`Failed to enable ${integration.name}:`, error);
-        } finally {
-          setConfiguring(null);
-        }
-      }
+      openConfigurationDialog(integration);
+    }
+  };
+
+  const openConfigurationDialog = (integration: SystemIntegration) => {
+    setEditingIntegration(integration);
+    
+    if (integration.provider === 'openai') {
+      // Reset form or load existing config
+      setFormData({
+        apiKey: '',
+        model: 'gpt-4o-mini',
+        maxTokens: 2000,
+        temperature: 0.7,
+      });
+      setOpenAIDialog(true);
+    } else {
+      // For other integrations, enable without configuration for now
+      handleDirectToggle(integration);
+    }
+  };
+
+  const handleDirectToggle = async (integration: SystemIntegration) => {
+    try {
+      setConfiguring(integration.id);
+      await toggleSystemIntegration(integration.id, {});
+      await loadSystemIntegrationStatuses();
+    } catch (error) {
+      console.error(`Failed to toggle ${integration.name}:`, error);
+    } finally {
+      setConfiguring(null);
     }
   };
 
   const handleConfigureOpenAI = async () => {
-    if (!apiKey.trim()) return;
+    if (!formData.apiKey.trim() || !editingIntegration) return;
 
     try {
-      setConfiguring(3); // OpenAI integration ID
-      await configureOpenAISystemIntegration(3, apiKey);
+      setConfiguring(editingIntegration.id);
+      await configureOpenAISystemIntegration(
+        editingIntegration.id,
+        formData.apiKey.trim(),
+        formData.model,
+        formData.maxTokens
+      );
       await loadSystemIntegrationStatuses();
       setOpenAIDialog(false);
-      setApiKey('');
+      setEditingIntegration(null);
+      setFormData({
+        apiKey: '',
+        model: 'gpt-4o-mini',
+        maxTokens: 2000,
+        temperature: 0.7,
+      });
     } catch (error) {
       console.error('Failed to configure OpenAI:', error);
     } finally {
@@ -197,8 +233,8 @@ export default function SystemIntegrationsPage() {
                     {integration.description}
                   </Typography>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" color="text.secondary">
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       Status: {integration.status?.is_system_integration ? (
                         <strong style={{ color: 'green' }}>Active System-wide</strong>
                       ) : (
@@ -206,18 +242,40 @@ export default function SystemIntegrationsPage() {
                       )}
                     </Typography>
 
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={integration.status?.is_system_integration || false}
-                          onChange={() => handleToggleIntegration(integration)}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      {integration.status?.is_system_integration ? (
+                        <>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            onClick={() => openConfigurationDialog(integration)}
+                            disabled={configuring === integration.id}
+                            sx={{ flex: 1 }}
+                          >
+                            Edit Configuration
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            onClick={() => handleToggleIntegration(integration)}
+                            disabled={configuring === integration.id}
+                          >
+                            Disable
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => handleToggleIntegration(integration)}
                           disabled={configuring === integration.id}
-                          color="primary"
-                        />
-                      }
-                      label=""
-                      sx={{ margin: 0 }}
-                    />
+                          sx={{ flex: 1 }}
+                        >
+                          {configuring === integration.id ? 'Configuring...' : 'Configure'}
+                        </Button>
+                      )}
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>
@@ -226,30 +284,92 @@ export default function SystemIntegrationsPage() {
         </Grid>
 
         {/* OpenAI Configuration Dialog */}
-        <Dialog open={openAIDialog} onClose={() => setOpenAIDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Configure OpenAI System Integration</DialogTitle>
-          <DialogContent>
+        <Dialog 
+          open={openAIDialog} 
+          onClose={() => {
+            setOpenAIDialog(false);
+            setEditingIntegration(null);
+          }} 
+          maxWidth="sm" 
+          fullWidth
+        >
+          <DialogTitle>
+            {editingIntegration?.status?.is_system_integration ? 'Edit' : 'Configure'} OpenAI System Integration
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Enter your OpenAI API key to enable AI features for all users.
+              {editingIntegration?.status?.is_system_integration 
+                ? 'Update your OpenAI configuration parameters.'
+                : 'Enter your OpenAI API key and configuration to enable AI features for all users.'
+              }
             </Typography>
+            
             <TextField
               label="OpenAI API Key"
               type="password"
               fullWidth
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
+              value={formData.apiKey}
+              onChange={(e) => setFormData(prev => ({ ...prev, apiKey: e.target.value }))}
               placeholder="sk-..."
               helperText="This key will be used for all AI operations across the platform"
+              sx={{ mb: 3 }}
+            />
+            
+            <TextField
+              label="Model"
+              select
+              fullWidth
+              value={formData.model}
+              onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+              SelectProps={{ native: true }}
+              helperText="AI model to use for text generation"
+              sx={{ mb: 3 }}
+            >
+              <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
+              <option value="gpt-4o">GPT-4o</option>
+              <option value="gpt-4-turbo">GPT-4 Turbo</option>
+              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+            </TextField>
+            
+            <TextField
+              label="Max Tokens"
+              type="number"
+              fullWidth
+              value={formData.maxTokens}
+              onChange={(e) => setFormData(prev => ({ ...prev, maxTokens: parseInt(e.target.value) || 2000 }))}
+              inputProps={{ min: 100, max: 8000, step: 100 }}
+              helperText="Maximum tokens per AI response"
+              sx={{ mb: 3 }}
+            />
+            
+            <TextField
+              label="Temperature"
+              type="number"
+              fullWidth
+              value={formData.temperature}
+              onChange={(e) => setFormData(prev => ({ ...prev, temperature: parseFloat(e.target.value) || 0.7 }))}
+              inputProps={{ min: 0, max: 2, step: 0.1 }}
+              helperText="Creativity level (0=focused, 2=creative)"
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setOpenAIDialog(false)}>Cancel</Button>
+            <Button 
+              onClick={() => {
+                setOpenAIDialog(false);
+                setEditingIntegration(null);
+              }}
+            >
+              Cancel
+            </Button>
             <Button 
               onClick={handleConfigureOpenAI}
-              disabled={!apiKey.trim() || configuring === 3}
+              disabled={!formData.apiKey.trim() || (editingIntegration && configuring === editingIntegration.id)}
               variant="contained"
             >
-              {configuring === 3 ? 'Configuring...' : 'Configure'}
+              {(editingIntegration && configuring === editingIntegration.id) 
+                ? (editingIntegration.status?.is_system_integration ? 'Updating...' : 'Configuring...')
+                : (editingIntegration?.status?.is_system_integration ? 'Update' : 'Configure')
+              }
             </Button>
           </DialogActions>
         </Dialog>
