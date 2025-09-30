@@ -6,8 +6,6 @@ import {
   Card,
   CardContent,
   Button,
-  Switch,
-  FormControlLabel,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -363,10 +361,10 @@ export default function SystemIntegrationsPage() {
             </Button>
             <Button 
               onClick={handleConfigureOpenAI}
-              disabled={!formData.apiKey.trim() || (editingIntegration && configuring === editingIntegration.id)}
+              disabled={!formData.apiKey.trim() || (editingIntegration !== null && configuring === editingIntegration.id)}
               variant="contained"
             >
-              {(editingIntegration && configuring === editingIntegration.id) 
+              {(editingIntegration !== null && configuring === editingIntegration.id) 
                 ? (editingIntegration.status?.is_system_integration ? 'Updating...' : 'Configuring...')
                 : (editingIntegration?.status?.is_system_integration ? 'Update' : 'Configure')
               }
