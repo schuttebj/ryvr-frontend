@@ -137,7 +137,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
   maxProps = 10,
 }) => {
   const theme = useTheme();
-  const [expanded, setExpanded] = useState(level < 2); // Reduce auto-expand to 2 levels for memory
+  const [expanded, setExpanded] = useState(false); // Start collapsed by default
   const [localMaxItems, setLocalMaxItems] = useState(maxItems);
   const [localMaxProps, setLocalMaxProps] = useState(maxProps);
   const [localMaxDepth, setLocalMaxDepth] = useState(maxDepth);
@@ -357,7 +357,7 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
           {getTypeIcon(type)}
         </Box>
 
-        {/* Key Name */}
+        {/* Key Name with Label (if available) */}
         <Typography
           variant="body2"
           sx={{
@@ -367,7 +367,10 @@ const TreeNode: React.FC<TreeNodeProps> = memo(({
             fontFamily: 'monospace',
           }}
         >
-          {nodeKey}
+          {/* Show label alongside nodeId for top-level nodes */}
+          {level === 0 && value?.nodeLabel && value.nodeLabel !== nodeKey 
+            ? `${nodeKey} (${value.nodeLabel})`
+            : nodeKey}
         </Typography>
 
         {/* Type Chip */}

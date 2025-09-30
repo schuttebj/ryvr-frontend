@@ -240,6 +240,7 @@ export default function VariableSelector({
               try {
                 console.log(`🔄 Processing node ${node.nodeId} for display:`, {
                   hasData: !!node.data,
+                  nodeLabel: node.nodeLabel,
                   hasProcessed: !!node.data?.processed,
                   processedType: typeof node.data?.processed,
                   processedSize: node.data?.processed ? JSON.stringify(node.data.processed).length : 0
@@ -247,6 +248,7 @@ export default function VariableSelector({
                 
                 return {
                   ...node,
+                  nodeLabel: node.nodeLabel || node.nodeId, // Include label for display
                   data: node.data ? {
                     // Use data as-is - JsonTreeView has its own limits to prevent memory issues
                     processed: node.data.processed,
@@ -258,6 +260,7 @@ export default function VariableSelector({
                 // Return node without processed data if there's an error
                 return {
                   ...node,
+                  nodeLabel: node.nodeLabel || node.nodeId,
                   data: {
                     processed: { error: 'Data processing failed', nodeId: node.nodeId },
                     raw: undefined

@@ -302,7 +302,7 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
       
       const result = {
         nodeId: response.nodeId,
-        nodeLabel: response.nodeId, // In real app, would get from node metadata
+        nodeLabel: response.nodeLabel || response.nodeId, // Use stored label if available
         nodeType: response.nodeType,
         executedAt: response.executedAt,
         status: response.status as 'success', // Safe cast since we filtered for success
@@ -322,8 +322,9 @@ export const getAvailableDataNodes = (): AvailableDataNode[] => {
         data: response.data
       };
       
-      console.log(`✅ Mapped node ${response.nodeId}:`, {
+      console.log(`✅ Mapped node ${response.nodeId} with label "${result.nodeLabel}":`, {
         nodeId: result.nodeId,
+        nodeLabel: result.nodeLabel,
         hasDataStructure: !!result.dataStructure,
         dataStructureLength: result.dataStructure?.length || 0,
         hasCompleteStructure: !!result.completeStructure,
@@ -1334,6 +1335,8 @@ export const workflowApi = {
             executionCount: workflow.executionCount || 0,
             lastExecuted: workflow.lastExecuted || null,
             successRate: workflow.successRate || 0,
+            // Save node execution responses for persistence
+            nodeResponses: globalWorkflowData,
           };
           
           const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
@@ -1346,6 +1349,8 @@ export const workflowApi = {
           }
           
           localStorage.setItem('workflows', JSON.stringify(workflows));
+          
+          console.log(`💾 Saved V2 workflow with ${Object.keys(globalWorkflowData).length} node responses`);
           
           return { success: true, workflow: standardizedWorkflow };
         } else {
@@ -1366,6 +1371,8 @@ export const workflowApi = {
           executionCount: workflow.executionCount || 0,
           lastExecuted: workflow.lastExecuted || null,
           successRate: workflow.successRate || 0,
+          // Save node execution responses for persistence
+          nodeResponses: globalWorkflowData,
         };
         
         const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
@@ -1378,6 +1385,8 @@ export const workflowApi = {
         }
         
         localStorage.setItem('workflows', JSON.stringify(workflows));
+        
+        console.log(`💾 Saved workflow with ${Object.keys(globalWorkflowData).length} node responses`);
         
         return { success: true, workflow: standardizedWorkflow };
       }
@@ -1469,6 +1478,20 @@ export const workflowApi = {
           };
           
           console.log('Converted V2 template to V1 workflow:', v1Workflow);
+          
+          // Check if we have saved node responses in localStorage for this workflow
+          const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+          const savedWorkflow = workflows.find((w: any) => w.id === v1Workflow.id);
+          
+          if (savedWorkflow?.nodeResponses) {
+            console.log(`📥 Restoring ${Object.keys(savedWorkflow.nodeResponses).length} node responses from localStorage`);
+            Object.entries(savedWorkflow.nodeResponses).forEach(([nodeId, response]) => {
+              globalWorkflowData[nodeId] = response as StandardNodeResponse;
+            });
+            clearDataNodeCache(); // Clear cache to reflect new data
+            console.log('✅ Node responses restored for V2 workflow');
+          }
+          
           return v1Workflow;
         }
       }
@@ -1480,6 +1503,17 @@ export const workflowApi = {
       
       if (workflow) {
         console.log('Found V1 workflow in localStorage:', workflow);
+        
+        // Restore node execution responses if they exist
+        if (workflow.nodeResponses) {
+          console.log(`📥 Restoring ${Object.keys(workflow.nodeResponses).length} node responses from saved workflow`);
+          Object.entries(workflow.nodeResponses).forEach(([nodeId, response]) => {
+            globalWorkflowData[nodeId] = response as StandardNodeResponse;
+          });
+          clearDataNodeCache(); // Clear cache to reflect new data
+          console.log('✅ Node responses restored successfully');
+        }
+        
         return workflow;
       }
       

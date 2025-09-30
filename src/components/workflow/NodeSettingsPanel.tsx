@@ -291,6 +291,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         const standardResponse = {
           executionId: `test_${Date.now()}`,
           nodeId: node.id,
+          nodeLabel: formData.label || node.id, // Include node label for variable selector
           nodeType: formData.type,
           status: 'success' as const,
           executedAt: new Date().toISOString(),
@@ -314,7 +315,7 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         
         // Store in global workflow data
         await workflowApi.storeNodeResult(node.id, standardResponse);
-        console.log(`✅ Test result automatically stored for node ${node.id}`);
+        console.log(`✅ Test result automatically stored for node ${node.id} with label: ${formData.label}`);
       }
       
       setTestResult({

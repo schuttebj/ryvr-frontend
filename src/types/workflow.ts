@@ -544,6 +544,7 @@ export interface StandardNodeResponse {
   // Execution metadata
   executionId: string;
   nodeId: string;
+  nodeLabel?: string; // Human-readable label from node settings
   nodeType: WorkflowNodeType;
   status: 'success' | 'error' | 'pending';
   executedAt: string;
