@@ -159,7 +159,7 @@ export default function IntegrationsPage() {
   // Form state
   const [formData, setFormData] = useState({
     name: '',
-    type: 'openai' as 'openai' | 'dataforseo' | 'wordpress' | 'custom',
+    type: 'openai' as 'openai' | 'dataforseo' | 'wordpress' | 'google_analytics' | 'custom',
     // OpenAI fields
     apiKey: '',
     model: 'gpt-4o-mini',
@@ -405,7 +405,7 @@ export default function IntegrationsPage() {
     setSelectedTab(newValue);
   };
 
-  const openDialog = (integration?: Integration, integrationType?: 'openai' | 'dataforseo' | 'wordpress' | 'custom') => {
+  const openDialog = (integration?: Integration, integrationType?: 'openai' | 'dataforseo' | 'wordpress' | 'google_analytics' | 'custom') => {
     if (integration) {
       setEditingIntegration(integration);
       setFormData({
@@ -599,12 +599,23 @@ export default function IntegrationsPage() {
       const integration: Integration = {
         id: editingIntegration?.id || `integration_${Date.now()}`,
         name: formData.name,
+        provider: formData.type, // Use type as provider for local integrations
         type: formData.type,
         status: 'disconnected',
         config,
         lastTested: editingIntegration?.lastTested,
         createdAt: editingIntegration?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        
+        // Required new properties for Integration interface
+        integration_type: 'account', // Local integrations are account-level
+        level: 'account',
+        is_system_wide: false,
+        requires_user_config: true,
+        available_to_roles: ['admin', 'agency', 'individual'],
+        is_enabled_for_agencies: true,
+        is_enabled_for_individuals: true,
+        is_enabled_for_businesses: true,
       };
 
       const newIntegrations = editingIntegration
@@ -1506,6 +1517,7 @@ export default function IntegrationsPage() {
               onClick={() => handleTest({
                 id: 'test',
                 name: formData.name,
+                provider: formData.type,
                 type: formData.type,
                 status: 'disconnected',
                 config: formData.type === 'openai' ? {
@@ -1537,6 +1549,15 @@ export default function IntegrationsPage() {
                 },
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
+                // Required new properties for Integration interface
+                integration_type: 'account',
+                level: 'account',
+                is_system_wide: false,
+                requires_user_config: true,
+                available_to_roles: ['admin', 'agency', 'individual'],
+                is_enabled_for_agencies: true,
+                is_enabled_for_individuals: true,
+                is_enabled_for_businesses: true,
               })}
               disabled={testing || !formData.name}
               variant="outlined"
