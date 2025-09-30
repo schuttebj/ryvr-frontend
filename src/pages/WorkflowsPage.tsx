@@ -71,42 +71,43 @@ export default function WorkflowsPage() {
   // const [newWorkflowName, setNewWorkflowName] = useState('');
   // const [newWorkflowDescription, setNewWorkflowDescription] = useState('');
 
-  // Load workflows on component mount and when returning from builder
-  useEffect(() => {
-    const loadWorkflows = async () => {
-      try {
-        console.log('Loading workflow templates...');
-        const result = await workflowApi.listWorkflowTemplates();
-        console.log('Loaded workflow templates:', result);
-        
-        if (result.success && result.templates) {
-          setWorkflows(result.templates.map((template: any) => ({
-            id: template.id.toString(),
-            name: template.name,
-            description: template.description || '',
-            isActive: template.status === 'published',
-            nodes: template.steps || [],
-            successRate: 0, // Will get from execution history later
-            createdAt: template.created_at,
-            tags: template.tags || [],
-            executionCount: 0, // Will get from execution history later
-          })));
-        } else {
-          console.error('Failed to load templates:', result.error);
-          setWorkflows([]);
-        }
-      } catch (error) {
-        console.error('Failed to load workflows:', error);
+  // Function to load workflows
+  const loadWorkflows = useCallback(async () => {
+    try {
+      console.log('Loading workflow templates...');
+      const result = await workflowApi.listWorkflowTemplates();
+      console.log('Loaded workflow templates:', result);
+      
+      if (result.success && result.templates) {
+        setWorkflows(result.templates.map((template: any) => ({
+          id: template.id.toString(),
+          name: template.name,
+          description: template.description || '',
+          isActive: template.status === 'published',
+          nodes: template.steps || [],
+          successRate: 0, // Will get from execution history later
+          createdAt: template.created_at,
+          tags: template.tags || [],
+          executionCount: 0, // Will get from execution history later
+        })));
+      } else {
+        console.error('Failed to load templates:', result.error);
         setWorkflows([]);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load workflows:', error);
+      setWorkflows([]);
+    }
+  }, []);
 
+  // Load workflows on component mount and when returning from builder
+  useEffect(() => {
     // Only load workflows when not showing builder (i.e., when returning to list)
     if (!showBuilder) {
       loadWorkflows();
       setEditingWorkflowId(null); // Reset editing mode when returning to list
     }
-  }, [showBuilder]);
+  }, [showBuilder, loadWorkflows]);
 
   // Filter workflows based on search and filter criteria
   useEffect(() => {
