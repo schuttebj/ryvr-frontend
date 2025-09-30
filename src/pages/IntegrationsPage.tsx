@@ -797,15 +797,18 @@ export default function IntegrationsPage() {
         
         <Grid container spacing={2}>
           {availableIntegrations.map((integration) => (
-            <Grid item xs={12} sm={6} md={4} key={integration.type}>
+            <Grid item xs={12} sm={6} md={4} lg={3} key={integration.type}>
               <Paper
                 elevation={2}
                 onClick={() => openDialog(undefined, integration.type)}
                 sx={{
-                  p: 3,
+                  p: 2,  // Reduced from 3 to 2
+                  height: '140px',  // Fixed smaller height
                   cursor: 'pointer',
                   border: '2px solid transparent',
                   transition: 'all 0.2s ease-in-out',
+                  display: 'flex',
+                  flexDirection: 'column',
                   '&:hover': {
                     borderColor: integration.color,
                     backgroundColor: `${integration.color}10`,
@@ -814,15 +817,15 @@ export default function IntegrationsPage() {
                   }
                 }}
               >
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  <Box sx={{ color: integration.color, mr: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Box sx={{ color: integration.color, mr: 1, fontSize: '1.2rem' }}>
                     {integration.icon}
                   </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, fontSize: '0.9rem' }}>
                     {integration.name}
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 1, flex: 1, fontSize: '0.75rem' }}>
                   {integration.description}
                 </Typography>
                 <Chip
@@ -831,6 +834,9 @@ export default function IntegrationsPage() {
                   sx={{
                     bgcolor: `${integration.color}20`,
                     color: integration.color,
+                    fontSize: '0.65rem',
+                    height: '20px',
+                    alignSelf: 'flex-start',
                   }}
                 />
               </Paper>
@@ -839,183 +845,67 @@ export default function IntegrationsPage() {
         </Grid>
       </Box>
 
-      {/* Integration Categories */}
-      {databaseIntegrations.length > 0 && (() => {
-        const categorizedIntegrations = categorizeIntegrations(databaseIntegrations.filter(isIntegrationAvailableToUser));
-        
-        return (
-          <>
-            {/* System Level Integrations */}
-            {categorizedIntegrations.system.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  🔧 System Integrations
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Admin-configured integrations used by all users system-wide
-                </Typography>
-                
-                <Grid container spacing={3}>
-                  {categorizedIntegrations.system.map((integration) => (
-                    <Grid item xs={12} md={6} lg={4} key={integration.id}>
-                      <Card sx={{ position: 'relative' }}>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <DragIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                            {getIntegrationIcon(integration.type)}
-                            <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
-                              {integration.name}
-                            </Typography>
-                            <Chip
-                              label={integration.is_system_wide ? 'System-wide' : 'Available'}
-                              color={integration.is_system_wide ? 'success' : 'default'}
-                              size="small"
-                            />
-                          </Box>
-                          
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {integration.name} - {integration.is_system_wide ? 'Configured once for everyone' : 'System integration'}
-                          </Typography>
-                          
-                          {/* System Integration Toggle */}
-                          <Box sx={{ mb: 2 }}>
-                            <FormControlLabel
-                              control={
-                                <Switch
-                                  checked={systemIntegrationStatuses[integration.id]?.is_system_integration || false}
-                                  onChange={() => handleSystemIntegrationToggle(integration)}
-                                  disabled={configuringSystemIntegration === integration.id}
-                                  color="primary"
-                                />
-                              }
-                              label={
-                                <Box>
-                                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                    System Integration
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {systemIntegrationStatuses[integration.id]?.is_system_integration 
-                                      ? 'Active for all users' 
-                                      : 'Click to configure'
-                                    }
-                                  </Typography>
-                                </Box>
-                              }
-                              sx={{ alignItems: 'flex-start', margin: 0 }}
-                            />
-                          </Box>
-                          
-                          {integration.lastTested && (
-                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                              Last tested: {new Date(integration.lastTested).toLocaleString()}
-                            </Typography>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
+      {/* System Integrations (Read-Only) */}
+      {databaseIntegrations.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            System Integrations
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            These integrations are configured by the admin and available to all users
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {databaseIntegrations
+              .filter(i => i.integration_type === 'system')
+              .map((integration) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={integration.id}>
+                  <Card 
+                    sx={{ 
+                      height: '140px',  // Fixed smaller height
+                      border: systemIntegrationStatuses[integration.id]?.is_system_integration ? 2 : 1,
+                      borderColor: systemIntegrationStatuses[integration.id]?.is_system_integration 
+                        ? 'success.main' 
+                        : 'divider',
+                      opacity: systemIntegrationStatuses[integration.id]?.is_system_integration ? 1 : 0.6
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        {getIntegrationIcon(integration.type)}
+                        <Typography variant="subtitle2" sx={{ ml: 1, flex: 1, fontWeight: 600 }}>
+                          {integration.name}
+                        </Typography>
+                        {systemIntegrationStatuses[integration.id]?.is_system_integration ? (
+                          <CheckIcon color="success" fontSize="small" />
+                        ) : (
+                          <Chip label="Inactive" size="small" color="default" />
+                        )}
+                      </Box>
+                      
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                        {systemIntegrationStatuses[integration.id]?.is_system_integration 
+                          ? 'Active - Ready to use in workflows' 
+                          : 'Contact admin to enable'
+                        }
+                      </Typography>
+                      
+                      <Typography variant="body2" sx={{ 
+                        color: systemIntegrationStatuses[integration.id]?.is_system_integration 
+                          ? 'success.main' 
+                          : 'text.disabled',
+                        fontWeight: 500,
+                        fontSize: '0.75rem'
+                      }}>
+                        {systemIntegrationStatuses[integration.id]?.is_system_integration ? '✓ Available' : '○ Not configured'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
                 </Grid>
-              </Box>
-            )}
-
-            {/* Account Level Integrations */}
-            {categorizedIntegrations.account.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  👤 Account Integrations
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  User/Agency level integrations that you configure for your account
-                </Typography>
-                
-                <Grid container spacing={3}>
-                  {categorizedIntegrations.account.map((integration) => (
-                    <Grid item xs={12} md={6} lg={4} key={integration.id}>
-                      <Card sx={{ position: 'relative' }}>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <DragIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                            {getIntegrationIcon(integration.type)}
-                            <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
-                              {integration.name}
-                            </Typography>
-                            <Chip
-                              label="Available"
-                              color="info"
-                              size="small"
-                            />
-                          </Box>
-                          
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {integration.name} - Configure for your account
-                          </Typography>
-                          
-                          <Button 
-                            variant="outlined" 
-                            size="small" 
-                            fullWidth
-                            sx={{ mt: 1 }}
-                          >
-                            Configure Integration
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-
-            {/* Business Level Integrations */}
-            {categorizedIntegrations.business.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                  🏢 Business Integrations
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Business-specific integrations configured per client/business
-                </Typography>
-                
-                <Grid container spacing={3}>
-                  {categorizedIntegrations.business.map((integration) => (
-                    <Grid item xs={12} md={6} lg={4} key={integration.id}>
-                      <Card sx={{ position: 'relative' }}>
-                        <CardContent>
-                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                            <DragIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                            {getIntegrationIcon(integration.type)}
-                            <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
-                              {integration.name}
-                            </Typography>
-                            <Chip
-                              label="Business"
-                              color="warning"
-                              size="small"
-                            />
-                          </Box>
-                          
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {integration.name} - Configure per business
-                          </Typography>
-                          
-                          <Button 
-                            variant="outlined" 
-                            size="small" 
-                            fullWidth
-                            sx={{ mt: 1 }}
-                          >
-                            Manage Business Configs
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            )}
-          </>
-        );
-      })()}
+              ))}
+          </Grid>
+        </Box>
+      )}
 
       {/* Configured Integrations */}
       {integrations.length > 0 && (
@@ -1036,57 +926,30 @@ export default function IntegrationsPage() {
           </Box>
 
           {/* Integration Cards */}
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             {filteredIntegrations.map((integration) => (
-              <Grid item xs={12} md={6} lg={4} key={integration.id}>
-                <Card sx={{ position: 'relative' }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <DragIcon sx={{ color: 'text.secondary', mr: 1 }} />
+              <Grid item xs={12} sm={6} md={4} lg={3} key={integration.id}>
+                <Card sx={{ position: 'relative', height: '160px' }}>
+                  <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <DragIcon sx={{ color: 'text.secondary', mr: 0.5, fontSize: '1rem' }} />
                       {getIntegrationIcon(integration.type)}
-                      <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
+                      <Typography variant="subtitle2" sx={{ ml: 0.5, flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>
                         {integration.name}
                       </Typography>
                       <Chip
                         label={integration.status}
                         color={getStatusColor(integration.status)}
                         size="small"
+                        sx={{ fontSize: '0.65rem', height: '20px' }}
                       />
                     </Box>
                     
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ mb: 1, fontSize: '0.75rem' }}>
                       {integration.type.charAt(0).toUpperCase() + integration.type.slice(1)} Integration
                     </Typography>
                     
-                    {/* System Integration Status */}
-                    {systemIntegrationStatuses[integration.id] && (
-                      <Box sx={{ mb: 2 }}>
-                        <FormControlLabel
-                          control={
-                            <Switch
-                              checked={systemIntegrationStatuses[integration.id]?.is_system_integration || false}
-                              onChange={() => handleSystemIntegrationToggle(integration)}
-                              disabled={configuringSystemIntegration === integration.id}
-                              color="primary"
-                            />
-                          }
-                          label={
-                            <Box>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                System Integration
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {systemIntegrationStatuses[integration.id]?.is_system_integration 
-                                  ? 'Used by all users system-wide' 
-                                  : 'Enable for system-wide usage'
-                                }
-                              </Typography>
-                            </Box>
-                          }
-                          sx={{ alignItems: 'flex-start', margin: 0 }}
-                        />
-                      </Box>
-                    )}
+                    <Box sx={{ flex: 1 }} />  {/* Spacer */}
                     
                     {integration.lastTested && (
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
@@ -1094,21 +957,21 @@ export default function IntegrationsPage() {
                       </Typography>
                     )}
 
-                    <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
                       <Button
                         size="small"
-                        startIcon={<TestIcon />}
                         onClick={() => handleTest(integration)}
                         disabled={testing}
                         variant="outlined"
+                        sx={{ fontSize: '0.65rem', px: 1, py: 0.25, minWidth: 'auto' }}
                       >
                         Test
                       </Button>
                       <Button
                         size="small"
-                        startIcon={<EditIcon />}
                         onClick={() => openDialog(integration)}
                         variant="outlined"
+                        sx={{ fontSize: '0.65rem', px: 1, py: 0.25, minWidth: 'auto' }}
                       >
                         Edit
                       </Button>
@@ -1116,8 +979,9 @@ export default function IntegrationsPage() {
                         size="small"
                         onClick={() => handleDelete(integration.id)}
                         color="error"
+                        sx={{ p: 0.25 }}
                       >
-                        <DeleteIcon />
+                        <DeleteIcon fontSize="small" />
                       </IconButton>
                     </Box>
                   </CardContent>

@@ -83,13 +83,20 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       active: isActive('/admin/analytics'),
       onClick: () => navigate('/admin/analytics'),
     },
-    {
-      label: 'Integrations',
-      icon: <IntegrationIcon />,
-      path: '/admin/integrations',
-      active: isActive('/admin/integrations'),
-      onClick: () => navigate('/admin/integrations'),
-    },
+      {
+        label: 'Integrations',
+        icon: <IntegrationIcon />,
+        path: '/admin/integrations',
+        active: isActive('/admin/integrations'),
+        onClick: () => navigate('/admin/integrations'),
+      },
+      {
+        label: 'System Integrations',
+        icon: <SettingsIcon />,
+        path: '/admin/system-integrations',
+        active: isActive('/admin/system-integrations'),
+        onClick: () => navigate('/admin/system-integrations'),
+      },
     {
       label: 'Billing & Credits',
       icon: <BillingIcon />,
