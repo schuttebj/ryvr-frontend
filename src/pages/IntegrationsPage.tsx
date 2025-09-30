@@ -132,7 +132,7 @@ export default function IntegrationsPage() {
   const [selectedTab, setSelectedTab] = useState(0);
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
-  const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'custom' | null>(null);
+  const [_selectedIntegrationType, setSelectedIntegrationType] = useState<'openai' | 'dataforseo' | 'wordpress' | 'google_analytics' | 'custom' | null>(null);
   
   // Use OpenAI models hook
   const { loading: modelsLoading, getModelOptions, fetchModelsWithApiKey } = useOpenAIModels();
