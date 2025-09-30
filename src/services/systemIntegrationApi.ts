@@ -102,3 +102,10 @@ export const configureOpenAISystemIntegration = async (
 export const getSystemIntegrations = async (): Promise<any[]> => {
   return await makeRequest<any[]>('/api/v1/integrations/system');
 };
+
+/**
+ * Get all database integrations (for system integration management)
+ */
+export const getDatabaseIntegrations = async (): Promise<any[]> => {
+  return await makeRequest<any[]>('/api/v1/integrations/');
+};

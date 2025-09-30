@@ -53,6 +53,7 @@ import {
   getSystemIntegrationStatus, 
   toggleSystemIntegration, 
   configureOpenAISystemIntegration,
+  getDatabaseIntegrations,
   SystemIntegrationStatus
 } from '../services/systemIntegrationApi';
 
@@ -133,6 +134,7 @@ export default function IntegrationsPage() {
   const [configuringSystemIntegration, setConfiguringSystemIntegration] = useState<string | null>(null);
   const [systemApiKeyDialog, setSystemApiKeyDialog] = useState<{open: boolean, integration: Integration | null}>({open: false, integration: null});
   const [systemApiKey, setSystemApiKey] = useState('');
+  const [databaseIntegrations, setDatabaseIntegrations] = useState<Integration[]>([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -170,14 +172,15 @@ export default function IntegrationsPage() {
   // Load integrations on mount
   useEffect(() => {
     loadIntegrations();
+    loadDatabaseIntegrations(); // Load actual database integrations for system integration functionality
   }, []);
 
   // Load system integration statuses when integrations change
   useEffect(() => {
-    if (integrations.length > 0) {
+    if (integrations.length > 0 || databaseIntegrations.length > 0) {
       loadSystemIntegrationStatuses();
     }
-  }, [integrations]);
+  }, [integrations, databaseIntegrations]);
 
   const loadIntegrations = () => {
     try {
@@ -199,11 +202,46 @@ export default function IntegrationsPage() {
     }
   };
 
+  const loadDatabaseIntegrations = async () => {
+    try {
+      const dbIntegrations = await getDatabaseIntegrations();
+      
+      // Transform database integrations to match our Integration interface
+      const transformedIntegrations = dbIntegrations.map((dbIntegration: any) => ({
+        id: dbIntegration.id.toString(),
+        name: dbIntegration.name,
+        type: mapProviderToType(dbIntegration.provider),
+        status: 'connected' as const, // Assume connected for database integrations
+        config: {},
+        lastTested: dbIntegration.last_health_check,
+        createdAt: dbIntegration.created_at,
+        updatedAt: dbIntegration.updated_at
+      }));
+      
+      setDatabaseIntegrations(transformedIntegrations);
+    } catch (error) {
+      console.error('Failed to load database integrations:', error);
+    }
+  };
+
+  // Helper function to map provider names to types
+  const mapProviderToType = (provider: string): 'openai' | 'dataforseo' | 'wordpress' | 'custom' => {
+    switch (provider.toLowerCase()) {
+      case 'openai': return 'openai';
+      case 'dataforseo': return 'dataforseo';
+      case 'wordpress': return 'wordpress';
+      default: return 'custom';
+    }
+  };
+
   const loadSystemIntegrationStatuses = async () => {
     try {
       const statuses: Record<string, SystemIntegrationStatus> = {};
       
-      for (const integration of integrations) {
+      // Use database integrations for system integration status loading
+      const integrationsToCheck = databaseIntegrations.length > 0 ? databaseIntegrations : integrations;
+      
+      for (const integration of integrationsToCheck) {
         try {
           const status = await getSystemIntegrationStatus(parseInt(integration.id));
           statuses[integration.id] = status;
@@ -739,11 +777,84 @@ export default function IntegrationsPage() {
         </Grid>
       </Box>
 
+      {/* Database Integrations (System Management) */}
+      {databaseIntegrations.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            System Integrations
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Manage system-wide integrations that can be used by all users
+          </Typography>
+          
+          <Grid container spacing={3}>
+            {databaseIntegrations.map((integration) => (
+              <Grid item xs={12} md={6} lg={4} key={integration.id}>
+                <Card sx={{ position: 'relative' }}>
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <DragIcon sx={{ color: 'text.secondary', mr: 1 }} />
+                      {getIntegrationIcon(integration.type)}
+                      <Typography variant="h6" sx={{ ml: 1, flex: 1 }}>
+                        {integration.name}
+                      </Typography>
+                      <Chip
+                        label={integration.status}
+                        color={getStatusColor(integration.status)}
+                        size="small"
+                      />
+                    </Box>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {integration.type.charAt(0).toUpperCase() + integration.type.slice(1)} Integration (Database)
+                    </Typography>
+                    
+                    {/* System Integration Status - Always show for database integrations */}
+                    <Box sx={{ mb: 2 }}>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={systemIntegrationStatuses[integration.id]?.is_system_integration || false}
+                            onChange={() => handleSystemIntegrationToggle(integration)}
+                            disabled={configuringSystemIntegration === integration.id}
+                            color="primary"
+                          />
+                        }
+                        label={
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              System Integration
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {systemIntegrationStatuses[integration.id]?.is_system_integration 
+                                ? 'Used by all users system-wide' 
+                                : 'Enable for system-wide usage'
+                              }
+                            </Typography>
+                          </Box>
+                        }
+                        sx={{ alignItems: 'flex-start', margin: 0 }}
+                      />
+                    </Box>
+                    
+                    {integration.lastTested && (
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                        Last tested: {new Date(integration.lastTested).toLocaleString()}
+                      </Typography>
+                    )}
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
+
       {/* Configured Integrations */}
       {integrations.length > 0 && (
         <Box>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Your Integrations
+            Your Local Integrations
           </Typography>
           
           {/* Tabs */}
