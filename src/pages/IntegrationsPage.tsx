@@ -49,6 +49,12 @@ import {
   VisibilityOff as VisibilityOffIcon,
 } from '@mui/icons-material';
 import { useOpenAIModels } from '../hooks/useOpenAIModels';
+import { 
+  getSystemIntegrationStatus, 
+  toggleSystemIntegration, 
+  configureOpenAISystemIntegration,
+  SystemIntegrationStatus
+} from '../services/systemIntegrationApi';
 
 interface Integration {
   id: string;
@@ -59,6 +65,7 @@ interface Integration {
   lastTested?: string;
   createdAt: string;
   updatedAt: string;
+  systemIntegrationStatus?: SystemIntegrationStatus;
 }
 
 // Available integrations - these are the ones users can add
@@ -120,6 +127,12 @@ export default function IntegrationsPage() {
   const [copySuccess, setCopySuccess] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [fetchingModels, setFetchingModels] = useState(false);
+  
+  // System integration state
+  const [systemIntegrationStatuses, setSystemIntegrationStatuses] = useState<Record<string, SystemIntegrationStatus>>({});
+  const [configuringSystemIntegration, setConfiguringSystemIntegration] = useState<string | null>(null);
+  const [systemApiKeyDialog, setSystemApiKeyDialog] = useState<{open: boolean, integration: Integration | null}>({open: false, integration: null});
+  const [systemApiKey, setSystemApiKey] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -159,6 +172,13 @@ export default function IntegrationsPage() {
     loadIntegrations();
   }, []);
 
+  // Load system integration statuses when integrations change
+  useEffect(() => {
+    if (integrations.length > 0) {
+      loadSystemIntegrationStatuses();
+    }
+  }, [integrations]);
+
   const loadIntegrations = () => {
     try {
       const saved = localStorage.getItem('integrations');
@@ -176,6 +196,122 @@ export default function IntegrationsPage() {
       setIntegrations(newIntegrations);
     } catch (error) {
       console.error('Failed to save integrations:', error);
+    }
+  };
+
+  const loadSystemIntegrationStatuses = async () => {
+    try {
+      const statuses: Record<string, SystemIntegrationStatus> = {};
+      
+      for (const integration of integrations) {
+        try {
+          const status = await getSystemIntegrationStatus(parseInt(integration.id));
+          statuses[integration.id] = status;
+        } catch (error) {
+          console.error(`Failed to load system status for ${integration.name}:`, error);
+        }
+      }
+      
+      setSystemIntegrationStatuses(statuses);
+    } catch (error) {
+      console.error('Failed to load system integration statuses:', error);
+    }
+  };
+
+  const handleSystemIntegrationToggle = async (integration: Integration) => {
+    if (systemIntegrationStatuses[integration.id]?.is_system_integration) {
+      // Disable system integration
+      try {
+        setConfiguringSystemIntegration(integration.id);
+        
+        const result = await toggleSystemIntegration(parseInt(integration.id));
+        
+        // Update local status
+        setSystemIntegrationStatuses(prev => ({
+          ...prev,
+          [integration.id]: {
+            ...prev[integration.id],
+            is_system_integration: false,
+            system_integration_id: undefined
+          }
+        }));
+        
+        // Show success message
+        console.log(result.message);
+        
+      } catch (error) {
+        console.error('Failed to disable system integration:', error);
+      } finally {
+        setConfiguringSystemIntegration(null);
+      }
+    } else {
+      // Enable system integration
+      if (integration.type === 'openai') {
+        // For OpenAI, prompt for API key
+        setSystemApiKeyDialog({open: true, integration});
+        setSystemApiKey('');
+      } else {
+        // For other integrations, enable without credentials
+        try {
+          setConfiguringSystemIntegration(integration.id);
+          
+          const result = await toggleSystemIntegration(parseInt(integration.id));
+          
+          // Update local status
+          setSystemIntegrationStatuses(prev => ({
+            ...prev,
+            [integration.id]: {
+              ...prev[integration.id],
+              is_system_integration: true,
+              system_integration_id: result.system_integration_id
+            }
+          }));
+          
+          console.log(result.message);
+          
+        } catch (error) {
+          console.error('Failed to enable system integration:', error);
+        } finally {
+          setConfiguringSystemIntegration(null);
+        }
+      }
+    }
+  };
+
+  const handleSystemApiKeySubmit = async () => {
+    if (!systemApiKeyDialog.integration || !systemApiKey.trim()) {
+      return;
+    }
+
+    try {
+      setConfiguringSystemIntegration(systemApiKeyDialog.integration.id);
+      
+      const result = await configureOpenAISystemIntegration(
+        parseInt(systemApiKeyDialog.integration.id),
+        systemApiKey.trim()
+      );
+      
+      // Update local status
+      setSystemIntegrationStatuses(prev => ({
+        ...prev,
+        [systemApiKeyDialog.integration!.id]: {
+          ...prev[systemApiKeyDialog.integration!.id],
+          is_system_integration: true,
+          system_integration_id: result.system_integration_id,
+          has_credentials: true
+        }
+      }));
+      
+      // Close dialog
+      setSystemApiKeyDialog({open: false, integration: null});
+      setSystemApiKey('');
+      
+      console.log(result.message);
+      
+    } catch (error) {
+      console.error('Failed to configure OpenAI system integration:', error);
+    } finally {
+      setConfiguringSystemIntegration(null);
     }
   };
 
@@ -642,6 +778,36 @@ export default function IntegrationsPage() {
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                       {integration.type.charAt(0).toUpperCase() + integration.type.slice(1)} Integration
                     </Typography>
+                    
+                    {/* System Integration Status */}
+                    {systemIntegrationStatuses[integration.id] && (
+                      <Box sx={{ mb: 2 }}>
+                        <FormControlLabel
+                          control={
+                            <Switch
+                              checked={systemIntegrationStatuses[integration.id]?.is_system_integration || false}
+                              onChange={() => handleSystemIntegrationToggle(integration)}
+                              disabled={configuringSystemIntegration === integration.id}
+                              color="primary"
+                            />
+                          }
+                          label={
+                            <Box>
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                System Integration
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {systemIntegrationStatuses[integration.id]?.is_system_integration 
+                                  ? 'Used by all users system-wide' 
+                                  : 'Enable for system-wide usage'
+                                }
+                              </Typography>
+                            </Box>
+                          }
+                          sx={{ alignItems: 'flex-start', margin: 0 }}
+                        />
+                      </Box>
+                    )}
                     
                     {integration.lastTested && (
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
@@ -1255,6 +1421,63 @@ export default function IntegrationsPage() {
             variant="contained"
           >
             Got it!
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* System Integration API Key Dialog */}
+      <Dialog 
+        open={systemApiKeyDialog.open} 
+        onClose={() => setSystemApiKeyDialog({open: false, integration: null})}
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>
+          Configure System OpenAI Integration
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Enter your OpenAI API key to enable system-wide AI functionality. This will be used for file summarization and other AI features across the platform.
+          </Typography>
+          
+          <TextField
+            fullWidth
+            label="OpenAI API Key"
+            value={systemApiKey}
+            onChange={(e) => setSystemApiKey(e.target.value)}
+            type={showApiKey ? 'text' : 'password'}
+            placeholder="sk-..."
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    edge="end"
+                  >
+                    {showApiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 2 }}
+          />
+          
+          <Alert severity="info" sx={{ mb: 2 }}>
+            This API key will be used by all users on the platform for AI-powered features like file summarization.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setSystemApiKeyDialog({open: false, integration: null})}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSystemApiKeySubmit}
+            variant="contained"
+            disabled={!systemApiKey.trim() || configuringSystemIntegration !== null}
+          >
+            {configuringSystemIntegration ? 'Configuring...' : 'Configure System Integration'}
           </Button>
         </DialogActions>
       </Dialog>
