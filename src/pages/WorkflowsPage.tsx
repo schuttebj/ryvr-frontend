@@ -33,8 +33,10 @@ import {
   CheckCircle as CheckCircleIcon,
   Search as SearchIcon,
   Clear as ClearIcon,
+  FileDownload as ExportIcon,
 } from '@mui/icons-material';
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
+import WorkflowImportExport from '../components/workflow/WorkflowImportExport';
 import { workflowApi } from '../services/workflowApi';
 import { WorkflowTemplateV2 } from '../types/workflow';
 
@@ -301,6 +303,47 @@ export default function WorkflowsPage() {
     // TODO: Implement actual execute functionality
   }, []);
 
+  const handleImportSuccess = useCallback((templateId: number) => {
+    console.log('Workflow imported successfully:', templateId);
+    // Refresh the workflows list to show the imported workflow
+    loadWorkflows();
+  }, [loadWorkflows]);
+
+  const handleExportWorkflow = useCallback(async (workflowId: string) => {
+    try {
+      console.log('Exporting workflow:', workflowId);
+      const workflow = workflows.find(w => w.id === workflowId);
+      if (!workflow) return;
+      
+      // Convert string ID to number for V2 templates
+      const templateId = parseInt(workflowId);
+      if (isNaN(templateId)) {
+        console.warn('Cannot export workflow with non-numeric ID:', workflowId);
+        return;
+      }
+      
+      const exportData = await workflowApi.exportWorkflow(templateId, true);
+      
+      // Create downloadable file
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${workflow.name}-export.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      handleMenuClose();
+    } catch (error) {
+      console.error('Export failed:', error);
+    }
+  }, [workflows]);
+
   const getStatusColor = (isActive: boolean) => {
     return isActive ? '#4caf50' : '#ff9800';
   };
@@ -370,14 +413,19 @@ export default function WorkflowsPage() {
               <Typography variant="h6" sx={{ fontWeight: 600 }}>
                 Filter & Search
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={handleCreateWorkflow}
-                sx={{ minWidth: 140 }}
-              >
-                Add New
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <WorkflowImportExport
+                  onImportSuccess={handleImportSuccess}
+                />
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleCreateWorkflow}
+                  sx={{ minWidth: 140 }}
+                >
+                  Add New
+                </Button>
+              </Stack>
             </Box>
             
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
@@ -540,6 +588,10 @@ export default function WorkflowsPage() {
         <MenuItem onClick={() => handleEditWorkflow(selectedWorkflowId!)}>
           <EditIcon sx={{ mr: 1 }} />
           Edit
+        </MenuItem>
+        <MenuItem onClick={() => handleExportWorkflow(selectedWorkflowId!)}>
+          <ExportIcon sx={{ mr: 1 }} />
+          Export
         </MenuItem>
         <MenuItem onClick={() => handleDeleteWorkflow(selectedWorkflowId!)}>
           <DeleteIcon sx={{ mr: 1 }} />

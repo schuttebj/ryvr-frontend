@@ -3607,5 +3607,66 @@ export const workflowApi = {
       isValid: errors.length === 0,
       errors
     };
+  },
+
+  // Export workflow template
+  exportWorkflow: async (templateId: number, includeMetadata: boolean = true) => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/api/v1/workflows/templates/${templateId}/export?include_metadata=${includeMetadata}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export failed: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Export workflow failed:', error);
+      throw error;
+    }
+  },
+
+  // Import workflow template
+  importWorkflow: async (
+    importData: any, 
+    businessId: number | null = null, 
+    overrideName: string | null = null, 
+    validateOnly: boolean = false
+  ) => {
+    try {
+      const token = getAuthToken();
+      const params = new URLSearchParams();
+      
+      if (businessId) params.append('business_id', businessId.toString());
+      if (overrideName) params.append('override_name', overrideName);
+      if (validateOnly) params.append('validate_only', 'true');
+      
+      const url = `${API_BASE}/api/v1/workflows/templates/import${params.toString() ? '?' + params.toString() : ''}`;
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(importData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(errorData.detail || 'Import failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Import workflow failed:', error);
+      throw error;
+    }
   }
 }; 
