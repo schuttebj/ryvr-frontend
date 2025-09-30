@@ -50,8 +50,6 @@ import {
 import { useOpenAIModels } from '../hooks/useOpenAIModels';
 import { 
   getSystemIntegrationStatus, 
-  toggleSystemIntegration, 
-  configureOpenAISystemIntegration,
   getDatabaseIntegrations,
   SystemIntegrationStatus
 } from '../services/systemIntegrationApi';
@@ -149,9 +147,6 @@ export default function IntegrationsPage() {
   
   // System integration state
   const [systemIntegrationStatuses, setSystemIntegrationStatuses] = useState<Record<string, SystemIntegrationStatus>>({});
-  const [configuringSystemIntegration, setConfiguringSystemIntegration] = useState<string | null>(null);
-  const [systemApiKeyDialog, setSystemApiKeyDialog] = useState<{open: boolean, integration: Integration | null}>({open: false, integration: null});
-  const [systemApiKey, setSystemApiKey] = useState('');
   const [databaseIntegrations, setDatabaseIntegrations] = useState<Integration[]>([]);
 
   // Form state
@@ -1465,62 +1460,6 @@ export default function IntegrationsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* System Integration API Key Dialog */}
-      <Dialog 
-        open={systemApiKeyDialog.open} 
-        onClose={() => setSystemApiKeyDialog({open: false, integration: null})}
-        maxWidth="sm" 
-        fullWidth
-      >
-        <DialogTitle>
-          Configure System OpenAI Integration
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Enter your OpenAI API key to enable system-wide AI functionality. This will be used for file summarization and other AI features across the platform.
-          </Typography>
-          
-          <TextField
-            fullWidth
-            label="OpenAI API Key"
-            value={systemApiKey}
-            onChange={(e) => setSystemApiKey(e.target.value)}
-            type={showApiKey ? 'text' : 'password'}
-            placeholder="sk-..."
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    edge="end"
-                  >
-                    {showApiKey ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ mb: 2 }}
-          />
-          
-          <Alert severity="info" sx={{ mb: 2 }}>
-            This API key will be used by all users on the platform for AI-powered features like file summarization.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button 
-            onClick={() => setSystemApiKeyDialog({open: false, integration: null})}
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSystemApiKeySubmit}
-            variant="contained"
-            disabled={!systemApiKey.trim() || configuringSystemIntegration !== null}
-          >
-            {configuringSystemIntegration ? 'Configuring...' : 'Configure System Integration'}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Copy Success Snackbar */}
       <Snackbar
