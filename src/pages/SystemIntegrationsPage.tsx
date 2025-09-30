@@ -17,7 +17,6 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
-  Computer as SystemIcon,
   Api as OpenAIIcon,
   Search as DataForSEOIcon,
   CheckCircle as ActiveIcon,
@@ -129,7 +128,7 @@ export default function SystemIntegrationsPage() {
 
     try {
       setConfiguring(3); // OpenAI integration ID
-      await configureOpenAISystemIntegration(apiKey);
+      await configureOpenAISystemIntegration(3, apiKey);
       await loadSystemIntegrationStatuses();
       setOpenAIDialog(false);
       setApiKey('');

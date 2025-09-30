@@ -33,9 +33,7 @@ import {
   Snackbar,
 } from '@mui/material';
 import {
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  Science as TestIcon,
   Settings as SettingsIcon,
   Api as ApiIcon,
   Psychology as AiIcon,
@@ -266,21 +264,6 @@ export default function IntegrationsPage() {
     }
   };
 
-  // Helper function to categorize integrations by level
-  const categorizeIntegrations = (integrations: Integration[]) => {
-    return {
-      system: integrations.filter(i => i.integration_type === 'system'),
-      account: integrations.filter(i => i.integration_type === 'account'), 
-      business: integrations.filter(i => i.integration_type === 'business')
-    };
-  };
-
-  // Helper function to check if integration is available to current user role
-  const isIntegrationAvailableToUser = (integration: Integration): boolean => {
-    // For now, assume admin role - this should come from auth context
-    const currentUserRole = 'admin';
-    return integration.available_to_roles?.includes(currentUserRole) ?? true;
-  };
 
   const loadSystemIntegrationStatuses = async () => {
     try {
@@ -304,102 +287,6 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleSystemIntegrationToggle = async (integration: Integration) => {
-    if (systemIntegrationStatuses[integration.id]?.is_system_integration) {
-      // Disable system integration
-      try {
-        setConfiguringSystemIntegration(integration.id);
-        
-        const result = await toggleSystemIntegration(parseInt(integration.id));
-        
-        // Update local status
-        setSystemIntegrationStatuses(prev => ({
-          ...prev,
-          [integration.id]: {
-            ...prev[integration.id],
-            is_system_integration: false,
-            system_integration_id: undefined
-          }
-        }));
-        
-        // Show success message
-        console.log(result.message);
-        
-      } catch (error) {
-        console.error('Failed to disable system integration:', error);
-      } finally {
-        setConfiguringSystemIntegration(null);
-      }
-    } else {
-      // Enable system integration
-      if (integration.type === 'openai') {
-        // For OpenAI, prompt for API key
-        setSystemApiKeyDialog({open: true, integration});
-        setSystemApiKey('');
-      } else {
-        // For other integrations, enable without credentials
-        try {
-          setConfiguringSystemIntegration(integration.id);
-          
-          const result = await toggleSystemIntegration(parseInt(integration.id));
-          
-          // Update local status
-          setSystemIntegrationStatuses(prev => ({
-            ...prev,
-            [integration.id]: {
-              ...prev[integration.id],
-              is_system_integration: true,
-              system_integration_id: result.system_integration_id
-            }
-          }));
-          
-          console.log(result.message);
-          
-        } catch (error) {
-          console.error('Failed to enable system integration:', error);
-        } finally {
-          setConfiguringSystemIntegration(null);
-        }
-      }
-    }
-  };
-
-  const handleSystemApiKeySubmit = async () => {
-    if (!systemApiKeyDialog.integration || !systemApiKey.trim()) {
-      return;
-    }
-
-    try {
-      setConfiguringSystemIntegration(systemApiKeyDialog.integration.id);
-      
-      const result = await configureOpenAISystemIntegration(
-        parseInt(systemApiKeyDialog.integration.id),
-        systemApiKey.trim()
-      );
-      
-      // Update local status
-      setSystemIntegrationStatuses(prev => ({
-        ...prev,
-        [systemApiKeyDialog.integration!.id]: {
-          ...prev[systemApiKeyDialog.integration!.id],
-          is_system_integration: true,
-          system_integration_id: result.system_integration_id,
-          has_credentials: true
-        }
-      }));
-      
-      // Close dialog
-      setSystemApiKeyDialog({open: false, integration: null});
-      setSystemApiKey('');
-      
-      console.log(result.message);
-      
-    } catch (error) {
-      console.error('Failed to configure OpenAI system integration:', error);
-    } finally {
-      setConfiguringSystemIntegration(null);
-    }
-  };
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
