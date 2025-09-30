@@ -3,7 +3,9 @@
  * Handles admin system integration management
  */
 
-import { apiRequest } from './api';
+import { getAuthToken } from '../utils/auth';
+
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
 
 export interface SystemIntegrationStatus {
   integration_id: number;
@@ -21,11 +23,43 @@ export interface SystemIntegrationToggleResponse {
 }
 
 /**
+ * Helper function to make authenticated API requests
+ */
+async function makeRequest<T>(
+  endpoint: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  body?: any
+): Promise<T> {
+  const token = getAuthToken();
+  
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`System Integration API request failed:`, {
+      endpoint,
+      status: response.status,
+      statusText: response.statusText,
+      error: errorText
+    });
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Get system integration status for an integration
  */
 export const getSystemIntegrationStatus = async (integrationId: number): Promise<SystemIntegrationStatus> => {
-  const response = await apiRequest(`/api/v1/integrations/${integrationId}/system-status`);
-  return response;
+  return await makeRequest<SystemIntegrationStatus>(`/api/v1/integrations/${integrationId}/system-status`);
 };
 
 /**
@@ -36,14 +70,14 @@ export const toggleSystemIntegration = async (
   credentials: Record<string, any> = {},
   customConfig: Record<string, any> = {}
 ): Promise<SystemIntegrationToggleResponse> => {
-  const response = await apiRequest(`/api/v1/integrations/${integrationId}/toggle-system`, {
-    method: 'POST',
-    body: JSON.stringify({
+  return await makeRequest<SystemIntegrationToggleResponse>(
+    `/api/v1/integrations/${integrationId}/toggle-system`,
+    'POST',
+    {
       credentials,
       custom_config: customConfig
-    })
-  });
-  return response;
+    }
+  );
 };
 
 /**
@@ -66,6 +100,5 @@ export const configureOpenAISystemIntegration = async (
  * Get all system integrations
  */
 export const getSystemIntegrations = async (): Promise<any[]> => {
-  const response = await apiRequest('/api/v1/integrations/system');
-  return response;
+  return await makeRequest<any[]>('/api/v1/integrations/system');
 };
