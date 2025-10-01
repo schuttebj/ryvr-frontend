@@ -9,8 +9,13 @@ const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-bac
 
 export interface OpenAIModel {
   id: string;
-  created: number;
-  owned_by: string;
+  name?: string;
+  created?: number;
+  owned_by?: string;
+  is_default?: boolean;
+  description?: string;
+  cost_per_1k_tokens?: number;
+  max_tokens?: number;
 }
 
 export type ModelsResponse = OpenAIModel[];

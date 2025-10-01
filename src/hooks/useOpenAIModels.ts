@@ -57,10 +57,10 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
     // If no valid cache, set static fallback models (no API call)
     if (!cacheLoaded) {
       const fallbackModels: OpenAIModel[] = [
-        { id: 'gpt-4o', created: 0, owned_by: 'openai' },
-        { id: 'gpt-4o-mini', created: 0, owned_by: 'openai' },
-        { id: 'gpt-4-turbo', created: 0, owned_by: 'openai' },
-        { id: 'gpt-3.5-turbo', created: 0, owned_by: 'openai' },
+        { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
       ];
       setModels(fallbackModels);
     }

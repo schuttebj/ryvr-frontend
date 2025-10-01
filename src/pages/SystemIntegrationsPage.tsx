@@ -86,11 +86,11 @@ export default function SystemIntegrationsPage() {
 
   const loadAvailableModels = async () => {
     try {
-      const models = await getAvailableModels();
+      const models: any[] = await getAvailableModels();
       setAvailableModels(models);
       
       // Set default model in form if available
-      const defaultModel = models.find(m => m.is_default);
+      const defaultModel = models.find((m: any) => m.is_default);
       if (defaultModel) {
         setFormData(prev => ({ ...prev, model: defaultModel.id }));
       }
@@ -388,7 +388,7 @@ export default function SystemIntegrationsPage() {
               helperText="AI model to use for text generation"
               sx={{ mb: 2 }}
             >
-              {availableModels.map((model) => (
+              {availableModels.map((model: any) => (
                 <option key={model.id} value={model.id}>
                   {model.name || model.id} {model.is_default ? ' (Default)' : ''}
                 </option>
