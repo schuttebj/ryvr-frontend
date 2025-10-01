@@ -23,6 +23,7 @@ import {
   Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import { getAuthToken } from '../utils/auth';
 import BusinessSelector from '../components/common/BusinessSelector';
 
 // Import layout based on user role
@@ -74,7 +75,7 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/v1/embeddings/chat`, {
         method: 'POST',
         headers: {

@@ -26,6 +26,10 @@ import {
   toggleSystemIntegration,
   configureOpenAISystemIntegration,
   SystemIntegrationStatus,
+  refreshOpenAIModels,
+  setDefaultModel,
+  getAvailableModels,
+  ModelRefreshResult,
 } from '../services/systemIntegrationApi';
 
 interface SystemIntegration {
@@ -64,6 +68,8 @@ export default function SystemIntegrationsPage() {
   const [configuring, setConfiguring] = useState<number | null>(null);
   const [openAIDialog, setOpenAIDialog] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<SystemIntegration | null>(null);
+  const [refreshingModels, setRefreshingModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<any[]>([]);
   
   // OpenAI configuration form
   const [formData, setFormData] = useState({
@@ -75,7 +81,66 @@ export default function SystemIntegrationsPage() {
 
   useEffect(() => {
     loadSystemIntegrationStatuses();
+    loadAvailableModels();
   }, []);
+
+  const loadAvailableModels = async () => {
+    try {
+      const models = await getAvailableModels();
+      setAvailableModels(models);
+      
+      // Set default model in form if available
+      const defaultModel = models.find(m => m.is_default);
+      if (defaultModel) {
+        setFormData(prev => ({ ...prev, model: defaultModel.id }));
+      }
+    } catch (error) {
+      console.error('Failed to load available models:', error);
+      // Use fallback models
+      setAvailableModels([
+        { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
+      ]);
+    }
+  };
+
+  const handleRefreshModels = async () => {
+    if (!formData.apiKey.trim()) {
+      alert('Please enter an OpenAI API key to refresh models');
+      return;
+    }
+
+    try {
+      setRefreshingModels(true);
+      const result: ModelRefreshResult = await refreshOpenAIModels(formData.apiKey);
+      
+      if (result.success) {
+        // Reload available models
+        await loadAvailableModels();
+        alert(`Models refreshed successfully!\n${result.models_added} added, ${result.models_updated} updated`);
+      } else {
+        throw new Error(result.error || 'Failed to refresh models');
+      }
+    } catch (error) {
+      console.error('Failed to refresh models:', error);
+      alert(`Failed to refresh models: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setRefreshingModels(false);
+    }
+  };
+
+  const handleSetDefaultModel = async (modelId: string) => {
+    try {
+      await setDefaultModel(modelId);
+      await loadAvailableModels(); // Reload to update default status
+      alert(`Set ${modelId} as default model`);
+    } catch (error) {
+      console.error('Failed to set default model:', error);
+      alert(`Failed to set default model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
 
   const loadSystemIntegrationStatuses = async () => {
     try {
@@ -321,13 +386,36 @@ export default function SystemIntegrationsPage() {
               onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
               SelectProps={{ native: true }}
               helperText="AI model to use for text generation"
-              sx={{ mb: 3 }}
+              sx={{ mb: 2 }}
             >
-              <option value="gpt-4o-mini">GPT-4o Mini (Recommended)</option>
-              <option value="gpt-4o">GPT-4o</option>
-              <option value="gpt-4-turbo">GPT-4 Turbo</option>
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+              {availableModels.map((model) => (
+                <option key={model.id} value={model.id}>
+                  {model.name || model.id} {model.is_default ? ' (Default)' : ''}
+                </option>
+              ))}
             </TextField>
+            
+            <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleRefreshModels}
+                disabled={refreshingModels || !formData.apiKey.trim()}
+                sx={{ flex: 1 }}
+              >
+                {refreshingModels ? 'Refreshing...' : 'Refresh Models'}
+              </Button>
+              {availableModels.length > 0 && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => handleSetDefaultModel(formData.model)}
+                  sx={{ flex: 1 }}
+                >
+                  Set as Default
+                </Button>
+              )}
+            </Box>
             
             <TextField
               label="Max Tokens"

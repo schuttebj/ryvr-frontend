@@ -22,6 +22,15 @@ export interface SystemIntegrationToggleResponse {
   system_integration_id?: number;
 }
 
+export interface ModelRefreshResult {
+  success: boolean;
+  models_added: number;
+  models_updated: number;
+  total_models: number;
+  refreshed_at: string;
+  error?: string;
+}
+
 /**
  * Helper function to make authenticated API requests
  */
@@ -108,4 +117,21 @@ export const getSystemIntegrations = async (): Promise<any[]> => {
  */
 export const getDatabaseIntegrations = async (): Promise<any[]> => {
   return await makeRequest<any[]>('/api/v1/integrations/');
+};
+
+// Model management functions
+export const refreshOpenAIModels = async (apiKey?: string): Promise<ModelRefreshResult> => {
+  return await makeRequest<ModelRefreshResult>('/api/v1/ai/models/refresh', 'POST', { api_key: apiKey });
+};
+
+export const setDefaultModel = async (modelId: string) => {
+  return await makeRequest(`/api/v1/ai/models/${modelId}/set-default`, 'PUT');
+};
+
+export const getDefaultModel = async () => {
+  return await makeRequest('/api/v1/ai/models/default');
+};
+
+export const getAvailableModels = async () => {
+  return await makeRequest('/api/v1/ai/models/available');
 };

@@ -71,13 +71,20 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
     setError(null);
 
     try {
-      // Now just returns static models (no API call)
+      // Use the updated API that returns models from database
       const models = await openaiApiService.getAvailableModels();
       
       if (Array.isArray(models) && models.length > 0) {
         setModels(models);
+        
+        // Cache the results
+        const cacheData: CachedModels = {
+          models,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cacheData));
       } else {
-        throw new Error('Failed to fetch models from API');
+        throw new Error('No models received from API');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
@@ -86,10 +93,10 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
       
       // Use fallback models on error
       const fallbackModels: OpenAIModel[] = [
-        { id: 'gpt-4o', created: 0, owned_by: 'openai' },
-        { id: 'gpt-4o-mini', created: 0, owned_by: 'openai' },
-        { id: 'gpt-4-turbo', created: 0, owned_by: 'openai' },
-        { id: 'gpt-3.5-turbo', created: 0, owned_by: 'openai' },
+        { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
+        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
+        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
+        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
       ];
       setModels(fallbackModels);
     } finally {
