@@ -45,7 +45,7 @@ interface ChatMessage {
 
 export default function ChatPage() {
   const { user } = useAuth();
-  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -80,7 +80,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           message: inputMessage,
-          business_id: selectedBusinessId,
+          business_id: parseInt(selectedBusinessId),
           model: 'gpt-4',
           temperature: 0.7,
           max_context_tokens: 4000,
@@ -159,8 +159,8 @@ export default function ChatPage() {
           {/* Business Selector */}
           <Box sx={{ mt: 2 }}>
             <BusinessSelector
-              selectedBusinessId={selectedBusinessId?.toString()}
-              onBusinessSelect={(id) => setSelectedBusinessId(id ? Number(id) : null)}
+              selectedBusinessId={selectedBusinessId}
+              onBusinessChange={setSelectedBusinessId}
             />
           </Box>
         </CardContent>
