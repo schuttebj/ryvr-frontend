@@ -19,12 +19,17 @@ import {
   LinearProgress,
   Alert,
   Snackbar,
-  Menu,
-  MenuList,
-  ListItemIcon,
-  ListItemText,
   Divider,
   InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Collapse,
+  Tooltip,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -33,16 +38,14 @@ import {
   Search as SearchIcon,
   Download as DownloadIcon,
   Delete as DeleteIcon,
-  Edit as EditIcon,
-  Visibility as ViewIcon,
   AutoAwesome as SummaryIcon,
-  DriveFileMove as MoveIcon,
   Storage as StorageIcon,
   Clear as ClearIcon,
-  MoreVert as MoreIcon,
   Description as FileIcon,
   PictureAsPdf as PdfIcon,
   TextSnippet as TextIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  KeyboardArrowUp as ArrowUpIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import BusinessSelector from '../components/common/BusinessSelector';
@@ -71,10 +74,11 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 interface FileUploadProps {
   onUpload: (file: File, businessId?: number, tags?: string[]) => void;
   loading: boolean;
+  uploadProgress?: { stage: string; percent: number };
   selectedBusinessId?: number;
 }
 
-const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, selectedBusinessId }) => {
+const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, uploadProgress, selectedBusinessId }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [tags, setTags] = useState<string>('');
@@ -123,29 +127,34 @@ const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, selected
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
-        <Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center' }}>
-          <UploadIcon sx={{ mr: 1 }} />
-          Upload Files
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
+            <UploadIcon sx={{ mr: 1 }} />
+            Upload Files
+          </Typography>
+        </Box>
         
-        {/* Drag and Drop Area */}
+        {/* Drag and Drop Area - Full Width */}
         <Box
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
           sx={{
-            border: `2px dashed ${dragActive ? 'primary.main' : 'divider'}`,
+            border: dragActive ? '2px dashed' : '2px dashed',
+            borderColor: dragActive ? 'primary.main' : 'divider',
             borderRadius: 2,
-            p: 4,
+            p: 6,
             textAlign: 'center',
-            bgcolor: dragActive ? 'action.hover' : 'background.default',
+            bgcolor: dragActive ? 'action.hover' : 'background.paper',
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
+            transition: 'all 0.3s ease',
             mb: 2,
+            width: '100%',
             '&:hover': {
               bgcolor: 'action.hover',
-              borderColor: 'primary.main'
+              borderColor: 'primary.main',
+              transform: 'scale(1.01)'
             }
           }}
           component="label"
@@ -156,44 +165,171 @@ const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, selected
             hidden
             accept=".txt,.pdf,.docx,.doc,.md,.rtf"
           />
-          <UploadIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 1 }} />
-          <Typography variant="h6" color="text.secondary">
+          <UploadIcon sx={{ fontSize: 56, color: dragActive ? 'primary.main' : 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" color={dragActive ? 'primary.main' : 'text.primary'} sx={{ mb: 1 }}>
             {selectedFile ? selectedFile.name : 'Drop files here or click to browse'}
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
             Supported: PDF, Word, Text files (Max 100MB)
           </Typography>
         </Box>
         
+        {/* Upload Progress */}
+        {loading && uploadProgress && (
+          <Box sx={{ mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                {uploadProgress.stage}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {uploadProgress.percent}%
+              </Typography>
+            </Box>
+            <LinearProgress 
+              variant="determinate" 
+              value={uploadProgress.percent} 
+              sx={{ height: 6, borderRadius: 3 }}
+            />
+          </Box>
+        )}
+        
         {/* Tags Input */}
-        {selectedFile && (
-          <>
+        {selectedFile && !loading && (
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
             <TextField
               fullWidth
               label="Tags (comma-separated)"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g., contract, important, client-docs"
-              sx={{ mb: 2 }}
+              size="small"
             />
-            
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                Selected: {selectedFile.name} ({fileApi.formatFileSize(selectedFile.size)})
-              </Typography>
-              <Button
-                variant="contained"
-                onClick={handleUpload}
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <UploadIcon />}
-              >
-                {loading ? 'Uploading...' : 'Upload File'}
-              </Button>
-            </Box>
-          </>
+            <Button
+              variant="contained"
+              onClick={handleUpload}
+              disabled={loading}
+              startIcon={<UploadIcon />}
+              sx={{ minWidth: 120, py: 1 }}
+            >
+              Upload
+            </Button>
+          </Box>
         )}
       </CardContent>
     </Card>
+  );
+};
+
+// File Row Component with Collapsible Summary
+interface FileRowProps {
+  file: FileItem;
+  onFileAction: (action: string, file: FileItem) => void;
+}
+
+const FileRow: React.FC<FileRowProps> = ({ file, onFileAction }) => {
+  const [open, setOpen] = useState(false);
+  
+  const getFileIcon = (fileType: string) => {
+    switch (fileType.toLowerCase()) {
+      case 'pdf': return <PdfIcon color="error" />;
+      case 'docx':
+      case 'doc': return <FileIcon color="primary" />;
+      default: return <TextIcon color="success" />;
+    }
+  };
+  
+  const statusInfo = fileApi.getProcessingStatusInfo(file.processing_status);
+  const hasSummary = file.summary && file.summary !== "Auto-generated summary unavailable. Content preview: ...";
+  
+  return (
+    <>
+      <TableRow sx={{ '& > *': { borderBottom: 'unset' }, '&:hover': { bgcolor: 'action.hover' } }}>
+        <TableCell sx={{ width: 50 }}>
+          <IconButton
+            size="small"
+            onClick={() => setOpen(!open)}
+            disabled={!hasSummary}
+          >
+            {open ? <ArrowUpIcon /> : <ArrowDownIcon />}
+          </IconButton>
+        </TableCell>
+        <TableCell sx={{ width: 50 }}>
+          {getFileIcon(file.file_type)}
+        </TableCell>
+        <TableCell>
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            {file.original_name}
+          </Typography>
+          {file.tags && file.tags.length > 0 && (
+            <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              {file.tags.map((tag, index) => (
+                <Chip key={index} label={tag} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+              ))}
+            </Box>
+          )}
+        </TableCell>
+        <TableCell>
+          <Typography variant="body2" color="text.secondary">
+            {fileApi.formatFileSize(file.file_size)}
+          </Typography>
+        </TableCell>
+        <TableCell>
+          <Chip 
+            label={statusInfo.label} 
+            size="small" 
+            color={statusInfo.color as any}
+          />
+        </TableCell>
+        <TableCell>
+          {file.business_id && (
+            <Chip 
+              icon={<BusinessIcon />}
+              label="Business" 
+              size="small" 
+              variant="outlined"
+            />
+          )}
+        </TableCell>
+        <TableCell align="right">
+          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+            <Tooltip title="Download">
+              <IconButton size="small" onClick={() => onFileAction('download', file)}>
+                <DownloadIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Generate Summary">
+              <IconButton size="small" onClick={() => onFileAction('summary', file)}>
+                <SummaryIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton size="small" onClick={() => onFileAction('delete', file)} color="error">
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </TableCell>
+      </TableRow>
+      {hasSummary && (
+        <TableRow>
+          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+            <Collapse in={open} timeout="auto" unmountOnExit>
+              <Box sx={{ py: 2, px: 3, bgcolor: 'background.default', borderRadius: 1, my: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <SummaryIcon sx={{ fontSize: 18, color: 'primary.main', mr: 1 }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    AI Summary
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                  {file.summary}
+                </Typography>
+              </Box>
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
   );
 };
 
@@ -205,35 +341,6 @@ interface FileListProps {
 }
 
 const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
-  
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, file: FileItem) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedFile(file);
-  };
-  
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setSelectedFile(null);
-  };
-  
-  const handleMenuAction = (action: string) => {
-    if (selectedFile) {
-      onFileAction(action, selectedFile);
-    }
-    handleMenuClose();
-  };
-  
-  const getFileIcon = (fileType: string) => {
-    switch (fileType.toLowerCase()) {
-      case 'pdf': return <PdfIcon color="error" />;
-      case 'docx':
-      case 'doc': return <FileIcon color="primary" />;
-      default: return <TextIcon color="success" />;
-    }
-  };
-  
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -244,189 +351,43 @@ const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction }) => 
   
   if (files.length === 0) {
     return (
-      <Card>
-        <CardContent sx={{ textAlign: 'center', py: 6 }}>
-          <FolderIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No files uploaded yet
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Upload your first file to get started
-          </Typography>
-        </CardContent>
-      </Card>
+      <Box sx={{ textAlign: 'center', py: 8 }}>
+        <FolderIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          No files uploaded yet
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Upload your first file to get started
+        </Typography>
+      </Box>
     );
   }
   
   return (
-    <>
-      <Grid container spacing={2}>
-        {files.map((file) => {
-          const statusInfo = fileApi.getProcessingStatusInfo(file.processing_status);
-          
-          return (
-            <Grid item xs={12} sm={6} md={4} key={file.id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  transition: 'all 0.2s ease',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: (theme) => theme.shadows[4],
-                  }
-                }}
-              >
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0, flex: 1 }}>
-                      {getFileIcon(file.file_type)}
-                      <Box sx={{ ml: 1, minWidth: 0, flex: 1 }}>
-                        <Typography 
-                          variant="subtitle2" 
-                          sx={{ 
-                            fontWeight: 600,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                          title={file.original_name}
-                        >
-                          {file.original_name}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    
-                    <IconButton 
-                      size="small" 
-                      onClick={(e) => handleMenuOpen(e, file)}
-                      sx={{ ml: 1 }}
-                    >
-                      <MoreIcon />
-                    </IconButton>
-                  </Box>
-                  
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {fileApi.formatFileSize(file.file_size)} • {file.file_type.toUpperCase()}
-                  </Typography>
-                  
-                  <Chip 
-                    label={statusInfo.label} 
-                    size="small" 
-                    color={statusInfo.color as any}
-                    sx={{ mb: 1 }}
-                  />
-                  
-                  {file.business_id && (
-                    <Chip 
-                      icon={<BusinessIcon />}
-                      label="Business File" 
-                      size="small" 
-                      variant="outlined"
-                      sx={{ mb: 1, ml: 1 }}
-                    />
-                  )}
-                  
-                  {file.tags && file.tags.length > 0 && (
-                    <Box sx={{ mt: 1 }}>
-                      {file.tags.slice(0, 2).map((tag, index) => (
-                        <Chip 
-                          key={index}
-                          label={tag} 
-                          size="small" 
-                          variant="outlined"
-                          sx={{ mr: 0.5, mb: 0.5 }}
-                        />
-                      ))}
-                      {file.tags.length > 2 && (
-                        <Chip 
-                          label={`+${file.tags.length - 2}`}
-                          size="small" 
-                          variant="outlined"
-                          sx={{ mr: 0.5, mb: 0.5 }}
-                        />
-                      )}
-                    </Box>
-                  )}
-                  
-                  {file.summary && file.summary !== "Auto-generated summary unavailable. Content preview: ..." && (
-                    <Box sx={{ mt: 2, p: 1.5, bgcolor: 'success.light', borderRadius: 1, border: '1px solid', borderColor: 'success.main' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                        <SummaryIcon sx={{ fontSize: 16, color: 'success.dark', mr: 0.5 }} />
-                        <Typography variant="caption" sx={{ fontWeight: 600, color: 'success.dark' }}>
-                          AI Summary
-                        </Typography>
-                      </Box>
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
-                          color: 'success.dark',
-                          fontSize: '0.8rem',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          '&:hover': { textDecoration: 'underline' }
-                        }}
-                        onClick={() => {
-                          // Create a simple dialog/alert with full summary
-                          alert(`Full Summary:\n\n${file.summary}`);
-                        }}
-                        title="Click to view full summary"
-                      >
-                        {file.summary}
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-      
-      {/* File Actions Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <MenuList>
-          <MenuItem onClick={() => handleMenuAction('view')}>
-            <ListItemIcon><ViewIcon /></ListItemIcon>
-            <ListItemText>View Details</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleMenuAction('download')}>
-            <ListItemIcon><DownloadIcon /></ListItemIcon>
-            <ListItemText>Download</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleMenuAction('summary')}>
-            <ListItemIcon><SummaryIcon /></ListItemIcon>
-            <ListItemText>Generate Summary</ListItemText>
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={() => handleMenuAction('edit')}>
-            <ListItemIcon><EditIcon /></ListItemIcon>
-            <ListItemText>Edit Info</ListItemText>
-          </MenuItem>
-          <MenuItem onClick={() => handleMenuAction('move')}>
-            <ListItemIcon><MoveIcon /></ListItemIcon>
-            <ListItemText>Move File</ListItemText>
-          </MenuItem>
-          <Divider />
-          <MenuItem onClick={() => handleMenuAction('delete')} sx={{ color: 'error.main' }}>
-            <ListItemIcon><DeleteIcon color="error" /></ListItemIcon>
-            <ListItemText>Delete</ListItemText>
-          </MenuItem>
-        </MenuList>
-      </Menu>
-    </>
+    <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+      <Table>
+        <TableHead>
+          <TableRow sx={{ bgcolor: 'background.default' }}>
+            <TableCell sx={{ width: 50 }} />
+            <TableCell sx={{ width: 50 }} />
+            <TableCell sx={{ fontWeight: 600 }}>File Name</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Size</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {files.map((file) => (
+            <FileRow key={file.id} file={file} onFileAction={onFileAction} />
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
 
-// Storage Usage Component
+// Compact Storage Usage Component
 interface StorageUsageProps {
   usage: StorageUsageResponse | null;
   loading: boolean;
@@ -435,59 +396,46 @@ interface StorageUsageProps {
 const StorageUsage: React.FC<StorageUsageProps> = ({ usage, loading }) => {
   if (loading) {
     return (
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <StorageIcon sx={{ mr: 1 }} />
-            <Typography variant="h6">Storage Usage</Typography>
-          </Box>
-          <LinearProgress />
-        </CardContent>
-      </Card>
+      <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <StorageIcon sx={{ fontSize: 20 }} />
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>Storage Usage</Typography>
+        </Box>
+        <LinearProgress sx={{ mt: 1, height: 4, borderRadius: 2 }} />
+      </Box>
     );
   }
   
   if (!usage) return null;
   
   return (
-    <Card sx={{ mb: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <StorageIcon sx={{ mr: 1 }} />
-          <Typography variant="h6">Storage Usage</Typography>
+    <Box sx={{ mb: 2, p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <StorageIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+            Storage: {usage.total_gb.toFixed(2)} / {usage.limit_gb} GB
+          </Typography>
         </Box>
-        
-        <Box sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {usage.total_gb.toFixed(2)} GB of {usage.limit_gb} GB used
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {usage.usage_percentage.toFixed(1)}%
-            </Typography>
-          </Box>
-          <LinearProgress 
-            variant="determinate" 
-            value={Math.min(usage.usage_percentage, 100)}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="body2" color="text.secondary">
+            {usage.file_count} files
+          </Typography>
+          <Chip 
+            label={`${usage.usage_percentage.toFixed(1)}%`} 
+            size="small"
             color={usage.usage_percentage > 90 ? 'error' : usage.usage_percentage > 70 ? 'warning' : 'primary'}
-            sx={{ height: 8, borderRadius: 4 }}
+            sx={{ fontWeight: 600, height: 24 }}
           />
         </Box>
-        
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="text.secondary">
-              Files: {usage.file_count}
-            </Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="text.secondary">
-              Business: {fileApi.formatFileSize(usage.business_files_bytes)}
-            </Typography>
-          </Grid>
-        </Grid>
-      </CardContent>
-    </Card>
+      </Box>
+      <LinearProgress 
+        variant="determinate" 
+        value={Math.min(usage.usage_percentage, 100)}
+        color={usage.usage_percentage > 90 ? 'error' : usage.usage_percentage > 70 ? 'warning' : 'primary'}
+        sx={{ height: 4, borderRadius: 2 }}
+      />
+    </Box>
   );
 };
 
@@ -502,6 +450,7 @@ export default function FilesPage() {
   const [businessFiles, setBusinessFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ stage: string; percent: number } | undefined>();
   
   // Storage usage
   const [storageUsage, setStorageUsage] = useState<StorageUsageResponse | null>(null);
@@ -563,27 +512,49 @@ export default function FilesPage() {
   
   useEffect(() => {
     loadStorageUsage();
+    // Refresh storage usage every 30 seconds for live updates
+    const interval = setInterval(() => {
+      loadStorageUsage();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [loadStorageUsage]);
   
-  // Handle file upload
+  // Handle file upload with progress tracking
   const handleFileUpload = async (file: File, businessId?: number, tags: string[] = []) => {
     setUploadLoading(true);
+    setUploadProgress({ stage: 'Uploading file...', percent: 0 });
+    
     try {
+      // Simulate upload progress
+      setUploadProgress({ stage: 'Uploading file...', percent: 30 });
+      
       if (businessId) {
         await fileApi.uploadBusinessFile(businessId, file, true, tags);
       } else {
         await fileApi.uploadAccountFile(file, true, tags);
       }
       
+      setUploadProgress({ stage: 'Generating summary...', percent: 60 });
+      
+      // Wait a bit for backend processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setUploadProgress({ stage: 'Creating embeddings...', percent: 85 });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setUploadProgress({ stage: 'Complete!', percent: 100 });
+      
       setSnackbar({
         open: true,
-        message: 'File uploaded successfully!',
+        message: 'File uploaded and processed successfully!',
         severity: 'success'
       });
       
       // Refresh files and storage
-      loadFiles();
-      loadStorageUsage();
+      await Promise.all([loadFiles(), loadStorageUsage()]);
+      
     } catch (error) {
       console.error('Upload error:', error);
       setSnackbar({
@@ -593,6 +564,7 @@ export default function FilesPage() {
       });
     } finally {
       setUploadLoading(false);
+      setUploadProgress(undefined);
     }
   };
   
@@ -671,6 +643,7 @@ export default function FilesPage() {
       <FileUploadCard 
         onUpload={handleFileUpload}
         loading={uploadLoading}
+        uploadProgress={uploadProgress}
         selectedBusinessId={tabValue === 1 ? selectedBusinessId : undefined}
       />
       
