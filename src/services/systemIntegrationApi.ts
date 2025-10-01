@@ -132,6 +132,6 @@ export const getDefaultModel = async () => {
   return await makeRequest('/api/v1/ai/models/default');
 };
 
-export const getAvailableModels = async () => {
-  return await makeRequest('/api/v1/ai/models/available');
+export const getAvailableModels = async (): Promise<any[]> => {
+  return await makeRequest<any[]>('/api/v1/ai/models/available');
 };

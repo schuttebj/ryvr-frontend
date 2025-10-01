@@ -86,7 +86,7 @@ export default function SystemIntegrationsPage() {
 
   const loadAvailableModels = async () => {
     try {
-      const models: any[] = await getAvailableModels();
+      const models = await getAvailableModels();
       setAvailableModels(models);
       
       // Set default model in form if available
