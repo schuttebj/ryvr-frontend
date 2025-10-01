@@ -281,14 +281,28 @@ const FileRow: React.FC<FileRowProps> = ({ file, onFileAction }) => {
           />
         </TableCell>
         <TableCell>
-          {file.business_id && (
-            <Chip 
-              icon={<BusinessIcon />}
-              label="Business" 
-              size="small" 
-              variant="outlined"
-            />
-          )}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+            {file.business_id && (
+              <Chip 
+                icon={<BusinessIcon />}
+                label="Business" 
+                size="small" 
+                variant="outlined"
+                sx={{ height: 22 }}
+              />
+            )}
+            {file.is_embedded !== undefined && (
+              <Tooltip title={file.embedding_summary || 'Embedding status'}>
+                <Chip 
+                  label={file.is_embedded ? `✓ ${file.chunks_with_embeddings || 0} chunks` : 'Not embedded'}
+                  size="small" 
+                  color={file.is_embedded ? 'success' : 'default'}
+                  variant={file.is_embedded ? 'filled' : 'outlined'}
+                  sx={{ height: 22, fontSize: '0.7rem' }}
+                />
+              </Tooltip>
+            )}
+          </Box>
         </TableCell>
         <TableCell align="right">
           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
@@ -372,8 +386,8 @@ const FileList: React.FC<FileListProps> = ({ files, loading, onFileAction }) => 
             <TableCell sx={{ width: 50 }} />
             <TableCell sx={{ fontWeight: 600 }}>File Name</TableCell>
             <TableCell sx={{ fontWeight: 600 }}>Size</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Processing</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>Context & Embeddings</TableCell>
             <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
           </TableRow>
         </TableHead>
@@ -476,9 +490,24 @@ export default function FilesPage() {
         const response = await fileApi.listAccountFiles(searchQuery || undefined, fileTypeFilter || undefined);
         setAccountFiles(response.files);
       } else if (tabValue === 1 && selectedBusinessId) {
-        // Business files
-        const response = await fileApi.listBusinessFiles(selectedBusinessId, searchQuery || undefined, fileTypeFilter || undefined);
-        setBusinessFiles(response.files);
+        // Business files - fetch with embedding status
+        try {
+          const embeddingResponse = await fileApi.getFilesWithEmbeddings(selectedBusinessId);
+          // Merge embedding data with file data
+          const filesWithEmbeddings = embeddingResponse.files.map(file => ({
+            ...file,
+            // Map the backend field names to match FileItem interface
+            file_name: file.file_name || file.filename || '',
+            original_name: file.original_name || file.filename || '',
+            file_id: file.file_id || file.id
+          }));
+          setBusinessFiles(filesWithEmbeddings);
+        } catch (embeddingError) {
+          // Fallback to regular file list if embeddings endpoint fails
+          console.warn('Failed to fetch embedding status, using regular file list:', embeddingError);
+          const response = await fileApi.listBusinessFiles(selectedBusinessId, searchQuery || undefined, fileTypeFilter || undefined);
+          setBusinessFiles(response.files);
+        }
       }
     } catch (error) {
       console.error('Error loading files:', error);

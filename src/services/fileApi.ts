@@ -28,6 +28,15 @@ export interface FileItem {
   is_active: boolean;
   created_at: string;
   updated_at?: string;
+  // Embedding status fields
+  embedding_status?: 'pending' | 'processing' | 'completed' | 'failed';
+  is_embedded?: boolean;
+  embedding_summary?: string;
+  has_summary_embedding?: boolean;
+  has_content_embedding?: boolean;
+  chunk_count?: number;
+  chunks_with_embeddings?: number;
+  embedding_coverage?: number;
 }
 
 export interface FileUploadResponse {
@@ -363,6 +372,34 @@ export const fileApi = {
     });
     
     return handleResponse<FileListResponse>(response, 'searchFiles');
+  },
+  
+  // =============================================================================
+  // EMBEDDINGS
+  // =============================================================================
+  
+  /**
+   * Get files with embedding status for a business
+   */
+  getFilesWithEmbeddings: async (businessId: number): Promise<{
+    success: boolean;
+    business_id: number;
+    total_files: number;
+    embedded_files: number;
+    not_embedded_files: number;
+    embedding_percentage: number;
+    files: Array<FileItem & {
+      is_embedded: boolean;
+      embedding_summary: string;
+      chunks_with_embeddings: number;
+      embedding_coverage: number;
+    }>;
+  }> => {
+    const response = await fetch(`${API_BASE}/api/v1/embeddings/files/${businessId}`, {
+      headers: createHeaders(true, 'application/json'),
+    });
+    
+    return handleResponse(response, 'getFilesWithEmbeddings');
   },
   
   // =============================================================================
