@@ -159,8 +159,8 @@ export default function ChatPage() {
           {/* Business Selector */}
           <Box sx={{ mt: 2 }}>
             <BusinessSelector
-              selectedBusinessId={selectedBusinessId}
-              onBusinessSelect={setSelectedBusinessId}
+              selectedBusinessId={selectedBusinessId?.toString()}
+              onBusinessSelect={(id) => setSelectedBusinessId(id ? Number(id) : null)}
             />
           </Box>
         </CardContent>
