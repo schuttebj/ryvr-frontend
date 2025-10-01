@@ -19,7 +19,6 @@ import {
   LinearProgress,
   Alert,
   Snackbar,
-  Divider,
   InputAdornment,
   Table,
   TableBody,
@@ -494,12 +493,12 @@ export default function FilesPage() {
         try {
           const embeddingResponse = await fileApi.getFilesWithEmbeddings(selectedBusinessId);
           // Merge embedding data with file data
-          const filesWithEmbeddings = embeddingResponse.files.map(file => ({
+          const filesWithEmbeddings = embeddingResponse.files.map((file: any) => ({
             ...file,
             // Map the backend field names to match FileItem interface
-            file_name: file.file_name || file.filename || '',
-            original_name: file.original_name || file.filename || '',
-            file_id: file.file_id || file.id
+            id: file.file_id || file.id,
+            file_name: file.filename || file.file_name || '',
+            original_name: file.filename || file.original_name || ''
           }));
           setBusinessFiles(filesWithEmbeddings);
         } catch (embeddingError) {
