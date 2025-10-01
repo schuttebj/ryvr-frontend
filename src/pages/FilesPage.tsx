@@ -32,7 +32,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
