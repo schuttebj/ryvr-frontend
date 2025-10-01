@@ -14,6 +14,7 @@ import {
   SupportOutlined as SupportIcon,
   DynamicFeedOutlined as FlowsIcon,
   FolderOutlined as FilesIcon,
+  ChatOutlined as ChatIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -75,6 +76,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
       path: '/admin/files',
       active: isActive('/admin/files'),
       onClick: () => navigate('/admin/files'),
+    },
+    {
+      label: 'Chat',
+      icon: <ChatIcon />,
+      path: '/admin/chat',
+      active: isActive('/admin/chat'),
+      onClick: () => navigate('/admin/chat'),
     },
     {
       label: 'System Analytics',

@@ -600,10 +600,10 @@ export default function FilesPage() {
       let uploadResult;
       if (businessId) {
         console.log('📤 Uploading to business:', businessId);
-        uploadResult = await fileApi.uploadBusinessFile(businessId, file, true, tags);
+        uploadResult = await fileApi.uploadBusinessFile(businessId, file, true, true, tags);
       } else {
         console.log('📤 Uploading to account');
-        uploadResult = await fileApi.uploadAccountFile(file, true, tags);
+        uploadResult = await fileApi.uploadAccountFile(file, true, true, tags);
       }
       
       console.log('✅ Upload successful:', uploadResult);

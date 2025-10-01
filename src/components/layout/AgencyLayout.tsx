@@ -9,6 +9,7 @@ import {
   ExtensionOutlined as IntegrationIcon,
   DynamicFeedOutlined as FlowsIcon,
   FolderOutlined as FilesIcon,
+  ChatOutlined as ChatIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -72,6 +73,13 @@ export const AgencyLayout: React.FC<AgencyLayoutProps> = ({
       path: '/agency/files',
       active: isActive('/agency/files'),
       onClick: () => navigate('/agency/files'),
+    },
+    {
+      label: 'Chat',
+      icon: <ChatIcon />,
+      path: '/agency/chat',
+      active: isActive('/agency/chat'),
+      onClick: () => navigate('/agency/chat'),
     },
     {
       label: 'Analytics',

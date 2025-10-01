@@ -9,6 +9,7 @@ import {
   InsightsOutlined as InsightsIcon,
   DynamicFeedOutlined as FlowsIcon,
   FolderOutlined as FilesIcon,
+  ChatOutlined as ChatIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -56,6 +57,13 @@ export const BusinessLayout: React.FC<BusinessLayoutProps> = ({
       path: '/business/files',
       active: isActive('/business/files'),
       onClick: () => navigate('/business/files'),
+    },
+    {
+      label: 'Chat',
+      icon: <ChatIcon />,
+      path: '/business/chat',
+      active: isActive('/business/chat'),
+      onClick: () => navigate('/business/chat'),
     },
     {
       label: 'Analytics',
