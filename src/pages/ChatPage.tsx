@@ -30,6 +30,9 @@ import AdminLayout from '../components/layout/AdminLayout';
 import AgencyLayout from '../components/layout/AgencyLayout';
 import BusinessLayout from '../components/layout/BusinessLayout';
 
+// API configuration
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
+
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -72,7 +75,7 @@ export default function ChatPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/v1/embeddings/chat', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/embeddings/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
