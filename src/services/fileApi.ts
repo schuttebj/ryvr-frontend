@@ -133,12 +133,14 @@ export const fileApi = {
    */
   uploadAccountFile: async (
     file: File, 
-    autoProcess: boolean = true, 
+    autoProcess: boolean = true,
+    autoEmbed: boolean = true,
     tags: string[] = []
   ): Promise<FileUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('auto_process', autoProcess.toString());
+    formData.append('auto_embed', autoEmbed.toString());
     if (tags.length > 0) {
       formData.append('tags', JSON.stringify(tags));
     }
@@ -185,11 +187,13 @@ export const fileApi = {
     businessId: number,
     file: File,
     autoProcess: boolean = true,
+    autoEmbed: boolean = true,
     tags: string[] = []
   ): Promise<FileUploadResponse> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('auto_process', autoProcess.toString());
+    formData.append('auto_embed', autoEmbed.toString());
     if (tags.length > 0) {
       formData.append('tags', JSON.stringify(tags));
     }

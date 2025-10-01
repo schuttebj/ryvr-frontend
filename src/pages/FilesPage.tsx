@@ -124,7 +124,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({ onUpload, loading, uploadP
       onUpload(selectedFile, selectedBusinessId, fileTags);
       setSelectedFile(null);
       setTags('');
-      if (onClose) onClose();
+      // Don't close modal - let it stay open to show progress
     }
   };
   
@@ -607,24 +607,42 @@ export default function FilesPage() {
       }
       
       console.log('✅ Upload successful:', uploadResult);
+      console.log('📄 File ID:', uploadResult.id);
+      console.log('⚙️ Processing Status:', uploadResult.processing_status);
       
-      setUploadProgress({ stage: 'Generating summary...', percent: 60 });
-      console.log('📝 Generating AI summary...');
+      setUploadProgress({ stage: 'Processing file...', percent: 50 });
+      console.log('📝 Backend is processing file (summary + embeddings)...');
       
-      // Wait a bit for backend processing
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setUploadProgress({ stage: 'Creating embeddings...', percent: 85 });
-      console.log('🧠 Creating vector embeddings...');
-      
+      // Wait for backend processing (it happens asynchronously)
+      // Check file status to see if embeddings are being created
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      setUploadProgress({ stage: 'Checking status...', percent: 75 });
+      console.log('🔍 Checking file processing status...');
+      
+      // Try to get updated file info
+      try {
+        const fileDetails = await fileApi.getFile(uploadResult.id);
+        console.log('📊 File details after processing:', {
+          id: fileDetails.id,
+          name: fileDetails.original_name,
+          processing_status: fileDetails.processing_status,
+          has_summary: !!fileDetails.summary,
+          embedding_status: fileDetails.embedding_status,
+          is_embedded: fileDetails.is_embedded
+        });
+      } catch (err) {
+        console.warn('⚠️ Could not fetch file details:', err);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       setUploadProgress({ stage: 'Complete!', percent: 100 });
-      console.log('✨ File processing complete!');
+      console.log('✨ Upload complete! (Backend may still be processing embeddings)');
       
       setSnackbar({
         open: true,
-        message: 'File uploaded and processed successfully!',
+        message: 'File uploaded successfully! Embeddings are being processed...',
         severity: 'success'
       });
       
@@ -632,7 +650,13 @@ export default function FilesPage() {
       console.log('🔄 Refreshing file list and storage...');
       await Promise.all([loadFiles(), loadStorageUsage()]);
       
-      console.log('✅ All operations complete');
+      console.log('✅ File list refreshed. Check "Context & Embeddings" column for status.');
+      console.log('💡 Note: Embeddings may take a few moments to process. Refresh to see updates.');
+      
+      // Close modal after successful upload
+      setTimeout(() => {
+        setUploadModalOpen(false);
+      }, 500);
       
     } catch (error) {
       console.error('❌ Upload error:', error);
@@ -713,23 +737,22 @@ export default function FilesPage() {
   const LayoutComponent = getLayoutComponent();
   const currentFiles = tabValue === 0 ? accountFiles : businessFiles;
   
+  const headerActions = (
+    <Button
+      variant="contained"
+      size="large"
+      startIcon={<UploadIcon />}
+      onClick={() => setUploadModalOpen(true)}
+      sx={{ minWidth: 160 }}
+    >
+      Upload File
+    </Button>
+  );
+
   const pageContent = (
     <Box>
-      {/* Storage Usage & Upload Button */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
-        <Box sx={{ flex: 1 }}>
-          <StorageUsage usage={storageUsage} loading={storageLoading} />
-        </Box>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<UploadIcon />}
-          onClick={() => setUploadModalOpen(true)}
-          sx={{ minWidth: 160, height: 'fit-content' }}
-        >
-          Upload File
-        </Button>
-      </Box>
+      {/* Storage Usage */}
+      <StorageUsage usage={storageUsage} loading={storageLoading} />
       
       {/* Upload Modal */}
       <Dialog 
@@ -888,6 +911,7 @@ export default function FilesPage() {
     <LayoutComponent 
       title="File Management"
       subtitle="Upload, organize, and manage your files with AI-powered summarization"
+      actions={headerActions}
     >
       {pageContent}
     </LayoutComponent>
