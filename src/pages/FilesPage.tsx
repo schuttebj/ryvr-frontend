@@ -29,6 +29,10 @@ import {
   Paper,
   Collapse,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -75,9 +79,10 @@ interface FileUploadProps {
   loading: boolean;
   uploadProgress?: { stage: string; percent: number };
   selectedBusinessId?: number;
+  onClose?: () => void;
 }
 
-const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, uploadProgress, selectedBusinessId }) => {
+const FileUploadModal: React.FC<FileUploadProps> = ({ onUpload, loading, uploadProgress, selectedBusinessId, onClose }) => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [tags, setTags] = useState<string>('');
@@ -120,50 +125,48 @@ const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, uploadPr
       onUpload(selectedFile, selectedBusinessId, fileTags);
       setSelectedFile(null);
       setTags('');
+      if (onClose) onClose();
     }
   };
   
   return (
-    <Card sx={{ mb: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center' }}>
-            <UploadIcon sx={{ mr: 1 }} />
-            Upload Files
-          </Typography>
-        </Box>
-        
-        {/* Drag and Drop Area - Full Width */}
-        <Box
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          sx={{
-            border: dragActive ? '2px dashed' : '2px dashed',
-            borderColor: dragActive ? 'primary.main' : 'divider',
-            borderRadius: 2,
-            p: 6,
-            textAlign: 'center',
-            bgcolor: dragActive ? 'action.hover' : 'background.paper',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            mb: 2,
-            width: '100%',
-            '&:hover': {
-              bgcolor: 'action.hover',
-              borderColor: 'primary.main',
-              transform: 'scale(1.01)'
-            }
-          }}
-          component="label"
-        >
-          <input
-            type="file"
-            onChange={handleFileSelect}
-            hidden
-            accept=".txt,.pdf,.docx,.doc,.md,.rtf"
-          />
+    <Box>
+      {/* Drag and Drop Area - Full Width with flex display fix */}
+      <Box
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
+        onDrop={handleDrop}
+        sx={{
+          border: dragActive ? '2px dashed' : '2px dashed',
+          borderColor: dragActive ? 'primary.main' : 'divider',
+          borderRadius: 2,
+          p: 6,
+          textAlign: 'center',
+          bgcolor: dragActive ? 'action.hover' : 'background.paper',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          mb: 2,
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: 200,
+          '&:hover': {
+            bgcolor: 'action.hover',
+            borderColor: 'primary.main'
+          }
+        }}
+      >
+        <input
+          type="file"
+          onChange={handleFileSelect}
+          style={{ display: 'none' }}
+          id="file-upload-input"
+          accept=".txt,.pdf,.docx,.doc,.md,.rtf"
+        />
+        <label htmlFor="file-upload-input" style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <UploadIcon sx={{ fontSize: 56, color: dragActive ? 'primary.main' : 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color={dragActive ? 'primary.main' : 'text.primary'} sx={{ mb: 1 }}>
             {selectedFile ? selectedFile.name : 'Drop files here or click to browse'}
@@ -171,51 +174,60 @@ const FileUploadCard: React.FC<FileUploadProps> = ({ onUpload, loading, uploadPr
           <Typography variant="body2" color="text.secondary">
             Supported: PDF, Word, Text files (Max 100MB)
           </Typography>
-        </Box>
-        
-        {/* Upload Progress */}
-        {loading && uploadProgress && (
-          <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                {uploadProgress.stage}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {uploadProgress.percent}%
-              </Typography>
-            </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={uploadProgress.percent} 
-              sx={{ height: 6, borderRadius: 3 }}
-            />
+        </label>
+      </Box>
+      
+      {/* Upload Progress */}
+      {loading && uploadProgress && (
+        <Box sx={{ mb: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {uploadProgress.stage}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {uploadProgress.percent}%
+            </Typography>
           </Box>
-        )}
-        
-        {/* Tags Input */}
-        {selectedFile && !loading && (
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
-            <TextField
-              fullWidth
-              label="Tags (comma-separated)"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g., contract, important, client-docs"
-              size="small"
-            />
+          <LinearProgress 
+            variant="determinate" 
+            value={uploadProgress.percent} 
+            sx={{ height: 6, borderRadius: 3 }}
+          />
+        </Box>
+      )}
+      
+      {/* Tags Input */}
+      {selectedFile && !loading && (
+        <>
+          <TextField
+            fullWidth
+            label="Tags (comma-separated)"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
+            placeholder="e.g., contract, important, client-docs"
+            size="small"
+            sx={{ mb: 2 }}
+          />
+          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+            <Button
+              variant="outlined"
+              onClick={onClose}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
             <Button
               variant="contained"
               onClick={handleUpload}
               disabled={loading}
               startIcon={<UploadIcon />}
-              sx={{ minWidth: 120, py: 1 }}
             >
-              Upload
+              Upload File
             </Button>
           </Box>
-        )}
-      </CardContent>
-    </Card>
+        </>
+      )}
+    </Box>
   );
 };
 
@@ -464,6 +476,7 @@ export default function FilesPage() {
   const [loading, setLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ stage: string; percent: number } | undefined>();
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   
   // Storage usage
   const [storageUsage, setStorageUsage] = useState<StorageUsageResponse | null>(null);
@@ -491,19 +504,39 @@ export default function FilesPage() {
       } else if (tabValue === 1 && selectedBusinessId) {
         // Business files - fetch with embedding status
         try {
+          console.log('📊 Fetching files with embedding status for business:', selectedBusinessId);
           const embeddingResponse = await fileApi.getFilesWithEmbeddings(selectedBusinessId);
+          
+          console.log('✅ Embedding response:', {
+            totalFiles: embeddingResponse.total_files,
+            embeddedFiles: embeddingResponse.embedded_files,
+            notEmbeddedFiles: embeddingResponse.not_embedded_files,
+            embeddingPercentage: embeddingResponse.embedding_percentage + '%'
+          });
+          
           // Merge embedding data with file data
-          const filesWithEmbeddings = embeddingResponse.files.map((file: any) => ({
-            ...file,
-            // Map the backend field names to match FileItem interface
-            id: file.file_id || file.id,
-            file_name: file.filename || file.file_name || '',
-            original_name: file.filename || file.original_name || ''
-          }));
+          const filesWithEmbeddings = embeddingResponse.files.map((file: any) => {
+            const mapped = {
+              ...file,
+              // Map the backend field names to match FileItem interface
+              id: file.file_id || file.id,
+              file_name: file.filename || file.file_name || '',
+              original_name: file.filename || file.original_name || ''
+            };
+            
+            if (file.is_embedded) {
+              console.log('✓ File embedded:', file.filename, `(${file.chunks_with_embeddings} chunks, ${file.embedding_coverage}% coverage)`);
+            } else {
+              console.log('○ File not embedded:', file.filename);
+            }
+            
+            return mapped;
+          });
+          
           setBusinessFiles(filesWithEmbeddings);
         } catch (embeddingError) {
           // Fallback to regular file list if embeddings endpoint fails
-          console.warn('Failed to fetch embedding status, using regular file list:', embeddingError);
+          console.warn('⚠️ Failed to fetch embedding status, using regular file list:', embeddingError);
           const response = await fileApi.listBusinessFiles(selectedBusinessId, searchQuery || undefined, fileTypeFilter || undefined);
           setBusinessFiles(response.files);
         }
@@ -553,26 +586,42 @@ export default function FilesPage() {
     setUploadLoading(true);
     setUploadProgress({ stage: 'Uploading file...', percent: 0 });
     
+    console.log('🚀 Starting file upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      businessId,
+      tags
+    });
+    
     try {
       // Simulate upload progress
       setUploadProgress({ stage: 'Uploading file...', percent: 30 });
       
+      let uploadResult;
       if (businessId) {
-        await fileApi.uploadBusinessFile(businessId, file, true, tags);
+        console.log('📤 Uploading to business:', businessId);
+        uploadResult = await fileApi.uploadBusinessFile(businessId, file, true, tags);
       } else {
-        await fileApi.uploadAccountFile(file, true, tags);
+        console.log('📤 Uploading to account');
+        uploadResult = await fileApi.uploadAccountFile(file, true, tags);
       }
       
+      console.log('✅ Upload successful:', uploadResult);
+      
       setUploadProgress({ stage: 'Generating summary...', percent: 60 });
+      console.log('📝 Generating AI summary...');
       
       // Wait a bit for backend processing
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setUploadProgress({ stage: 'Creating embeddings...', percent: 85 });
+      console.log('🧠 Creating vector embeddings...');
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       setUploadProgress({ stage: 'Complete!', percent: 100 });
+      console.log('✨ File processing complete!');
       
       setSnackbar({
         open: true,
@@ -581,10 +630,13 @@ export default function FilesPage() {
       });
       
       // Refresh files and storage
+      console.log('🔄 Refreshing file list and storage...');
       await Promise.all([loadFiles(), loadStorageUsage()]);
       
+      console.log('✅ All operations complete');
+      
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload error:', error);
       setSnackbar({
         open: true,
         message: error instanceof Error ? error.message : 'Upload failed',
@@ -664,16 +716,45 @@ export default function FilesPage() {
   
   const pageContent = (
     <Box>
-      {/* Storage Usage */}
-      <StorageUsage usage={storageUsage} loading={storageLoading} />
+      {/* Storage Usage & Upload Button */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+        <Box sx={{ flex: 1 }}>
+          <StorageUsage usage={storageUsage} loading={storageLoading} />
+        </Box>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<UploadIcon />}
+          onClick={() => setUploadModalOpen(true)}
+          sx={{ minWidth: 160, height: 'fit-content' }}
+        >
+          Upload File
+        </Button>
+      </Box>
       
-      {/* File Upload */}
-      <FileUploadCard 
-        onUpload={handleFileUpload}
-        loading={uploadLoading}
-        uploadProgress={uploadProgress}
-        selectedBusinessId={tabValue === 1 ? selectedBusinessId : undefined}
-      />
+      {/* Upload Modal */}
+      <Dialog 
+        open={uploadModalOpen} 
+        onClose={() => !uploadLoading && setUploadModalOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <UploadIcon sx={{ mr: 1 }} />
+            Upload File
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <FileUploadModal
+            onUpload={handleFileUpload}
+            loading={uploadLoading}
+            uploadProgress={uploadProgress}
+            selectedBusinessId={tabValue === 1 ? selectedBusinessId : undefined}
+            onClose={() => setUploadModalOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
       
       {/* Search and Filter */}
       <Card sx={{ mb: 3 }}>
