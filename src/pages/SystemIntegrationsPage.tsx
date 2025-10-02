@@ -107,14 +107,13 @@ export default function SystemIntegrationsPage() {
   };
 
   const handleRefreshModels = async () => {
-    if (!formData.apiKey.trim()) {
-      alert('Please enter an OpenAI API key to refresh models');
-      return;
-    }
-
     try {
       setRefreshingModels(true);
-      const result: ModelRefreshResult = await refreshOpenAIModels(formData.apiKey);
+      
+      // Call the refresh endpoint with or without API key
+      const result: ModelRefreshResult = await refreshOpenAIModels(
+        formData.apiKey.trim() || undefined
+      );
       
       if (result.success) {
         // Reload available models
@@ -400,7 +399,7 @@ export default function SystemIntegrationsPage() {
                 variant="outlined"
                 size="small"
                 onClick={handleRefreshModels}
-                disabled={refreshingModels || !formData.apiKey.trim()}
+                disabled={refreshingModels}
                 sx={{ flex: 1 }}
               >
                 {refreshingModels ? 'Refreshing...' : 'Refresh Models'}

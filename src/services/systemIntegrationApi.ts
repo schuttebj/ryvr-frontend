@@ -121,7 +121,8 @@ export const getDatabaseIntegrations = async (): Promise<any[]> => {
 
 // Model management functions
 export const refreshOpenAIModels = async (apiKey?: string): Promise<ModelRefreshResult> => {
-  return await makeRequest<ModelRefreshResult>('/api/v1/ai/models/refresh', 'POST', { api_key: apiKey });
+  const body = apiKey ? { api_key: apiKey } : {};
+  return await makeRequest<ModelRefreshResult>('/api/v1/ai/models/refresh', 'POST', body);
 };
 
 export const setDefaultModel = async (modelId: string) => {

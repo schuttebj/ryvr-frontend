@@ -16,6 +16,7 @@ import ClientsPage from './pages/ClientsPage';
 import WorkflowsPage from './pages/WorkflowsPage';
 import { WorkflowRunsPage } from './pages/WorkflowRunsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
+import SystemSettingsPage from './pages/SystemSettingsPage';
 import SystemIntegrationsPage from './pages/SystemIntegrationsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import FlowTestPage from './pages/FlowTestPage';
@@ -80,11 +81,7 @@ function AppRoutes() {
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="system-integrations" element={<SystemIntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="settings/*" element={
-                <AdminLayout title="System Settings" subtitle="Configure platform settings">
-                  <div>System Settings</div>
-                </AdminLayout>
-              } />
+              <Route path="settings/*" element={<SystemSettingsPage />} />
               <Route path="*" element={<Navigate to="/admin/dashboard" />} />
             </Routes>
           </ProtectedRoute>
