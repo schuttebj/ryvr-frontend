@@ -34,7 +34,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 import BusinessLayout from '../components/layout/BusinessLayout';
 
 // API configuration - updated for new backend
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE_URL, API_ENDPOINTS, getAuthHeaders } from '../config/api';
 
 interface ChatMessage {
   role: 'user' | 'assistant';

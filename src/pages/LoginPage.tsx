@@ -11,6 +11,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL, API_ENDPOINTS, DEFAULT_HEADERS, getAuthHeaders } from '../config/api';
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({ username: '', password: '' });
@@ -34,12 +35,9 @@ export default function LoginPage() {
 
     try {
       // Step 1: Login to get access token
-      const backendUrl = 'https://ryvr-backend.onrender.com';
-      const loginResponse = await fetch(`${backendUrl}/api/v1/auth/login`, {
+      const loginResponse = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: DEFAULT_HEADERS,
         body: JSON.stringify({
           username: formData.username,
           password: formData.password,
@@ -59,12 +57,9 @@ export default function LoginPage() {
       const loginData = await loginResponse.json();
       
       // Step 2: Get user data using the token
-      const userResponse = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      const userResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.ME}`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${loginData.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(loginData.access_token),
       });
 
       if (!userResponse.ok) {

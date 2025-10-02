@@ -3,7 +3,9 @@
  * Handles all business-level API operations for simplified structure
  */
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE_URL, getAuthHeaders } from '../config/api';
+
+const API_BASE = API_BASE_URL;
 
 interface ApiResponse<T> {
   data?: T;

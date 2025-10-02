@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { API_BASE_URL, API_ENDPOINTS, getAuthHeaders } from '../config/api';
 
 // Updated User interface for simplified structure
 interface User {
@@ -98,8 +99,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [userContext, setUserContext] = useState<UserContext | null>(null);
   const [currentBusinessId, setCurrentBusinessId] = useState<number | null>(null);
 
-  // API base URL
-  const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+  // API base URL from centralized config
+  const API_BASE = API_BASE_URL;
 
   // Current business derived from context
   const currentBusiness = userContext?.businesses.find((b: Business) => b.id === currentBusinessId) || null;
@@ -133,11 +134,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Fetch user context from API
   const fetchUserContext = async (authToken: string): Promise<UserContext | null> => {
     try {
-      const response = await fetch(`${API_BASE}/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.AUTH.ME}`, {
+        headers: getAuthHeaders(authToken),
       });
 
       if (response.ok) {

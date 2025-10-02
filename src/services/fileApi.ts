@@ -4,8 +4,9 @@
  */
 
 import { getAuthToken, handleAuthError } from '../utils/auth';
+import { API_BASE_URL, getAuthHeaders } from '../config/api';
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = API_BASE_URL;
 
 // Response types
 export interface APIResponse<T = any> {
