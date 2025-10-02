@@ -3,7 +3,7 @@
  * Handles all business-level API operations for simplified structure
  */
 
-import { API_BASE_URL, getAuthHeaders } from '../config/api';
+import { API_BASE_URL } from '../config/api';
 
 const API_BASE = API_BASE_URL;
 

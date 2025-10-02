@@ -34,7 +34,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 import BusinessLayout from '../components/layout/BusinessLayout';
 
 // API configuration - updated for new backend
-import { API_BASE_URL, API_ENDPOINTS, getAuthHeaders } from '../config/api';
+import { API_BASE_URL } from '../config/api';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
