@@ -18,7 +18,6 @@ import {
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
-import BusinessSelector from '../common/BusinessSelector'
 import PageHeader from './PageHeader'
 
 interface AdminLayoutProps {
@@ -137,9 +136,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
 
   const headerContent = (
     <Box>
-      
-      {/* Business/Agency Selector */}
-      <BusinessSelector variant="full" />
+      {/* Admin users don't need business selector on main dashboard */}
+      {/* TODO: Add admin-specific controls here if needed */}
     </Box>
   )
 
