@@ -511,48 +511,51 @@ export default function FilesPage() {
         setAccountFiles(response.files);
       } else if (tabValue === 1) {
         // Business files - handle both single business and cross-business
-        try {
-          if (useCrossBusiness && canUseCrossBusinessFiles) {
-            console.log('📊 Fetching files across all businesses');
-            // For cross-business, we'll need a new API endpoint
-            const response = await fileApi.listAllBusinessFiles(searchQuery || undefined, fileTypeFilter || undefined);
-            setBusinessFiles(response.files);
-          } else if (effectiveBusinessId) {
+        if (useCrossBusiness && canUseCrossBusinessFiles) {
+          console.log('📊 Fetching files across all businesses');
+          const response = await fileApi.listAllBusinessFiles(searchQuery || undefined, fileTypeFilter || undefined);
+          setBusinessFiles(response.files);
+        } else if (effectiveBusinessId) {
+          try {
             console.log('📊 Fetching files with embedding status for business:', effectiveBusinessId);
             const embeddingResponse = await fileApi.getFilesWithEmbeddings(effectiveBusinessId);
-          
-          console.log('✅ Embedding response:', {
-            totalFiles: embeddingResponse.total_files,
-            embeddedFiles: embeddingResponse.embedded_files,
-            notEmbeddedFiles: embeddingResponse.not_embedded_files,
-            embeddingPercentage: embeddingResponse.embedding_percentage + '%'
-          });
-          
-          // Merge embedding data with file data
-          const filesWithEmbeddings = embeddingResponse.files.map((file: any) => {
-            const mapped = {
-              ...file,
-              // Map the backend field names to match FileItem interface
-              id: file.file_id || file.id,
-              file_name: file.filename || file.file_name || '',
-              original_name: file.filename || file.original_name || ''
-            };
             
-            if (file.is_embedded) {
-              console.log('✓ File embedded:', file.filename, `(${file.chunks_with_embeddings} chunks, ${file.embedding_coverage}% coverage)`);
-            } else {
-              console.log('○ File not embedded:', file.filename);
-            }
+            console.log('✅ Embedding response:', {
+              totalFiles: embeddingResponse.total_files,
+              embeddedFiles: embeddingResponse.embedded_files,
+              notEmbeddedFiles: embeddingResponse.not_embedded_files,
+              embeddingPercentage: embeddingResponse.embedding_percentage + '%'
+            });
             
-            return mapped;
-          });
-          
-          setBusinessFiles(filesWithEmbeddings);
-        } catch (embeddingError) {
-          // Fallback to regular file list if embeddings endpoint fails
-          console.warn('⚠️ Failed to fetch embedding status, using regular file list:', embeddingError);
-          const response = await fileApi.listBusinessFiles(selectedBusinessId, searchQuery || undefined, fileTypeFilter || undefined);
-          setBusinessFiles(response.files);
+            // Merge embedding data with file data
+            const filesWithEmbeddings = embeddingResponse.files.map((file: any) => {
+              const mapped = {
+                ...file,
+                // Map the backend field names to match FileItem interface
+                id: file.file_id || file.id,
+                file_name: file.filename || file.file_name || '',
+                original_name: file.filename || file.original_name || ''
+              };
+              
+              if (file.is_embedded) {
+                console.log('✓ File embedded:', file.filename, `(${file.chunks_with_embeddings} chunks, ${file.embedding_coverage}% coverage)`);
+              } else {
+                console.log('○ File not embedded:', file.filename);
+              }
+              
+              return mapped;
+            });
+            
+            setBusinessFiles(filesWithEmbeddings);
+          } catch (embeddingError) {
+            // Fallback to regular file list if embeddings endpoint fails
+            console.warn('⚠️ Failed to fetch embedding status, using regular file list:', embeddingError);
+            const response = await fileApi.listBusinessFiles(effectiveBusinessId, searchQuery || undefined, fileTypeFilter || undefined);
+            setBusinessFiles(response.files);
+          }
+        } else {
+          console.log('⚠️ No business selected');
+          setBusinessFiles([]);
         }
       }
     } catch (error) {
@@ -565,7 +568,7 @@ export default function FilesPage() {
     } finally {
       setLoading(false);
     }
-  }, [tabValue, selectedBusinessId, searchQuery, fileTypeFilter]);
+  }, [tabValue, effectiveBusinessId, useCrossBusiness, canUseCrossBusinessFiles, searchQuery, fileTypeFilter]);
   
   // Load storage usage
   const loadStorageUsage = useCallback(async () => {
