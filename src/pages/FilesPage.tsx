@@ -57,7 +57,7 @@ import { fileApi, FileItem, StorageUsageResponse } from '../services/fileApi';
 
 // Import layout based on user role
 import AdminLayout from '../components/layout/AdminLayout';
-import AgencyLayout from '../components/layout/AgencyLayout';
+// import AgencyLayout from '../components/layout/AgencyLayout'; // Unused in simplified structure
 import BusinessLayout from '../components/layout/BusinessLayout';
 
 interface TabPanelProps {

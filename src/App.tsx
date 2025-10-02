@@ -9,7 +9,7 @@ import AdminLayout from './components/layout/AdminLayout';
 // Pages
 import LoginPage from './pages/LoginPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
-import AgencyDashboardPage from './pages/AgencyDashboardPage';
+// import AgencyDashboardPage from './pages/AgencyDashboardPage'; // Unused in simplified structure
 import BusinessDashboardPage from './pages/BusinessDashboardPage';
 import UserManagementPage from './pages/UserManagementPage';
 import ClientsPage from './pages/ClientsPage';

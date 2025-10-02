@@ -39,10 +39,7 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
       // Redirect to appropriate default route based on user's actual role
       const getDefaultRoute = () => {
         if (userRole === 'admin') return '/admin/dashboard';
-        if (userRole === 'agency_owner' || userRole === 'agency_manager' || userRole === 'agency_viewer') {
-          return '/agency/dashboard';
-        }
-        return '/business/dashboard';
+        return '/dashboard'; // Simplified routing for all users
       };
 
       return <Navigate to={getDefaultRoute()} replace />;

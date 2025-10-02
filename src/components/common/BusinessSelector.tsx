@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react' // useEffect removed as it's unused
 import {
   Box,
   FormControl,
@@ -79,7 +79,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
     window.location.href = '/settings/businesses/new'
   }
 
-  const getBusinessIcon = (business: Business) => {
+  const getBusinessIcon = (_business: Business) => { // Prefixed with _ to indicate intentionally unused
     if (user?.role === 'admin') {
       return <AdminIcon fontSize="small" />
     }
@@ -268,7 +268,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
       
       {isBusinessLimitReached() && (
         <Alert severity="info" sx={{ mt: 2 }}>
-          Business limit reached ({userContext.subscription_tier?.business_limit}). 
+          Business limit reached ({userContext?.subscription_tier?.business_limit}). 
           <Button size="small" onClick={() => window.location.href = '/settings/subscription'}>
             Upgrade Plan
           </Button>
