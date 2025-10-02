@@ -12,7 +12,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material'
-import { BusinessSelectorSkeleton } from './SkeletonLoaders'
+// import { BusinessSelectorSkeleton } from './SkeletonLoaders' // Unused for now
 import {
   BusinessOutlined as BusinessIcon,
   AddOutlined as AddIcon,
@@ -91,6 +91,14 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
       return `Owner: ${business.owner_id}` // You might want to fetch owner name
     }
     return business.industry || business.user_role || 'Business'
+  }
+
+  // Helper function to check if business limit is reached
+  const isBusinessLimitReached = (): boolean => {
+    if (user?.role === 'admin') return false
+    const businessCount = userContext?.businesses.length || 0
+    const limit = userContext?.subscription_tier?.business_limit || 0
+    return businessCount >= limit
   }
 
   if (!userContext && !loading) {
@@ -237,7 +245,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
         </Select>
       </FormControl>
       
-      {user?.role === 'user' && !userContext?.isBusinessLimitReached() && (
+      {user?.role === 'user' && !isBusinessLimitReached() && (
         <>
           <Divider sx={{ my: 2 }} />
           <Button
@@ -258,7 +266,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
         </>
       )}
       
-      {userContext?.isBusinessLimitReached() && (
+      {isBusinessLimitReached() && (
         <Alert severity="info" sx={{ mt: 2 }}>
           Business limit reached ({userContext.subscription_tier?.business_limit}). 
           <Button size="small" onClick={() => window.location.href = '/settings/subscription'}>

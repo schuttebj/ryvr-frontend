@@ -14,8 +14,8 @@ import {
   Divider,
   Paper,
   Tooltip,
-  Switch,
-  FormControlLabel,
+  // Switch,
+  // FormControlLabel,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -23,7 +23,7 @@ import {
   Person as PersonIcon,
   Description as FileIcon,
   Refresh as RefreshIcon,
-  AllInclusiveOutlined as AllIcon,
+  // AllInclusiveOutlined as AllIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import BusinessSelector from '../components/common/BusinessSelector';
@@ -52,7 +52,7 @@ interface ChatMessage {
 export default function ChatPage() {
   const { user, currentBusinessId, hasFeature, token } = useAuth();
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
-  const [useCrossBusiness, setUseCrossBusiness] = useState(false);
+  const [useCrossBusiness] = useState(false); // setUseCrossBusiness removed for now
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -398,8 +398,6 @@ export default function ChatPage() {
   // Select appropriate layout based on user role
   if (user?.role === 'admin') {
     return <AdminLayout>{renderContent()}</AdminLayout>;
-  } else if (user?.role === 'agency') {
-    return <AgencyLayout>{renderContent()}</AgencyLayout>;
   } else {
     return <BusinessLayout>{renderContent()}</BusinessLayout>;
   }

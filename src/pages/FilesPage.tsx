@@ -746,9 +746,6 @@ export default function FilesPage() {
     if (!user) return AdminLayout;
     
     if (user.role === 'admin') return AdminLayout;
-    if (user.role === 'agency_owner' || user.role === 'agency_manager' || user.role === 'agency_viewer') {
-      return AgencyLayout;
-    }
     return BusinessLayout;
   };
   
@@ -790,7 +787,7 @@ export default function FilesPage() {
             onUpload={handleFileUpload}
             loading={uploadLoading}
             uploadProgress={uploadProgress}
-            selectedBusinessId={tabValue === 1 ? selectedBusinessId : undefined}
+            selectedBusinessId={tabValue === 1 ? (selectedBusinessId ?? undefined) : undefined}
             onClose={() => setUploadModalOpen(false)}
           />
         </DialogContent>

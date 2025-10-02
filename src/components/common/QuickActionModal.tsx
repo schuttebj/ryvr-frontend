@@ -255,10 +255,8 @@ export const QuickActionModal: React.FC<QuickActionModalProps> = ({ open, onClos
     if (action.id === 'workflow-builder') {
       if (user?.role === 'admin') {
         path = '/admin/workflows/builder';
-      } else if (user?.role === 'agency_owner' || user?.role === 'agency_manager' || user?.role === 'agency_viewer') {
-        path = '/agency/workflows/builder';
       } else {
-        path = '/business/workflows/builder';
+        path = '/workflows/builder';
       }
     }
     

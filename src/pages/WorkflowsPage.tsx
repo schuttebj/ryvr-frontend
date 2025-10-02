@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import AdminLayout from '../components/layout/AdminLayout';
-import AgencyLayout from '../components/layout/AgencyLayout';
+// import AgencyLayout from '../components/layout/AgencyLayout'; // Unused in simplified structure
 import BusinessLayout from '../components/layout/BusinessLayout';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -352,8 +352,7 @@ export default function WorkflowsPage() {
   // Get the appropriate layout component based on user role
   const getLayoutComponent = () => {
     if (user?.role === 'admin') return AdminLayout;
-    if (user?.role === 'agency_owner' || user?.role === 'agency_manager' || user?.role === 'agency_viewer') return AgencyLayout;
-    return BusinessLayout; // For individual_user, business_owner, business_user
+    return BusinessLayout; // For all users
   };
 
 
