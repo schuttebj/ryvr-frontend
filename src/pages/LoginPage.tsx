@@ -71,13 +71,10 @@ export default function LoginPage() {
       // Step 3: Login with token and user data
       login(loginData.access_token, userData);
       
-      // Route based on user role
+      // Route based on user role - simplified structure
       const getDefaultRoute = () => {
         if (userData.role === 'admin') return '/admin/dashboard';
-        if (['agency_owner', 'agency_manager', 'agency_viewer'].includes(userData.role)) {
-          return '/agency/dashboard';
-        }
-        return '/business/dashboard';
+        return '/dashboard'; // All users go to unified dashboard
       };
       
       navigate(getDefaultRoute());

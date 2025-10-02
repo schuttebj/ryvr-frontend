@@ -156,7 +156,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!token) return;
 
     try {
-      const response = await fetch(`${API_BASE}/auth/switch-business`, {
+      const response = await fetch(`${API_BASE}${API_ENDPOINTS.AUTH.SWITCH_BUSINESS}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
