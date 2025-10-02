@@ -71,7 +71,7 @@ export default function SystemSettingsPage() {
       ]);
       
       setModels(availableModels);
-      setDefaultModelState(currentDefault);
+      setDefaultModelState(currentDefault as ModelData | null);
       
     } catch (error) {
       console.error('Failed to load model data:', error);

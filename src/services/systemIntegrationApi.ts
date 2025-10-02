@@ -129,8 +129,8 @@ export const setDefaultModel = async (modelId: string) => {
   return await makeRequest(`/api/v1/ai/models/${modelId}/set-default`, 'PUT');
 };
 
-export const getDefaultModel = async () => {
-  return await makeRequest('/api/v1/ai/models/default');
+export const getDefaultModel = async (): Promise<any> => {
+  return await makeRequest<any>('/api/v1/ai/models/default');
 };
 
 export const getAvailableModels = async (): Promise<any[]> => {
