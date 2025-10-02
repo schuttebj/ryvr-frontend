@@ -261,7 +261,7 @@ export const fileApi = {
     params.append('limit', limit.toString());
     params.append('offset', offset.toString());
 
-    const response = await fetch(`${API_BASE}/api/v1/files/all-businesses?${params}`, {
+    const response = await fetch(`${API_BASE}/api/v1/files/?${params}`, {
       headers: createHeaders(),
     });
 

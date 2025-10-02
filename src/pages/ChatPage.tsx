@@ -91,8 +91,8 @@ export default function ChatPage() {
 
     try {
       const endpoint = useCrossBusiness && canUseCrossBusiness 
-        ? '/embeddings/chat-all' 
-        : '/embeddings/chat';
+        ? '/api/v1/embeddings/chat-all' 
+        : '/api/v1/embeddings/chat';
 
       const requestBody: any = {
         message: inputMessage,

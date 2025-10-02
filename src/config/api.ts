@@ -10,9 +10,9 @@ export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://r
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    ME: '/auth/me',
-    SWITCH_BUSINESS: '/auth/switch-business',
+    LOGIN: '/api/v1/auth/login',
+    ME: '/api/v1/auth/me',
+    SWITCH_BUSINESS: '/api/v1/auth/switch-business',
   },
   
   // Admin
@@ -34,13 +34,15 @@ export const API_ENDPOINTS = {
     LIST: '/api/v1/files',
     UPLOAD: '/api/v1/files/upload',
     DELETE: (id: number) => `/api/v1/files/${id}`,
-    LIST_ALL_BUSINESS: '/api/v1/files/all-business-files',
+    LIST_ALL_BUSINESS: '/api/v1/files',
+    BUSINESS_UPLOAD: (businessId: number) => `/api/v1/files/businesses/${businessId}/upload`,
+    BUSINESS_LIST: (businessId: number) => `/api/v1/files/businesses/${businessId}`,
   },
   
   // Chat/Embeddings
   EMBEDDINGS: {
-    CHAT: '/embeddings/chat',
-    CHAT_ALL: '/embeddings/chat-all',
+    CHAT: '/api/v1/embeddings/chat',
+    CHAT_ALL: '/api/v1/embeddings/chat-all',
   },
   
   // Workflows

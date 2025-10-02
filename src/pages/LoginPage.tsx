@@ -35,7 +35,7 @@ export default function LoginPage() {
 
     try {
       // Step 1: Login to get access token
-      const loginResponse = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+      const loginResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.AUTH.LOGIN}`, {
         method: 'POST',
         headers: DEFAULT_HEADERS,
         body: JSON.stringify({
