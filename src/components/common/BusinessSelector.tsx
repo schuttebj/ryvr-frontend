@@ -9,195 +9,120 @@ import {
   Divider,
   Button,
   SelectChangeEvent,
+  Alert,
+  CircularProgress,
 } from '@mui/material'
 import { BusinessSelectorSkeleton } from './SkeletonLoaders'
 import {
   BusinessOutlined as BusinessIcon,
   AddOutlined as AddIcon,
   AdminPanelSettingsOutlined as AdminIcon,
-  CorporateFareOutlined as AgencyIcon,
+  AllInclusiveOutlined as AllIcon,
 } from '@mui/icons-material'
-import { useAuth } from '../../contexts/AuthContext'
-
-interface Business {
-  id: string
-  name: string
-  agency_name?: string
-  agency_id?: string
-  industry?: string
-  status: 'active' | 'inactive'
-  is_trial?: boolean
-}
+import { useAuth, Business } from '../../contexts/AuthContext'
 
 interface BusinessSelectorProps {
-  selectedBusinessId?: string
-  onBusinessChange?: (businessId: string) => void
+  selectedBusinessId?: number | null
+  onBusinessChange?: (businessId: number | null) => void
   variant?: 'compact' | 'full'
+  allowAllOption?: boolean // For cross-business features
 }
 
 export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
   selectedBusinessId,
   onBusinessChange,
   variant = 'full',
+  allowAllOption = false,
 }) => {
-  const { user } = useAuth()
-  const [businesses, setBusinesses] = useState<Business[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null)
+  const { user, currentBusinessId, userContext, switchBusiness, hasFeature } = useAuth()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    const fetchBusinesses = async () => {
-      setLoading(true)
-      
-      // Mock businesses based on user role
-      let mockBusinesses: Business[] = []
-      
-      if (user?.role === 'admin') {
-        // Admin can see all businesses across all agencies
-        mockBusinesses = [
-          {
-            id: 'admin-overview',
-            name: 'System Overview',
-            status: 'active',
-          },
-          {
-            id: 'biz-1',
-            name: 'TechCorp Marketing',
-            agency_name: 'Digital Growth Agency',
-            agency_id: 'agency-1',
-            industry: 'Technology',
-            status: 'active',
-          },
-          {
-            id: 'biz-2',
-            name: 'RetailMax Solutions',
-            agency_name: 'Digital Growth Agency',
-            agency_id: 'agency-1',
-            industry: 'Retail',
-            status: 'active',
-          },
-          {
-            id: 'biz-3',
-            name: 'Healthcare Plus',
-            agency_name: 'MarketPro Agency',
-            agency_id: 'agency-2',
-            industry: 'Healthcare',
-            status: 'active',
-            is_trial: true,
-          },
-          {
-            id: 'biz-4',
-            name: 'Local Restaurant Chain',
-            agency_name: 'MarketPro Agency',
-            agency_id: 'agency-2',
-            industry: 'Food & Beverage',
-            status: 'active',
-          },
-        ]
-      } else if (user?.role === 'agency') {
-        // Agency can see their businesses
-        mockBusinesses = [
-          {
-            id: 'biz-1',
-            name: 'TechCorp Marketing',
-            industry: 'Technology',
-            status: 'active',
-          },
-          {
-            id: 'biz-2',
-            name: 'RetailMax Solutions',
-            industry: 'Retail',
-            status: 'active',
-          },
-          {
-            id: 'biz-new',
-            name: 'New Client Onboarding',
-            industry: 'Pending',
-            status: 'inactive',
-          },
-        ]
-      } else {
-        // Individual user can see their businesses
-        mockBusinesses = [
-          {
-            id: 'personal-1',
-            name: 'My Business',
-            industry: 'Consulting',
-            status: 'active',
-          },
-          {
-            id: 'personal-2',
-            name: 'Side Project',
-            industry: 'E-commerce',
-            status: 'active',
-          },
-        ]
+  // Use current business from auth context if no specific selection
+  const effectiveBusinessId = selectedBusinessId !== undefined ? selectedBusinessId : currentBusinessId
+  const businesses = userContext?.businesses || []
+
+  // Check if user can access cross-business features
+  const canUseCrossBusiness = hasFeature('cross_business_chat') || hasFeature('cross_business_files')
+
+  const handleBusinessChange = async (event: SelectChangeEvent<string>) => {
+    const value = event.target.value
+    
+    if (value === 'all') {
+      // Cross-business selection
+      onBusinessChange?.(null)
+      if (!selectedBusinessId) {
+        // If this is the global selector, switch context
+        await switchBusiness(undefined)
       }
-      
-      setBusinesses(mockBusinesses)
-      
-      // Set initial selection
-      if (selectedBusinessId) {
-        const selected = mockBusinesses.find(b => b.id === selectedBusinessId)
-        setSelectedBusiness(selected || null)
-      } else if (mockBusinesses.length > 0) {
-        setSelectedBusiness(mockBusinesses[0])
-        onBusinessChange?.(mockBusinesses[0].id)
-      }
-      
-      setLoading(false)
+      return
     }
 
-    fetchBusinesses()
-  }, [user?.role, selectedBusinessId, onBusinessChange])
-
-  const handleBusinessChange = (event: SelectChangeEvent<string>) => {
-    const businessId = event.target.value
-    const business = businesses.find(b => b.id === businessId)
-    setSelectedBusiness(business || null)
+    const businessId = value ? parseInt(value) : null
     onBusinessChange?.(businessId)
+    
+    if (selectedBusinessId === undefined) {
+      // This is the global selector, switch context
+      setLoading(true)
+      try {
+        await switchBusiness(businessId || undefined)
+      } catch (err: any) {
+        setError(err.message || 'Failed to switch business')
+      } finally {
+        setLoading(false)
+      }
+    }
   }
 
   const handleAddBusiness = () => {
-    if (user?.role === 'agency') {
-      // Navigate to business creation
-      console.log('Navigate to business creation')
-    } else if (user?.role === 'individual') {
-      // Navigate to business setup
-      console.log('Navigate to business setup')
-    }
+    // Navigate to business creation page
+    window.location.href = '/settings/businesses/new'
   }
 
   const getBusinessIcon = (business: Business) => {
-    if (business.id === 'admin-overview') {
+    if (user?.role === 'admin') {
       return <AdminIcon fontSize="small" />
-    }
-    if (user?.role === 'admin' && business.agency_name) {
-      return <AgencyIcon fontSize="small" />
     }
     return <BusinessIcon fontSize="small" />
   }
 
   const getBusinessSubtitle = (business: Business) => {
-    if (business.id === 'admin-overview') {
-      return 'System Administration'
+    if (user?.role === 'admin') {
+      return `Owner: ${business.owner_id}` // You might want to fetch owner name
     }
-    if (user?.role === 'admin' && business.agency_name) {
-      return business.agency_name
-    }
-    return business.industry || 'Business'
+    return business.industry || business.user_role || 'Business'
+  }
+
+  if (!userContext && !loading) {
+    return (
+      <Alert severity="warning" sx={{ mx: 2 }}>
+        Unable to load business data
+      </Alert>
+    )
   }
 
   if (loading) {
-    return <BusinessSelectorSkeleton />
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2 }}>
+        <CircularProgress size={16} />
+        <Typography variant="body2">Switching business...</Typography>
+      </Box>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ mx: 2 }}>
+        {error}
+      </Alert>
+    )
   }
 
   if (variant === 'compact') {
     return (
       <FormControl size="small" sx={{ minWidth: 200 }}>
         <Select
-          value={selectedBusiness?.id || ''}
+          value={effectiveBusinessId?.toString() || (allowAllOption && canUseCrossBusiness ? 'all' : '')}
           onChange={handleBusinessChange}
           displayEmpty
           sx={{
@@ -208,8 +133,25 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
             },
           }}
         >
+          {allowAllOption && canUseCrossBusiness && (
+            <MenuItem value="all">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <AllIcon fontSize="small" />
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography variant="body2" noWrap>
+                    All Businesses
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    Cross-business access
+                  </Typography>
+                </Box>
+                <Chip label="Premium" size="small" color="primary" variant="outlined" />
+              </Box>
+            </MenuItem>
+          )}
+          
           {businesses.map((business) => (
-            <MenuItem key={business.id} value={business.id}>
+            <MenuItem key={business.id} value={business.id.toString()}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                 {getBusinessIcon(business)}
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -220,11 +162,11 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
                     {getBusinessSubtitle(business)}
                   </Typography>
                 </Box>
-                {business.is_trial && (
-                  <Chip label="Trial" size="small" color="warning" variant="outlined" />
+                {business.user_role === 'owner' && (
+                  <Chip label="Owner" size="small" color="primary" variant="outlined" />
                 )}
-                {business.status === 'active' && business.id !== 'admin-overview' && (
-                  <Chip label="Active" size="small" color="success" variant="outlined" />
+                {business.user_role === 'manager' && (
+                  <Chip label="Manager" size="small" color="info" variant="outlined" />
                 )}
               </Box>
             </MenuItem>
@@ -236,10 +178,9 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
 
   return (
     <Box sx={{ px: 2, py: 1 }}>
-      
       <FormControl fullWidth size="small">
         <Select
-          value={selectedBusiness?.id || ''}
+          value={effectiveBusinessId?.toString() || (allowAllOption && canUseCrossBusiness ? 'all' : '')}
           onChange={handleBusinessChange}
           displayEmpty
           sx={{
@@ -250,8 +191,25 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
             },
           }}
         >
+          {allowAllOption && canUseCrossBusiness && (
+            <MenuItem value="all">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <AllIcon fontSize="small" />
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                  <Typography variant="body2" noWrap>
+                    All Businesses
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" noWrap>
+                    Access files and chat across all businesses
+                  </Typography>
+                </Box>
+                <Chip label="Premium" size="small" color="primary" variant="outlined" />
+              </Box>
+            </MenuItem>
+          )}
+          
           {businesses.map((business) => (
-            <MenuItem key={business.id} value={business.id}>
+            <MenuItem key={business.id} value={business.id.toString()}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
                 {getBusinessIcon(business)}
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -263,11 +221,14 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 0.5 }}>
-                  {business.is_trial && (
-                    <Chip label="Trial" size="small" color="warning" variant="outlined" />
+                  {business.user_role === 'owner' && (
+                    <Chip label="Owner" size="small" color="primary" variant="outlined" />
                   )}
-                  {business.status === 'active' && business.id !== 'admin-overview' && (
-                    <Chip label="Active" size="small" color="success" variant="outlined" />
+                  {business.user_role === 'manager' && (
+                    <Chip label="Manager" size="small" color="info" variant="outlined" />
+                  )}
+                  {business.user_role === 'admin' && (
+                    <Chip label="Admin" size="small" color="error" variant="outlined" />
                   )}
                 </Box>
               </Box>
@@ -276,7 +237,7 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
         </Select>
       </FormControl>
       
-      {(user?.role === 'agency' || user?.role === 'individual') && (
+      {user?.role === 'user' && !userContext?.isBusinessLimitReached() && (
         <>
           <Divider sx={{ my: 2 }} />
           <Button
@@ -292,9 +253,18 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
               }
             }}
           >
-            {user?.role === 'agency' ? 'Add New Business' : 'Add Business'}
+            Add New Business
           </Button>
         </>
+      )}
+      
+      {userContext?.isBusinessLimitReached() && (
+        <Alert severity="info" sx={{ mt: 2 }}>
+          Business limit reached ({userContext.subscription_tier?.business_limit}). 
+          <Button size="small" onClick={() => window.location.href = '/settings/subscription'}>
+            Upgrade Plan
+          </Button>
+        </Alert>
       )}
     </Box>
   )

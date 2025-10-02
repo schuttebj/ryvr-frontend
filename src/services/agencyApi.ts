@@ -1,9 +1,9 @@
 /**
- * Agency API Service
- * Handles all agency-level API operations
+ * Business API Service
+ * Handles all business-level API operations for simplified structure
  */
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
 interface ApiResponse<T> {
   data?: T;
@@ -11,7 +11,7 @@ interface ApiResponse<T> {
   status: number;
 }
 
-class AgencyApiService {
+class BusinessApiService {
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -339,5 +339,5 @@ class AgencyApiService {
   }
 }
 
-export const agencyApi = new AgencyApiService();
-export default agencyApi;
+export const businessApi = new BusinessApiService();
+export default businessApi;

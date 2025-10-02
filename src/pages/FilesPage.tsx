@@ -32,6 +32,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
@@ -465,9 +467,16 @@ const StorageUsage: React.FC<StorageUsageProps> = ({ usage, loading }) => {
 
 // Main Files Page Component
 export default function FilesPage() {
-  const { user } = useAuth();
+  const { user, currentBusinessId, hasFeature } = useAuth();
   const [tabValue, setTabValue] = useState(0);
-  const [selectedBusinessId, setSelectedBusinessId] = useState<number | undefined>();
+  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
+  const [useCrossBusiness, setUseCrossBusiness] = useState(false);
+  
+  // Use current business context if no specific business selected
+  const effectiveBusinessId = selectedBusinessId !== null ? selectedBusinessId : currentBusinessId;
+  
+  // Check if user can use cross-business files
+  const canUseCrossBusinessFiles = hasFeature('cross_business_files');
   
   // State for files
   const [accountFiles, setAccountFiles] = useState<FileItem[]>([]);
@@ -500,11 +509,17 @@ export default function FilesPage() {
         // Account files
         const response = await fileApi.listAccountFiles(searchQuery || undefined, fileTypeFilter || undefined);
         setAccountFiles(response.files);
-      } else if (tabValue === 1 && selectedBusinessId) {
-        // Business files - fetch with embedding status
+      } else if (tabValue === 1) {
+        // Business files - handle both single business and cross-business
         try {
-          console.log('📊 Fetching files with embedding status for business:', selectedBusinessId);
-          const embeddingResponse = await fileApi.getFilesWithEmbeddings(selectedBusinessId);
+          if (useCrossBusiness && canUseCrossBusinessFiles) {
+            console.log('📊 Fetching files across all businesses');
+            // For cross-business, we'll need a new API endpoint
+            const response = await fileApi.listAllBusinessFiles(searchQuery || undefined, fileTypeFilter || undefined);
+            setBusinessFiles(response.files);
+          } else if (effectiveBusinessId) {
+            console.log('📊 Fetching files with embedding status for business:', effectiveBusinessId);
+            const embeddingResponse = await fileApi.getFilesWithEmbeddings(effectiveBusinessId);
           
           console.log('✅ Embedding response:', {
             totalFiles: embeddingResponse.total_files,
@@ -858,10 +873,27 @@ export default function FilesPage() {
           {/* Business Selector for Business Tab */}
           {tabValue === 1 && (
             <Box sx={{ mb: 3 }}>
-              <BusinessSelector 
-                variant="compact"
-                onBusinessChange={(businessId) => setSelectedBusinessId(businessId ? Number(businessId) : undefined)}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                <BusinessSelector 
+                  variant="compact"
+                  selectedBusinessId={selectedBusinessId}
+                  onBusinessChange={(businessId) => setSelectedBusinessId(businessId)}
+                  allowAllOption={canUseCrossBusinessFiles}
+                />
+                {canUseCrossBusinessFiles && (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={useCrossBusiness}
+                        onChange={(e) => setUseCrossBusiness(e.target.checked)}
+                        size="small"
+                      />
+                    }
+                    label="All Businesses"
+                    sx={{ ml: 1 }}
+                  />
+                )}
+              </Box>
             </Box>
           )}
           

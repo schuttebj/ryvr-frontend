@@ -1,11 +1,26 @@
 /**
- * File Management API Service
- * Handles file upload, management, and operations
+ * Main API service for simplified backend structure
+ * Handles authentication and business context for all API calls
  */
 
 import { getAuthToken, handleAuthError } from '../utils/auth';
 
-const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
+
+// Response types
+export interface APIResponse<T = any> {
+  success?: boolean;
+  message?: string;
+  data?: T;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
 
 // Types for file management
 export interface FileItem {
@@ -228,6 +243,28 @@ export const fileApi = {
     });
     
     return handleResponse<FileListResponse>(response, 'listBusinessFiles');
+  },
+
+  /**
+   * List files across all accessible businesses (cross-business)
+   */
+  listAllBusinessFiles: async (
+    searchQuery?: string,
+    fileType?: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<FileListResponse> => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search_query', searchQuery);
+    if (fileType) params.append('file_type', fileType);
+    params.append('limit', limit.toString());
+    params.append('offset', offset.toString());
+
+    const response = await fetch(`${API_BASE}/api/v1/files/all-businesses?${params}`, {
+      headers: createHeaders(),
+    });
+
+    return handleResponse<FileListResponse>(response, 'listAllBusinessFiles');
   },
   
   // =============================================================================

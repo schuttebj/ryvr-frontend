@@ -14,6 +14,8 @@ import {
   Divider,
   Paper,
   Tooltip,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -21,9 +23,9 @@ import {
   Person as PersonIcon,
   Description as FileIcon,
   Refresh as RefreshIcon,
+  AllInclusiveOutlined as AllIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
-import { getAuthToken } from '../utils/auth';
 import BusinessSelector from '../components/common/BusinessSelector';
 
 // Import layout based on user role
@@ -31,8 +33,8 @@ import AdminLayout from '../components/layout/AdminLayout';
 import AgencyLayout from '../components/layout/AgencyLayout';
 import BusinessLayout from '../components/layout/BusinessLayout';
 
-// API configuration
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
+// API configuration - updated for new backend
+const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -48,13 +50,20 @@ interface ChatMessage {
 }
 
 export default function ChatPage() {
-  const { user } = useAuth();
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
+  const { user, currentBusinessId, hasFeature, token } = useAuth();
+  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
+  const [useCrossBusiness, setUseCrossBusiness] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Use current business context if no specific business selected
+  const effectiveBusinessId = selectedBusinessId !== null ? selectedBusinessId : currentBusinessId;
+
+  // Check if user can use cross-business chat
+  const canUseCrossBusiness = hasFeature('cross_business_chat');
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -62,7 +71,13 @@ export default function ChatPage() {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !selectedBusinessId) return;
+    if (!inputMessage.trim()) return;
+
+    // Check if we need a business context
+    if (!useCrossBusiness && !effectiveBusinessId) {
+      setError('Please select a business to chat with');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       role: 'user',
@@ -75,22 +90,31 @@ export default function ChatPage() {
     setError(null);
 
     try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/v1/embeddings/chat`, {
+      const endpoint = useCrossBusiness && canUseCrossBusiness 
+        ? '/embeddings/chat-all' 
+        : '/embeddings/chat';
+
+      const requestBody: any = {
+        message: inputMessage,
+        model: 'gpt-4',
+        temperature: 0.7,
+        max_context_tokens: 4000,
+        top_k: 5,
+        similarity_threshold: 0.7,
+      };
+
+      // Add business_id only for single business chat
+      if (!useCrossBusiness && effectiveBusinessId) {
+        requestBody.business_id = effectiveBusinessId;
+      }
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          message: inputMessage,
-          business_id: parseInt(selectedBusinessId),
-          model: 'gpt-4',
-          temperature: 0.7,
-          max_context_tokens: 4000,
-          top_k: 5,
-          similarity_threshold: 0.7,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

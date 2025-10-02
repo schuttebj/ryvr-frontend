@@ -40,12 +40,9 @@ function AppRoutes() {
   const getDefaultRoute = () => {
     if (!user) return "/login";
     
-    // Route based on user role
+    // Simplified role-based routing
     if (user.role === 'admin') return "/admin/dashboard";
-    if (user.role === 'agency_owner' || user.role === 'agency_manager' || user.role === 'agency_viewer') {
-      return "/agency/dashboard";
-    }
-    return "/business/dashboard";
+    return "/dashboard"; // All users go to unified dashboard
   };
 
   return (
@@ -88,13 +85,13 @@ function AppRoutes() {
         }
       />
 
-      {/* Agency Routes */}
+      {/* User Routes - Simplified structure for all users */}
       <Route
-        path="/agency/*"
+        path="/*"
         element={
-          <ProtectedRoute requiredRole={['agency_owner', 'agency_manager', 'agency_viewer']}>
+          <ProtectedRoute requiredRole="user">
             <Routes>
-              <Route path="dashboard" element={<AgencyDashboardPage />} />
+              <Route path="dashboard" element={<BusinessDashboardPage />} />
               <Route path="businesses" element={<ClientsPage />} />
               <Route path="businesses/new" element={<div>Add New Business</div>} />
               <Route path="workflows/*" element={<WorkflowsPage />} />
@@ -106,43 +103,20 @@ function AppRoutes() {
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="team" element={<div>Team Management</div>} />
-              <Route path="settings" element={<div>Agency Settings</div>} />
-              <Route path="*" element={<Navigate to="/agency/dashboard" />} />
+              <Route path="settings" element={<div>User Settings</div>} />
+              <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
           </ProtectedRoute>
         }
       />
 
-      {/* Business Routes */}
-      <Route
-        path="/business/*"
-        element={
-          <ProtectedRoute requiredRole={['individual_user', 'business_owner', 'business_user']}>
-            <Routes>
-              <Route path="dashboard" element={<BusinessDashboardPage />} />
-              <Route path="workflows/*" element={<WorkflowsPage />} />
-              <Route path="workflows/builder" element={<FlowTestPage />} />
-              <Route path="flows" element={<FlowsPage />} />
-              <Route path="files" element={<FilesPage />} />
-              <Route path="chat" element={<ChatPage />} />
-              <Route path="integrations" element={<IntegrationsPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="onboarding" element={<div>Business Onboarding</div>} />
-              <Route path="schedule" element={<div>Content Schedule</div>} />
-              <Route path="settings" element={<div>Business Settings</div>} />
-              <Route path="support" element={<div>Support Center</div>} />
-              <Route path="*" element={<Navigate to="/business/dashboard" />} />
-            </Routes>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Legacy Routes - redirect based on role */}
-      <Route path="/dashboard" element={<Navigate to={getDefaultRoute()} />} />
-      <Route path="/clients" element={<Navigate to="/agency/businesses" />} />
-      <Route path="/workflows" element={<Navigate to="/agency/workflows" />} />
-      <Route path="/integrations" element={<Navigate to="/agency/integrations" />} />
-      <Route path="/analytics" element={<Navigate to="/agency/analytics" />} />
+      {/* Legacy Routes - redirect to simplified routes */}
+      <Route path="/agency/*" element={<Navigate to="/dashboard" />} />
+      <Route path="/business/*" element={<Navigate to="/dashboard" />} />
+      <Route path="/clients" element={<Navigate to="/businesses" />} />
+      <Route path="/workflows" element={<Navigate to="/workflows" />} />
+      <Route path="/integrations" element={<Navigate to="/integrations" />} />
+      <Route path="/analytics" element={<Navigate to="/analytics" />} />
       
       <Route path="*" element={<Navigate to={getDefaultRoute()} />} />
     </Routes>
