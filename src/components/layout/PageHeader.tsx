@@ -26,7 +26,9 @@ interface PageHeaderProps {
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
   title,
+  subtitle,
   breadcrumbs,
+  actions,
 }) => {
   const theme = useTheme()
 
@@ -45,17 +47,36 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         mb: 2,
       }}
     >
-      {/* Title */}
-      <Typography 
-        variant="h4" 
-        fontWeight="bold" 
-        sx={{ 
-          mb: breadcrumbs && breadcrumbs.length > 0 ? 2 : 0,
-          fontSize: '1.7rem' // 15% smaller than default h4 (2rem)
-        }}
-      >
-        {title}
-      </Typography>
+      {/* Title and Actions Row */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: subtitle || (breadcrumbs && breadcrumbs.length > 0) ? 1 : 0 }}>
+        <Typography 
+          variant="h4" 
+          fontWeight="bold" 
+          sx={{ 
+            fontSize: '1.7rem' // 15% smaller than default h4 (2rem)
+          }}
+        >
+          {title}
+        </Typography>
+        
+        {/* Actions (e.g., buttons) */}
+        {actions && (
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {actions}
+          </Box>
+        )}
+      </Box>
+
+      {/* Subtitle */}
+      {subtitle && (
+        <Typography 
+          variant="body2" 
+          color="text.secondary"
+          sx={{ mb: breadcrumbs && breadcrumbs.length > 0 ? 1 : 0 }}
+        >
+          {subtitle}
+        </Typography>
+      )}
 
       {/* Breadcrumbs Below Title */}
       {breadcrumbs && breadcrumbs.length > 0 && (
