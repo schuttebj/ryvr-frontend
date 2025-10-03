@@ -39,11 +39,7 @@ interface DashboardStats {
   users: {
     total: number;
     admin: number;
-    agency: number;
-    individual: number;
-  };
-  agencies: {
-    total: number;
+    regular: number;  // Simplified: regular users instead of agency/individual
     with_businesses: number;
   };
   businesses: {
@@ -89,7 +85,17 @@ export default function AdminDashboardPage() {
       if (statsResult.error) {
         throw new Error(statsResult.error);
       }
-      setStats(statsResult.data as DashboardStats);
+      
+      // Add defensive programming for missing data
+      const statsData = statsResult.data as DashboardStats;
+      console.log('📊 Dashboard stats received:', statsData);
+      
+      // Ensure required structure exists
+      if (!statsData || !statsData.users || !statsData.businesses) {
+        throw new Error('Invalid dashboard stats structure received');
+      }
+      
+      setStats(statsData);
 
       // Fetch system health
       const healthResult = await adminApi.getSystemHealth();
@@ -242,18 +248,18 @@ export default function AdminDashboardPage() {
           <StatCard
             title="Total Users"
             value={stats?.users.total}
-            subtitle={`${stats?.users.admin} admin, ${stats?.users.agency} agency, ${stats?.users.individual} individual`}
+            subtitle={`${stats?.users.admin} admin, ${stats?.users.regular} regular users`}
             icon={<PeopleIcon />}
             color="primary"
           />
         </Grid>
 
-        {/* Agencies */}
+        {/* Users with Businesses */}
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Agencies"
-            value={stats?.agencies.total}
-            subtitle={`${stats?.agencies.with_businesses} have businesses`}
+            title="Business Owners"
+            value={stats?.users.with_businesses}
+            subtitle="Users who own businesses"
             icon={<BusinessIcon />}
             color="secondary"
           />
@@ -448,9 +454,9 @@ export default function AdminDashboardPage() {
               <Button 
                 variant="outlined" 
                 startIcon={<BusinessIcon />}
-                onClick={() => navigate('/admin/agencies')}
+                onClick={() => navigate('/admin/businesses')}
               >
-                Manage Agencies
+                Manage Businesses
               </Button>
             </Grid>
             <Grid item>
