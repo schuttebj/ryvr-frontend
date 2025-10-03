@@ -443,6 +443,30 @@ export const fileApi = {
     
     return handleResponse(response, 'getFilesWithEmbeddings');
   },
+
+  /**
+   * Manually generate embeddings for a specific file
+   */
+  generateEmbeddings: async (fileId: number, forceRegenerate: boolean = false): Promise<{
+    success: boolean;
+    file_id: number;
+    file_name: string;
+    chunks_created: number;
+    chunks_embedded: number;
+    total_tokens_used: number;
+    credits_used: number;
+    embedding_model: string;
+    skipped: boolean;
+    message?: string;
+  }> => {
+    const response = await fetch(`${API_BASE}/api/v1/embeddings/files/${fileId}/generate`, {
+      method: 'POST',
+      headers: createHeaders(true, 'application/json'),
+      body: JSON.stringify({ force_regenerate: forceRegenerate }),
+    });
+    
+    return handleResponse(response, 'generateEmbeddings');
+  },
   
   // =============================================================================
   // UTILITY FUNCTIONS

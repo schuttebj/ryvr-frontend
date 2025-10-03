@@ -50,6 +50,7 @@ import {
   TextSnippet as TextIcon,
   KeyboardArrowDown as ArrowDownIcon,
   KeyboardArrowUp as ArrowUpIcon,
+  Psychology as EmbedIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import BusinessSelector from '../components/common/BusinessSelector';
@@ -326,6 +327,15 @@ const FileRow: React.FC<FileRowProps> = ({ file, onFileAction }) => {
             <Tooltip title="Generate Summary">
               <IconButton size="small" onClick={() => onFileAction('summary', file)}>
                 <SummaryIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Generate Embeddings">
+              <IconButton 
+                size="small" 
+                onClick={() => onFileAction('embed', file)}
+                color={file.is_embedded ? 'success' : 'default'}
+              >
+                <EmbedIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Delete">
@@ -732,14 +742,30 @@ export default function FilesPage() {
           loadFiles();
           break;
           
+        case 'embed':
+          console.log('🚀 Generating embeddings for file:', file.id, file.original_name);
+          const embeddingResult = await fileApi.generateEmbeddings(file.id, true);
+          console.log('✅ Embedding generation result:', embeddingResult);
+          setSnackbar({
+            open: true,
+            message: embeddingResult.skipped 
+              ? 'File already has embeddings' 
+              : `✅ Embeddings generated! ${embeddingResult.chunks_embedded} chunks, ${embeddingResult.credits_used} credits used`,
+            severity: embeddingResult.skipped ? 'info' : 'success'
+          });
+          loadFiles();
+          break;
+          
         default:
           console.log(`Action ${action} not implemented yet`);
       }
     } catch (error) {
       console.error(`Error with action ${action}:`, error);
+      const errorMessage = error instanceof Error ? error.message : `Failed to ${action} file`;
+      console.error('❌ Full error details:', error);
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : `Failed to ${action} file`,
+        message: errorMessage,
         severity: 'error'
       });
     }
