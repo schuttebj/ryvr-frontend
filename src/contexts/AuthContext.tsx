@@ -193,14 +193,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const validateToken = async () => {
       const savedToken = localStorage.getItem('ryvr_token');
-      const savedUser = localStorage.getItem('ryvr_user');
       const savedBusinessId = localStorage.getItem('ryvr_current_business_id');
       
-      if (savedToken && savedUser) {
+      if (savedToken) {
         try {
-          // Parse user data
-          const userData = JSON.parse(savedUser);
-          
           // Fetch full user context
           const context = await fetchUserContext(savedToken);
           
@@ -223,13 +219,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             // Token is invalid, clear storage
             console.warn('🚫 Token validation failed, clearing auth data');
             localStorage.removeItem('ryvr_token');
-            localStorage.removeItem('ryvr_user');
             localStorage.removeItem('ryvr_current_business_id');
           }
         } catch (error) {
           console.error('Error validating token:', error);
           localStorage.removeItem('ryvr_token');
-          localStorage.removeItem('ryvr_user');
           localStorage.removeItem('ryvr_current_business_id');
         }
       }
@@ -248,7 +242,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     
     localStorage.setItem('ryvr_token', newToken);
-    localStorage.setItem('ryvr_user', JSON.stringify(userData));
     if (businessId) {
       localStorage.setItem('ryvr_current_business_id', businessId.toString());
     }
@@ -267,7 +260,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUserContext(null);
     setCurrentBusinessId(null);
     localStorage.removeItem('ryvr_token');
-    localStorage.removeItem('ryvr_user');
     localStorage.removeItem('ryvr_current_business_id');
   };
 
