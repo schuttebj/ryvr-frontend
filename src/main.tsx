@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import TestComponent from './TestComponent.tsx'
+import App from './App.tsx'
 import SimpleErrorBoundary from './components/SimpleErrorBoundary.tsx'
 
 console.log('🚀 RYVR Frontend starting...');
@@ -71,7 +71,7 @@ console.log('Root element:', rootElement);
 ReactDOM.createRoot(rootElement!).render(
   <React.StrictMode>
     <SimpleErrorBoundary>
-      <TestComponent />
+      <App />
     </SimpleErrorBoundary>
   </React.StrictMode>,
 ) 
