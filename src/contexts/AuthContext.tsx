@@ -140,6 +140,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const context = await response.json();
+        console.log('🔍 Fetched user context:', context);
         return context;
       } else {
         console.warn('Failed to fetch user context:', response.status);
@@ -205,8 +206,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           if (context) {
             // Token is valid, set auth state
+            console.log('🔍 Setting user from context:', context.user);
             setToken(savedToken);
-            setUser(userData);
+            setUser(context.user); // Use fresh user data from API
             setUserContext(context);
             
             // Set current business
