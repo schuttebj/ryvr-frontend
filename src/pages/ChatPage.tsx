@@ -50,9 +50,8 @@ interface ChatMessage {
 }
 
 export default function ChatPage() {
-  const { user, currentBusinessId, hasFeature, token } = useAuth();
+  const { user, currentBusinessId, hasFeature, token, userContext } = useAuth();
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
-  const [useCrossBusiness] = useState(false); // setUseCrossBusiness removed for now
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,7 +62,10 @@ export default function ChatPage() {
   const effectiveBusinessId = selectedBusinessId !== null ? selectedBusinessId : currentBusinessId;
 
   // Check if user can use cross-business chat
-  const canUseCrossBusiness = hasFeature('cross_business_chat');
+  const canUseCrossBusiness = hasFeature('cross_business_chat') || user?.role === 'admin';
+  
+  // Determine if we're in cross-business mode (when selectedBusinessId is explicitly null)
+  const useCrossBusiness = selectedBusinessId === null && canUseCrossBusiness;
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -189,6 +191,7 @@ export default function ChatPage() {
             <BusinessSelector
               selectedBusinessId={selectedBusinessId}
               onBusinessChange={setSelectedBusinessId}
+              allowAllOption={canUseCrossBusiness || user?.role === 'admin'} // Allow "All Businesses" for admins and cross-business users
             />
           </Box>
         </CardContent>

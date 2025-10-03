@@ -8,6 +8,7 @@ import AdminLayout from './components/layout/AdminLayout';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 // import AgencyDashboardPage from './pages/AgencyDashboardPage'; // Unused in simplified structure
 import BusinessDashboardPage from './pages/BusinessDashboardPage';
@@ -52,6 +53,10 @@ function AppRoutes() {
       <Route 
         path="/login" 
         element={isAuthenticated ? <Navigate to={getDefaultRoute()} /> : <LoginPage />} 
+      />
+      <Route 
+        path="/register" 
+        element={isAuthenticated ? <Navigate to={getDefaultRoute()} /> : <RegisterPage />} 
       />
       <Route path="/" element={<Navigate to={getDefaultRoute()} />} />
       

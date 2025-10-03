@@ -9,7 +9,7 @@ import {
   Paper,
   useTheme,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL, API_ENDPOINTS, DEFAULT_HEADERS, getAuthHeaders } from '../config/api';
 
@@ -197,10 +197,20 @@ export default function LoginPage() {
 
           <Box sx={{ textAlign: 'center', mt: 3 }}>
             <Typography variant="body2" color="text.secondary">
-              Demo credentials: admin / password
+              Don't have an account?{' '}
+              <Link 
+                to="/register" 
+                style={{ 
+                  color: theme.palette.primary.main, 
+                  textDecoration: 'none',
+                  fontWeight: 600
+                }}
+              >
+                Sign up
+              </Link>
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              (Default admin user from backend)
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              Demo credentials: admin / password
             </Typography>
           </Box>
         </Paper>

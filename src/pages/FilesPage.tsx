@@ -603,11 +603,15 @@ export default function FilesPage() {
     setUploadLoading(true);
     setUploadProgress({ stage: 'Uploading file...', percent: 0 });
     
+    // Use currentBusinessId if no businessId is provided and user has a current business
+    const targetBusinessId = businessId || currentBusinessId;
+    
     console.log('🚀 Starting file upload:', {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
-      businessId,
+      businessId: targetBusinessId,
+      currentBusinessId,
       tags
     });
     
@@ -616,11 +620,11 @@ export default function FilesPage() {
       setUploadProgress({ stage: 'Uploading file...', percent: 30 });
       
       let uploadResult;
-      if (businessId) {
-        console.log('📤 Uploading to business:', businessId);
-        uploadResult = await fileApi.uploadBusinessFile(businessId, file, true, true, tags);
+      if (targetBusinessId) {
+        console.log('📤 Uploading to business:', targetBusinessId);
+        uploadResult = await fileApi.uploadBusinessFile(targetBusinessId, file, true, true, tags);
       } else {
-        console.log('📤 Uploading to account');
+        console.log('📤 Uploading to account (no business selected)');
         uploadResult = await fileApi.uploadAccountFile(file, true, true, tags);
       }
       
@@ -787,7 +791,7 @@ export default function FilesPage() {
             onUpload={handleFileUpload}
             loading={uploadLoading}
             uploadProgress={uploadProgress}
-            selectedBusinessId={tabValue === 1 ? (selectedBusinessId ?? undefined) : undefined}
+            selectedBusinessId={tabValue === 1 ? (effectiveBusinessId ?? undefined) : (currentBusinessId ?? undefined)}
             onClose={() => setUploadModalOpen(false)}
           />
         </DialogContent>

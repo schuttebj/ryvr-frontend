@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
     LOGIN: '/api/v1/auth/login',
+    REGISTER: '/api/v1/auth/register',
     ME: '/api/v1/auth/me',
     SWITCH_BUSINESS: '/api/v1/auth/switch-business',
   },
