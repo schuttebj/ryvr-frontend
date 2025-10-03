@@ -36,6 +36,8 @@ const queryClient = new QueryClient({
 
 function AppRoutes() {
   const { isAuthenticated, user } = useAuth();
+  
+  console.log('🔍 AppRoutes rendering:', { isAuthenticated, user: user?.role });
 
   const getDefaultRoute = () => {
     if (!user) return "/login";
@@ -124,6 +126,8 @@ function AppRoutes() {
 }
 
 function App() {
+  console.log('🎨 App component rendering...');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

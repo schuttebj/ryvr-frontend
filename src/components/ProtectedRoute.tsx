@@ -10,6 +10,8 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, user } = useAuth();
+  
+  console.log('🛡️ ProtectedRoute:', { isAuthenticated, isLoading, userRole: user?.role, requiredRole });
 
   if (isLoading) {
     return (

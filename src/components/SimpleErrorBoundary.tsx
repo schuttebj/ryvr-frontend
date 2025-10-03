@@ -24,6 +24,8 @@ class SimpleErrorBoundary extends Component<Props, State> {
   }
 
   render() {
+    console.log('🛡️ SimpleErrorBoundary render, hasError:', this.state.hasError);
+    
     if (this.state.hasError) {
       return (
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
@@ -39,6 +41,7 @@ class SimpleErrorBoundary extends Component<Props, State> {
       );
     }
 
+    console.log('🛡️ SimpleErrorBoundary rendering children');
     return this.props.children;
   }
 }

@@ -287,6 +287,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isSeatLimitReached,
   };
 
+  console.log('🔐 AuthContext state:', { 
+    isAuthenticated: value.isAuthenticated, 
+    isLoading: value.isLoading, 
+    hasUser: !!user,
+    userRole: user?.role 
+  });
+
   return (
     <AuthContext.Provider value={value}>
       {children}
