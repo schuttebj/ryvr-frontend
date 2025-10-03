@@ -28,6 +28,9 @@ export const API_ENDPOINTS = {
     LIST: '/api/v1/businesses',
     CREATE: '/api/v1/businesses',
     DETAIL: (id: number) => `/api/v1/businesses/${id}`,
+    ONBOARDING_DEFAULT: '/api/v1/businesses/onboarding/default',
+    ONBOARDING: (id: number) => `/api/v1/businesses/${id}/onboarding`,
+    ONBOARDING_RESPONSES: (id: number) => `/api/v1/businesses/${id}/onboarding/responses`,
   },
   
   // Files

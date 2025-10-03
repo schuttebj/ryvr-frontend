@@ -21,7 +21,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL, API_ENDPOINTS, DEFAULT_HEADERS, getAuthHeaders } from '../config/api';
 import OnboardingWizard from '../components/OnboardingWizard';
-import type { RegistrationData, OnboardingAnswers, OnboardingResponseCreate } from '../types/onboarding';
+import type { OnboardingAnswers, OnboardingResponseCreate } from '../types/onboarding';
 
 const WIZARD_STEPS = ['Create Account', 'Tell Us About You', 'Get Started'];
 
@@ -37,7 +37,7 @@ export default function RegisterPage() {
 
   // Registration form state
   const [showPassword, setShowPassword] = useState(false);
-  const [registrationData, setRegistrationData] = useState<RegistrationData>({
+  const [registrationData, setRegistrationData] = useState({
     username: '',
     email: '',
     password: '',
@@ -334,7 +334,6 @@ export default function RegisterPage() {
         return (
           <Box sx={{ maxWidth: 800, mx: 'auto', width: '100%' }}>
             <OnboardingWizard
-              registrationData={registrationData}
               onComplete={handleOnboardingComplete}
               onBack={handleOnboardingBack}
             />

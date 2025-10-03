@@ -50,7 +50,7 @@ interface ChatMessage {
 }
 
 export default function ChatPage() {
-  const { user, currentBusinessId, hasFeature, token, userContext } = useAuth();
+  const { user, currentBusinessId, hasFeature, token } = useAuth();
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');

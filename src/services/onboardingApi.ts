@@ -1,4 +1,4 @@
-import { API_BASE_URL, getAuthHeaders } from '../config/api';
+import { API_BASE_URL, API_ENDPOINTS, getAuthHeaders } from '../config/api';
 import type { OnboardingTemplate, OnboardingResponseCreate, OnboardingResponse } from '../types/onboarding';
 
 export const onboardingApi = {
@@ -9,7 +9,7 @@ export const onboardingApi = {
     const headers = token ? getAuthHeaders(token) : { 'Content-Type': 'application/json' };
     
     const response = await fetch(
-      `${API_BASE_URL}/businesses/onboarding/default`,
+      `${API_BASE_URL}${API_ENDPOINTS.BUSINESSES.ONBOARDING_DEFAULT}`,
       {
         method: 'GET',
         headers,
@@ -28,7 +28,7 @@ export const onboardingApi = {
    */
   async getBusinessTemplate(businessId: number, token: string): Promise<OnboardingTemplate> {
     const response = await fetch(
-      `${API_BASE_URL}/businesses/${businessId}/onboarding`,
+      `${API_BASE_URL}${API_ENDPOINTS.BUSINESSES.ONBOARDING(businessId)}`,
       {
         method: 'GET',
         headers: getAuthHeaders(token),
@@ -51,7 +51,7 @@ export const onboardingApi = {
     token: string
   ): Promise<OnboardingResponse[]> {
     const response = await fetch(
-      `${API_BASE_URL}/businesses/${businessId}/onboarding`,
+      `${API_BASE_URL}${API_ENDPOINTS.BUSINESSES.ONBOARDING(businessId)}`,
       {
         method: 'POST',
         headers: getAuthHeaders(token),
@@ -71,7 +71,7 @@ export const onboardingApi = {
    */
   async getOnboardingResponses(businessId: number, token: string): Promise<OnboardingResponse[]> {
     const response = await fetch(
-      `${API_BASE_URL}/businesses/${businessId}/onboarding/responses`,
+      `${API_BASE_URL}${API_ENDPOINTS.BUSINESSES.ONBOARDING_RESPONSES(businessId)}`,
       {
         method: 'GET',
         headers: getAuthHeaders(token),

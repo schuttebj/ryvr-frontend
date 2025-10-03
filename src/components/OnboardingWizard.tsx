@@ -11,26 +11,21 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Checkbox,
-  FormControlLabel,
   FormGroup,
   FormHelperText,
   Paper,
   Alert,
   CircularProgress,
   useTheme,
-  Stack,
   Chip,
 } from '@mui/material';
 import type { 
   OnboardingTemplate, 
   OnboardingQuestion, 
-  OnboardingAnswers,
-  RegistrationData 
+  OnboardingAnswers
 } from '../types/onboarding';
 
 interface OnboardingWizardProps {
-  registrationData: RegistrationData;
   onComplete: (answers: OnboardingAnswers) => void;
   onBack: () => void;
 }
@@ -40,7 +35,6 @@ interface SectionQuestions {
 }
 
 export default function OnboardingWizard({ 
-  registrationData, 
   onComplete, 
   onBack 
 }: OnboardingWizardProps) {
