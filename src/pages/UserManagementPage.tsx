@@ -87,7 +87,9 @@ export default function UserManagementPage() {
       if (result.error) {
         throw new Error(result.error);
       }
-      setUsers((result.data as User[]) || []);
+      // API returns { users: [...], total, skip, limit }
+      const usersData = result.data as any;
+      setUsers(usersData?.users || []);
     } catch (err: any) {
       console.error('Failed to fetch users:', err);
       setError(err.message || 'Failed to load users');

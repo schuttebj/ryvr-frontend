@@ -41,6 +41,8 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
   // Use current business from auth context if no specific selection
   const effectiveBusinessId = selectedBusinessId !== undefined ? selectedBusinessId : currentBusinessId
   const businesses = userContext?.businesses || []
+  
+  console.log('🏢 BusinessSelector - businesses:', businesses.length, 'role:', user?.role)
 
   // Check if user can access cross-business features
   const canUseCrossBusiness = hasFeature('cross_business_chat') || hasFeature('cross_business_files')
@@ -122,6 +124,17 @@ export const BusinessSelector: React.FC<BusinessSelectorProps> = ({
     return (
       <Alert severity="error" sx={{ mx: 2 }}>
         {error}
+      </Alert>
+    )
+  }
+
+  // Show message when no businesses available
+  if (businesses.length === 0 && !loading) {
+    return (
+      <Alert severity="info" sx={{ mx: 2 }}>
+        {user?.role === 'admin' 
+          ? 'No businesses in the system yet. Create a test user with businesses to preview.'
+          : 'No businesses yet. Create your first business to get started.'}
       </Alert>
     )
   }
