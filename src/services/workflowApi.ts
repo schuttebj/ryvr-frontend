@@ -2712,6 +2712,10 @@ export const workflowApi = {
   validateWorkflow: async (workflow: any) => {
     console.log('Validating workflow:', workflow.name);
     
+    // Clear globalWorkflowData to start fresh for validation
+    clearWorkflowData();
+    console.log('🧹 Cleared globalWorkflowData for fresh validation run');
+    
     const validation = {
       isValid: true,
       errors: [] as string[],
@@ -2957,6 +2961,19 @@ export const workflowApi = {
           if (result.data) {
             const outputVariable = stepResult.dataMapping.outputVariable;
             (currentData as any)[outputVariable] = result.data;
+            
+            // CRITICAL: Store node result in globalWorkflowData so subsequent nodes can reference it
+            // This allows variables like {{node_id.data.processed.field}} to resolve correctly
+            await workflowApi.storeNodeResult(node.id, {
+              nodeId: node.id,
+              nodeType: node.data.type,
+              status: 'success',
+              data: result.data,
+              executedAt: new Date().toISOString(),
+              executionTime: stepResult.executionTime,
+              executionId: `validation_${Date.now()}` // Validation run ID
+            });
+            console.log(`✅ Stored validation result for ${node.id} in globalWorkflowData`);
           }
         } else {
           stepResult.status = 'error';
