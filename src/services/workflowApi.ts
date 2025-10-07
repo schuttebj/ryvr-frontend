@@ -3100,8 +3100,9 @@ export const workflowApi = {
 
       case 'content_extract':
       case 'CONTENT_EXTRACT':
-        if (!config.inputMapping) {
-          validation.errors.push('Input mapping (URL source) is required');
+        // Check for either urlSource (new) or inputMapping (legacy)
+        if (!config.urlSource && !config.inputMapping) {
+          validation.errors.push('URL source is required');
           validation.isValid = false;
         }
         break;
