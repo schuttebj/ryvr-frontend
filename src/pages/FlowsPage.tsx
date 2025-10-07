@@ -40,6 +40,10 @@ import BusinessSelector from '../components/flows/BusinessSelector';
 import FlowReviewInterface from '../components/flows/FlowReviewInterface';
 import { useAuth } from '../contexts/AuthContext';
 
+// Import layout based on user role
+import AdminLayout from '../components/layout/AdminLayout';
+import BusinessLayout from '../components/layout/BusinessLayout';
+
 const FLOW_COLUMNS = [
   { id: 'new', title: 'New', color: '#6b7280' },
   { id: 'scheduled', title: 'Scheduled', color: '#f59e0b' },
@@ -362,76 +366,74 @@ export default function FlowsPage() {
   // MAIN RENDER
   // =============================================================================
   
-  if (availableBusinesses.length === 0) {
-    return (
-      <Box sx={{ p: 3 }}>
+  // Get the appropriate layout component based on user role
+  const getLayoutComponent = () => {
+    if (user?.role === 'admin') return AdminLayout;
+    return BusinessLayout;
+  };
+  
+  const LayoutComponent = getLayoutComponent();
+  
+  // Header actions (top-right buttons)
+  const headerActions = (
+    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+      {/* Business Selector */}
+      <BusinessSelector
+        businesses={availableBusinesses}
+        selectedBusiness={selectedBusiness}
+        onBusinessChange={setSelectedBusiness}
+      />
+      
+      {/* Create Flow Button */}
+      <Button
+        variant="contained"
+        startIcon={<AddIcon />}
+        onClick={() => setWizardOpen(true)}
+        disabled={!selectedBusiness || loading}
+        sx={{ minWidth: 140 }}
+      >
+        New Flow
+      </Button>
+    </Box>
+  );
+  
+  const renderContent = () => {
+    if (availableBusinesses.length === 0) {
+      return (
         <Alert severity="info">
           {user?.role === 'admin' 
             ? 'No businesses in the system yet. Create a test business to get started with flows.'
             : 'No businesses found. You need access to at least one business to manage flows.'}
         </Alert>
-      </Box>
-    );
-  }
-  
-  return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Box
-        sx={{
-          p: 3,
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          backgroundColor: theme.palette.background.paper,
-        }}
-      >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4" sx={{ fontWeight: 600 }}>
-            Flows
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-            {/* Business Selector */}
-            <BusinessSelector
-              businesses={availableBusinesses}
-              selectedBusiness={selectedBusiness}
-              onBusinessChange={setSelectedBusiness}
-            />
-            
-            {/* Create Flow Button */}
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setWizardOpen(true)}
-              disabled={!selectedBusiness || loading}
-              sx={{ minWidth: 140 }}
-            >
-              New Flow
-            </Button>
-          </Box>
-        </Box>
-        
+      );
+    }
+    
+    return (
+      <Box>
         {/* Business Info */}
         {selectedBusiness && (
-          <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-            <Chip
-              icon={<BusinessIcon />}
-              label={selectedBusiness.name}
-              variant="outlined"
-              sx={{ fontWeight: 500 }}
-            />
-            <Typography variant="body2" color="text.secondary">
-              {selectedBusiness.credits_remaining} credits remaining
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {flows.length} total flows
-            </Typography>
-          </Box>
+          <Card sx={{ mb: 2 }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                <Chip
+                  icon={<BusinessIcon />}
+                  label={selectedBusiness.name}
+                  variant="outlined"
+                  sx={{ fontWeight: 500 }}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  {selectedBusiness.credits_remaining} credits remaining
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {flows.length} total flows
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
         )}
-      </Box>
-      
-      {/* Error Alert */}
-      {error && (
-        <Box sx={{ px: 3, py: 1 }}>
+        
+        {/* Error Alert */}
+        {error && (
           <Alert 
             severity="error" 
             onClose={() => setError(null)}
@@ -439,49 +441,56 @@ export default function FlowsPage() {
           >
             {error}
           </Alert>
-        </Box>
-      )}
-      
-      {/* Loading Indicator */}
-      {loading && (
-        <Box sx={{ px: 3, py: 1 }}>
-          <LinearProgress />
-        </Box>
-      )}
-      
-      {/* Kanban Board */}
-      <Box sx={{ flex: 1, overflow: 'hidden' }}>
+        )}
+        
+        {/* Loading Indicator */}
+        {loading && (
+          <Box sx={{ mb: 2 }}>
+            <LinearProgress />
+          </Box>
+        )}
+        
+        {/* Kanban Board */}
         <DragDropContext onDragEnd={handleDragEnd}>
           <Box
             sx={{
               display: 'flex',
               gap: 2,
-              p: 3,
               overflowX: 'auto',
-              height: '100%',
-              alignItems: 'flex-start',
+              pb: 2,
+              minHeight: 'calc(100vh - 400px)',
             }}
           >
             {FLOW_COLUMNS.map(renderKanbanColumn)}
           </Box>
         </DragDropContext>
+        
+        {/* Flow Creation Wizard */}
+        <FlowCreationWizard
+          open={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          onFlowCreated={handleFlowCreated}
+          selectedBusiness={selectedBusiness}
+        />
+        
+        {/* Flow Review Interface */}
+        <FlowReviewInterface
+          flow={selectedFlowForReview}
+          open={reviewInterfaceOpen}
+          onClose={handleCloseReviewInterface}
+          onReviewCompleted={handleReviewCompleted}
+        />
       </Box>
-      
-      {/* Flow Creation Wizard */}
-      <FlowCreationWizard
-        open={wizardOpen}
-        onClose={() => setWizardOpen(false)}
-        onFlowCreated={handleFlowCreated}
-        selectedBusiness={selectedBusiness}
-      />
-      
-      {/* Flow Review Interface */}
-      <FlowReviewInterface
-        flow={selectedFlowForReview}
-        open={reviewInterfaceOpen}
-        onClose={handleCloseReviewInterface}
-        onReviewCompleted={handleReviewCompleted}
-      />
-    </Box>
+    );
+  };
+  
+  return (
+    <LayoutComponent 
+      title="Flows"
+      subtitle="Manage workflow executions with Kanban-style boards"
+      actions={headerActions}
+    >
+      {renderContent()}
+    </LayoutComponent>
   );
 }
