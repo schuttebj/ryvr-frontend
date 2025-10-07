@@ -38,6 +38,7 @@ import FlowCreationWizard from '../components/flows/FlowCreationWizard';
 import FlowCard from '../components/flows/FlowCard';
 import BusinessSelector from '../components/flows/BusinessSelector';
 import FlowReviewInterface from '../components/flows/FlowReviewInterface';
+import { useAuth } from '../contexts/AuthContext';
 
 const FLOW_COLUMNS = [
   { id: 'new', title: 'New', color: '#6b7280' },
@@ -50,16 +51,35 @@ const FLOW_COLUMNS = [
 
 export default function FlowsPage() {
   const theme = useTheme();
+  const { userContext, currentBusinessId, user } = useAuth();
   
   // State management
   const [selectedBusiness, setSelectedBusiness] = useState<FlowBusinessContext | null>(null);
-  const [availableBusinesses, setAvailableBusinesses] = useState<FlowBusinessContext[]>([]);
   const [flows, setFlows] = useState<FlowCardType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [reviewInterfaceOpen, setReviewInterfaceOpen] = useState(false);
   const [selectedFlowForReview, setSelectedFlowForReview] = useState<FlowCardType | null>(null);
+  
+  // Get available businesses from AuthContext
+  const availableBusinesses: FlowBusinessContext[] = (userContext?.businesses || []).map((business) => ({
+    id: business.id,
+    name: business.name,
+    agency_id: 0, // Not used in current structure
+    active_flows_count: 0,
+    credits_remaining: 0, // Could be added to Business model if needed
+    tier: 'basic'
+  }));
+  
+  // Debug logging
+  console.log('🔍 FlowsPage - Debug Info:', {
+    userRole: user?.role,
+    businessCount: availableBusinesses.length,
+    businesses: availableBusinesses.map(b => ({ id: b.id, name: b.name })),
+    currentBusinessId,
+    selectedBusiness: selectedBusiness ? { id: selectedBusiness.id, name: selectedBusiness.name } : null
+  });
   
   // Organize flows by status for Kanban columns
   const flowsByStatus = FLOW_COLUMNS.reduce((acc, column) => {
@@ -71,30 +91,20 @@ export default function FlowsPage() {
   // INITIALIZATION
   // =============================================================================
   
+  // Auto-select first business or current business from context
   useEffect(() => {
-    loadAvailableBusinesses();
-  }, []);
+    if (availableBusinesses.length > 0 && !selectedBusiness) {
+      // Try to use currentBusinessId from context first
+      const currentBusiness = availableBusinesses.find(b => b.id === currentBusinessId);
+      setSelectedBusiness(currentBusiness || availableBusinesses[0]);
+    }
+  }, [availableBusinesses, currentBusinessId, selectedBusiness]);
   
   useEffect(() => {
     if (selectedBusiness) {
       loadFlows();
     }
   }, [selectedBusiness]);
-  
-  const loadAvailableBusinesses = async () => {
-    try {
-      const businesses = await FlowApiService.getAvailableBusinesses();
-      setAvailableBusinesses(businesses);
-      
-      // Auto-select first business if available
-      if (businesses.length > 0 && !selectedBusiness) {
-        setSelectedBusiness(businesses[0]);
-      }
-    } catch (err) {
-      console.error('Error loading businesses:', err);
-      setError('Failed to load available businesses');
-    }
-  };
   
   const loadFlows = async () => {
     if (!selectedBusiness) {
@@ -352,11 +362,13 @@ export default function FlowsPage() {
   // MAIN RENDER
   // =============================================================================
   
-  if (availableBusinesses.length === 0 && !loading) {
+  if (availableBusinesses.length === 0) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="info">
-          No businesses found. You need access to at least one business to manage flows.
+          {user?.role === 'admin' 
+            ? 'No businesses in the system yet. Create a test business to get started with flows.'
+            : 'No businesses found. You need access to at least one business to manage flows.'}
         </Alert>
       </Box>
     );
