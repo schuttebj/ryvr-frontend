@@ -1,17 +1,18 @@
 /**
  * Hook for managing OpenAI models
- * Provides dynamic model fetching and caching
+ * Uses stored models from database (System Settings)
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { openaiApiService, OpenAIModel } from '../services/openaiApi';
+import { getAvailableModels, refreshOpenAIModels } from '../services/systemIntegrationApi';
 
 export interface UseOpenAIModelsResult {
   models: OpenAIModel[];
   loading: boolean;
   error: string | null;
   recommendedModel: string | null;
-  refreshModels: () => Promise<void>;
+  refreshModels: (apiKey?: string) => Promise<void>;
   fetchModelsWithApiKey: (apiKey: string) => Promise<OpenAIModel[]>;
   getRecommendedModel: (taskType?: string) => Promise<string>;
   getModelOptions: () => Array<{ value: string; label: string; description?: string }>;
@@ -31,10 +32,11 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
   const [error, setError] = useState<string | null>(null);
   const [recommendedModel, setRecommendedModel] = useState<string | null>(null);
 
-  // Load cached models on mount (no automatic API calls)
+  // Load stored models on mount
   useEffect(() => {
-    const loadCachedModels = () => {
+    const loadStoredModels = async () => {
       try {
+        // First try to get from cache
         const cached = localStorage.getItem(MODEL_CACHE_KEY);
         if (cached) {
           const parsedCache: CachedModels = JSON.parse(cached);
@@ -43,67 +45,110 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
           // Check if cache is still valid
           if (now - parsedCache.timestamp < MODEL_CACHE_DURATION) {
             setModels(parsedCache.models);
-            return true;
+            return;
           }
         }
+        
+        // If no valid cache, fetch from database
+        console.log('🔄 Loading models from database...');
+        const storedModels = await getAvailableModels();
+        
+        if (Array.isArray(storedModels) && storedModels.length > 0) {
+          // Transform to expected format
+          const transformedModels = storedModels.map(model => ({
+            id: model.id,
+            name: model.name || model.id,
+            is_default: model.is_default || false,
+            description: model.description,
+            cost_per_1k_tokens: model.cost_per_1k_tokens,
+            max_tokens: model.max_tokens,
+          }));
+          
+          setModels(transformedModels);
+          
+          // Cache the results
+          const cacheData: CachedModels = {
+            models: transformedModels,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cacheData));
+          console.log('✅ Loaded', transformedModels.length, 'models from database');
+        } else {
+          // Use fallback models if database is empty
+          console.warn('⚠️ No models in database, using fallback models');
+          const fallbackModels: OpenAIModel[] = [
+            { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
+            { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
+            { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
+            { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
+          ];
+          setModels(fallbackModels);
+        }
       } catch (error) {
-        console.error('Failed to load cached models:', error);
+        console.error('❌ Failed to load stored models:', error);
+        // Use fallback models on error
+        const fallbackModels: OpenAIModel[] = [
+          { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
+          { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
+          { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
+          { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
+        ];
+        setModels(fallbackModels);
       }
-      return false;
     };
 
-    const cacheLoaded = loadCachedModels();
-    
-    // If no valid cache, set static fallback models (no API call)
-    if (!cacheLoaded) {
-      const fallbackModels: OpenAIModel[] = [
-        { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
-        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
-      ];
-      setModels(fallbackModels);
-    }
+    loadStoredModels();
   }, []);
 
-  const refreshModels = useCallback(async () => {
+  // Refresh models using the new system endpoint
+  const refreshModels = useCallback(async (apiKey?: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Use the updated API that returns models from database
-      const models = await openaiApiService.getAvailableModels();
+      console.log('🔄 Refreshing models from OpenAI API...');
+      // Call the new refresh endpoint that updates the database
+      const result = await refreshOpenAIModels(apiKey);
       
-      if (Array.isArray(models) && models.length > 0) {
-        setModels(models);
+      if (result.success) {
+        console.log('✅ Models refreshed:', result);
         
-        // Cache the results
-        const cacheData: CachedModels = {
-          models,
-          timestamp: Date.now()
-        };
-        localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cacheData));
+        // Reload from database to get the updated list
+        const storedModels = await getAvailableModels();
+        
+        if (Array.isArray(storedModels) && storedModels.length > 0) {
+          const transformedModels = storedModels.map(model => ({
+            id: model.id,
+            name: model.name || model.id,
+            is_default: model.is_default || false,
+            description: model.description,
+            cost_per_1k_tokens: model.cost_per_1k_tokens,
+            max_tokens: model.max_tokens,
+          }));
+          
+          setModels(transformedModels);
+          
+          // Cache the results
+          const cacheData: CachedModels = {
+            models: transformedModels,
+            timestamp: Date.now()
+          };
+          localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cacheData));
+        }
       } else {
-        throw new Error('No models received from API');
+        throw new Error(result.error || 'Failed to refresh models');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Error fetching models:', err);
-      
-      // Use fallback models on error
-      const fallbackModels: OpenAIModel[] = [
-        { id: 'gpt-4o', name: 'GPT-4o', is_default: false },
-        { id: 'gpt-4o-mini', name: 'GPT-4o Mini', is_default: true },
-        { id: 'gpt-4-turbo', name: 'GPT-4 Turbo', is_default: false },
-        { id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', is_default: false },
-      ];
-      setModels(fallbackModels);
+      console.error('❌ Error refreshing models:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Fetch models with API key - now calls the refresh endpoint instead of direct fetch
   const fetchModelsWithApiKey = useCallback(async (apiKey: string): Promise<OpenAIModel[]> => {
     if (!apiKey || !apiKey.trim()) {
       throw new Error('API key is required');
@@ -113,26 +158,46 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
     setError(null);
 
     try {
-      const models = await openaiApiService.fetchModelsWithApiKey(apiKey);
+      console.log('🔄 Fetching and storing models with provided API key...');
+      // Use the refresh endpoint to fetch and store models
+      const result = await refreshOpenAIModels(apiKey);
       
-      if (Array.isArray(models) && models.length > 0) {
-        setModels(models);
+      if (result.success) {
+        console.log('✅ Models fetched and stored:', result);
         
-        // Cache the models with a special key for this API key
-        const cacheData: CachedModels = {
-          models: models,
-          timestamp: Date.now(),
-        };
-        localStorage.setItem(`${MODEL_CACHE_KEY}_${apiKey.slice(-8)}`, JSON.stringify(cacheData));
+        // Reload from database
+        const storedModels = await getAvailableModels();
         
-        return models;
+        if (Array.isArray(storedModels) && storedModels.length > 0) {
+          const transformedModels = storedModels.map(model => ({
+            id: model.id,
+            name: model.name || model.id,
+            is_default: model.is_default || false,
+            description: model.description,
+            cost_per_1k_tokens: model.cost_per_1k_tokens,
+            max_tokens: model.max_tokens,
+          }));
+          
+          setModels(transformedModels);
+          
+          // Cache the results
+          const cacheData: CachedModels = {
+            models: transformedModels,
+            timestamp: Date.now(),
+          };
+          localStorage.setItem(MODEL_CACHE_KEY, JSON.stringify(cacheData));
+          
+          return transformedModels;
+        } else {
+          throw new Error('No models returned after refresh');
+        }
       } else {
-        throw new Error('No models returned from API');
+        throw new Error(result.error || 'Failed to fetch models');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Error fetching models with API key:', err);
+      console.error('❌ Error fetching models with API key:', err);
       throw err;
     } finally {
       setLoading(false);
@@ -151,7 +216,13 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
       console.error('Failed to get recommended model:', error);
     }
     
-    // Fallback to first available model or default
+    // Fallback to default model from stored models
+    const defaultModel = models.find((m: OpenAIModel) => m.is_default);
+    if (defaultModel) {
+      return defaultModel.id;
+    }
+    
+    // Final fallback
     return models.length > 0 ? models[0].id : 'gpt-4o-mini';
   }, [models]);
 
@@ -161,12 +232,14 @@ export const useOpenAIModels = (): UseOpenAIModelsResult => {
       'gpt-4o-mini': 'Faster, cost-effective GPT-4 (recommended)',
       'gpt-4-turbo': 'Previous generation GPT-4',
       'gpt-3.5-turbo': 'Fast and economical',
+      'o1-preview': 'Reasoning model (advanced)',
+      'o1-mini': 'Reasoning model (faster)',
     };
 
-    return models.map(model => ({
+    return models.map((model: OpenAIModel) => ({
       value: model.id,
-      label: model.id,
-      description: modelDescriptions[model.id] || 'OpenAI model',
+      label: model.name || model.id,
+      description: model.description || modelDescriptions[model.id] || 'OpenAI model',
     }));
   }, [models]);
 

@@ -365,18 +365,22 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
 
     setFetchingModelsFromIntegration(true);
     try {
+      // Fetch and store models using the new system endpoint
       const models = await fetchModelsWithApiKey(selectedIntegration.config.apiKey);
-      console.log('✅ Fetched', models.length, 'models from integration');
+      console.log('✅ Refreshed and stored', models.length, 'models from OpenAI');
       
-      // Optionally set the first model as default
-      if (models.length > 0) {
-        handleConfigChange('modelOverride', models[0].id);
+      // Optionally set the first model as default if no model is selected
+      if (models.length > 0 && !formData.config?.modelOverride) {
+        const defaultModel = models.find(m => m.is_default);
+        if (defaultModel) {
+          handleConfigChange('modelOverride', defaultModel.id);
+        }
       }
       
-      alert(`Successfully fetched ${models.length} models from OpenAI using integration "${selectedIntegration.name}"!`);
+      alert(`✅ Successfully refreshed ${models.length} models from OpenAI!\n\nModels have been stored in the system and are now available for all workflows.`);
     } catch (error) {
-      console.error('❌ Failed to fetch models from integration:', error);
-      alert('Failed to fetch models from integration. Please check the integration API key.');
+      console.error('❌ Failed to refresh models from integration:', error);
+      alert('❌ Failed to refresh models from integration. Please check the integration API key and try again.');
     } finally {
       setFetchingModelsFromIntegration(false);
     }
@@ -836,13 +840,13 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
                 onClick={handleFetchModelsFromIntegration}
                 disabled={!formData.config?.integrationId || fetchingModelsFromIntegration}
                 sx={{ minWidth: 'auto', px: 2, py: 1.75 }}
-                title="Fetch live models from selected integration"
+                title="Refresh models from OpenAI and store in system"
               >
                 {fetchingModelsFromIntegration ? '...' : '🔄'}
               </Button>
             </Box>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              💡 Select an integration above, then click 🔄 to fetch live models
+              💡 Models are loaded from System Settings. Click 🔄 to refresh from OpenAI API and update the stored list.
             </Typography>
             
             <TextField
