@@ -18,7 +18,6 @@ import {
   Chip,
   Alert,
   LinearProgress,
-  useTheme,
   alpha,
 } from '@mui/material';
 import {
@@ -54,7 +53,6 @@ const FLOW_COLUMNS = [
 ];
 
 export default function FlowsPage() {
-  const theme = useTheme();
   const { userContext, currentBusinessId, user } = useAuth();
   
   // State management
