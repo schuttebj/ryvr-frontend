@@ -3072,6 +3072,21 @@ export const workflowApi = {
   validateNodeConfiguration: (node: any) => {
     const validation = { isValid: true, errors: [] as string[] };
     const config = node.data.config || {};
+    
+    // Debug logging for content_extract nodes
+    if (node.data.type === 'content_extract' || node.data.type === 'CONTENT_EXTRACT') {
+      console.log('🔍 Validating content_extract node:', {
+        nodeId: node.id,
+        nodeLabel: node.data.label,
+        configKeys: Object.keys(config),
+        urlSource: config.urlSource,
+        inputMapping: config.inputMapping,
+        hasUrlSource: !!config.urlSource,
+        hasInputMapping: !!config.inputMapping,
+        urlSourceLength: config.urlSource?.length,
+        fullConfig: config
+      });
+    }
 
     switch (node.data.type) {
       case 'ai_openai_task':
