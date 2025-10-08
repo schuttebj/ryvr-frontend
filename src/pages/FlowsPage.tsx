@@ -37,6 +37,7 @@ import FlowCreationWizard from '../components/flows/FlowCreationWizard';
 import FlowCard from '../components/flows/FlowCard';
 import BusinessSelector from '../components/flows/BusinessSelector';
 import FlowReviewInterface from '../components/flows/FlowReviewInterface';
+import FlowOptionsInterface from '../components/flows/FlowOptionsInterface';
 import { useAuth } from '../contexts/AuthContext';
 
 // Import layout based on user role
@@ -47,6 +48,7 @@ const FLOW_COLUMNS = [
   { id: 'new', title: 'New', color: '#6b7280' },
   { id: 'scheduled', title: 'Scheduled', color: '#f59e0b' },
   { id: 'in_progress', title: 'In Progress', color: '#3b82f6' },
+  { id: 'input_required', title: 'Input Required', color: '#06b6d4' },
   { id: 'in_review', title: 'In Review', color: '#8b5cf6' },
   { id: 'complete', title: 'Complete', color: '#10b981' },
   { id: 'error', title: 'Error', color: '#ef4444' },
@@ -63,6 +65,8 @@ export default function FlowsPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [reviewInterfaceOpen, setReviewInterfaceOpen] = useState(false);
   const [selectedFlowForReview, setSelectedFlowForReview] = useState<FlowCardType | null>(null);
+  const [optionsInterfaceOpen, setOptionsInterfaceOpen] = useState(false);
+  const [selectedFlowForOptions, setSelectedFlowForOptions] = useState<FlowCardType | null>(null);
   
   // Get available businesses from AuthContext
   const availableBusinesses: FlowBusinessContext[] = (userContext?.businesses || []).map((business) => ({
@@ -231,6 +235,20 @@ export default function FlowsPage() {
   };
   
   const handleReviewCompleted = async () => {
+    await loadFlows();
+  };
+  
+  const handleOpenOptionsInterface = (flow: FlowCardType) => {
+    setSelectedFlowForOptions(flow);
+    setOptionsInterfaceOpen(true);
+  };
+  
+  const handleCloseOptionsInterface = () => {
+    setOptionsInterfaceOpen(false);
+    setSelectedFlowForOptions(null);
+  };
+  
+  const handleOptionsCompleted = async () => {
     await loadFlows();
   };
   
@@ -477,6 +495,14 @@ export default function FlowsPage() {
           open={reviewInterfaceOpen}
           onClose={handleCloseReviewInterface}
           onReviewCompleted={handleReviewCompleted}
+        />
+        
+        {/* Flow Options Interface */}
+        <FlowOptionsInterface
+          flow={selectedFlowForOptions}
+          open={optionsInterfaceOpen}
+          onClose={handleCloseOptionsInterface}
+          onSelectionCompleted={handleOptionsCompleted}
         />
       </Box>
     );

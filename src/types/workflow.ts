@@ -537,6 +537,8 @@ export enum WorkflowNodeType {
   
   // Flow Control
   REVIEW = 'review',
+  OPTIONS = 'options',
+  CONDITIONAL = 'conditional',
 }
 
 // Standardized Node Response Interface
@@ -768,6 +770,7 @@ export enum FlowStatus {
   NEW = 'new',
   SCHEDULED = 'scheduled', 
   IN_PROGRESS = 'in_progress',
+  INPUT_REQUIRED = 'input_required',
   IN_REVIEW = 'in_review',
   COMPLETE = 'complete',
   ERROR = 'error'
@@ -859,4 +862,63 @@ export interface FlowBusinessContext {
   active_flows_count: number;
   credits_remaining: number;
   tier: string;
+}
+
+// =============================================================================
+// FLOW CONTROL NODE CONFIGURATIONS
+// =============================================================================
+
+// Options Node Configuration
+export interface OptionsNodeConfig {
+  dataSource: string;  // Path to previous node output (e.g., "ai_node_1.data.processed.topics")
+  selectionMode: 'single' | 'multiple';
+  optionLabelField?: string;  // Field to use as label if options are objects (e.g., "title")
+  optionValueField?: string;  // Field to use as value if options are objects (e.g., "id")
+  outputVariable: string;  // Variable name for selected options (e.g., "selected_topics")
+}
+
+// Conditional Node Configuration
+export interface ConditionalNodeConfig {
+  conditions: Array<{
+    leftOperand: string;   // Variable path (e.g., "serp_results.data.summary.total_results")
+    operator: string;      // Comparison operator: ==, !=, >, <, >=, <=, contains, not_contains, starts_with, ends_with, is_empty, is_not_empty
+    rightOperand: any;     // Value or variable path to compare against
+    logicOperator?: 'AND' | 'OR';  // How to combine with next condition (not used for last condition)
+  }>;
+  truePath?: string;   // Node ID to execute if conditions evaluate to true
+  falsePath?: string;  // Node ID to execute if conditions evaluate to false
+}
+
+// Review Node Configuration
+export interface ReviewNodeConfig {
+  reviewerType: 'agency' | 'client' | 'admin';
+  editableNodes: string[];  // Node IDs whose outputs can be edited during review
+  editableFields: Record<string, string[]>;  // node_id -> array of field paths that can be edited
+  approvedPath?: string;  // Node ID to continue to if approved
+  declinedPath?: string;  // Node ID to continue to if declined
+}
+
+// Options selection request
+export interface OptionsSelectionRequest {
+  selected_options: any[];  // Array of selected values
+  selection_metadata?: Record<string, any>;  // Additional metadata about the selection
+}
+
+// Review approval with edits request
+export interface ReviewApprovalWithEditsRequest {
+  approved: boolean;
+  comments?: string;
+  edited_steps?: string[];  // Step IDs that were edited
+  edited_data?: Record<string, any>;  // step_id -> modified data
+  rerun_steps?: string[];  // Step IDs that need to be rerun with new data
+}
+
+// Editable step data response
+export interface EditableStepData {
+  step_id: string;
+  step_name: string;
+  step_type: string;
+  output_data: any;
+  input_data: any;
+  editable_fields: string[];
 } 

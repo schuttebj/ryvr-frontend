@@ -271,6 +271,20 @@ const nodePaletteItems: NodePaletteItem[] = [
     color: '#f59e0b'
   },
   {
+    type: WorkflowNodeType.OPTIONS,
+    label: 'Options Selection',
+    description: 'Pause for user to select from dynamic options',
+    category: 'Flow Control',
+    color: '#06b6d4'
+  },
+  {
+    type: WorkflowNodeType.CONDITIONAL,
+    label: 'Conditional Branch',
+    description: 'Branch workflow based on conditions',
+    category: 'Flow Control',
+    color: '#8b5cf6'
+  },
+  {
     type: WorkflowNodeType.SEO_KEYWORDS_GOOGLE_ADS,
     label: 'Google Ads Keywords',
     description: 'Google Ads keyword data',

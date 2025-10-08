@@ -434,6 +434,156 @@ export class FlowApiService {
     return Math.round((completedSteps / totalSteps) * 100);
   }
   
+  // =============================================================================
+  // OPTIONS SELECTION
+  // =============================================================================
+  
+  /**
+   * Submit options selection for a flow waiting for input
+   */
+  static async submitOptionsSelection(
+    flowId: number,
+    stepId: string,
+    selection: { selected_options: any[]; selection_metadata?: Record<string, any> }
+  ): Promise<any> {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/flows/flows/${flowId}/select-options?step_id=${stepId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(selection),
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleAuthError();
+        }
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to submit options selection');
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error('Error submitting options selection:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get available options for a flow waiting for selection
+   */
+  static async getFlowOptionsData(flowId: number, stepId: string): Promise<any> {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/flows/flows/${flowId}/options/${stepId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleAuthError();
+        }
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to get flow options');
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error('Error getting flow options:', error);
+      throw error;
+    }
+  }
+  
+  // =============================================================================
+  // REVIEW WITH EDITS
+  // =============================================================================
+  
+  /**
+   * Approve or reject review with optional edits to previous steps
+   */
+  static async approveReviewWithEdits(
+    flowId: number,
+    stepId: string,
+    approval: {
+      approved: boolean;
+      comments?: string;
+      edited_steps?: string[];
+      edited_data?: Record<string, any>;
+      rerun_steps?: string[];
+    }
+  ): Promise<any> {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/flows/flows/${flowId}/review/${stepId}/approve-with-edits`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(approval),
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleAuthError();
+        }
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to process review');
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error('Error processing review:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get editable data from previous steps for review editing
+   */
+  static async getEditableData(flowId: number): Promise<{
+    success: boolean;
+    flow_id: number;
+    editable_steps: Array<{
+      step_id: string;
+      step_name: string;
+      step_type: string;
+      output_data: any;
+      input_data: any;
+      editable_fields: string[];
+    }>;
+    runtime_state: Record<string, any>;
+  }> {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE}/flows/flows/${flowId}/editable-data`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleAuthError();
+        }
+        const error = await response.json();
+        throw new Error(error.detail || 'Failed to get editable data');
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error('Error getting editable data:', error);
+      throw error;
+    }
+  }
+  
   /**
    * Format duration for display
    */
