@@ -30,6 +30,7 @@ import {
   Delete as DeleteIcon,
   Replay as RerunIcon,
 } from '@mui/icons-material';
+import { FlowStatus } from '../../types/workflow';
 
 interface FlowDetailsDialogProps {
   open: boolean;
@@ -63,7 +64,7 @@ export default function FlowDetailsDialog({
       setFlowDetails(details);
       
       // Auto-refresh if flow is in progress
-      if (details.status === 'in_progress' || details.status === 'running') {
+      if (details.status === FlowStatus.IN_PROGRESS) {
         setAutoRefresh(true);
       } else {
         setAutoRefresh(false);
@@ -421,7 +422,7 @@ export default function FlowDetailsDialog({
             ) : (
               <Alert severity="info">
                 <Typography variant="body2">
-                  No step executions recorded yet. {flowDetails.status === 'new' ? 'Start the flow to begin execution.' : ''}
+                  No step executions recorded yet. {flowDetails.status === FlowStatus.NEW ? 'Start the flow to begin execution.' : ''}
                 </Typography>
               </Alert>
             )}

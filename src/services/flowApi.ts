@@ -75,8 +75,8 @@ export interface FlowTemplateResponse {
 
 export interface TemplatePreviewResponse {
   template_id: number;
-  name: string;
-  description: string;
+    name: string;
+    description: string;
   step_count: number;
   editable_fields: any[];
   credit_cost: number;
@@ -102,6 +102,27 @@ function formatDuration(minutes: number | null): string {
   return `${hours}h ${mins}m`;
 }
 
+function getFlowStatusInfo(status: FlowStatus): { icon: string; color: string; label: string } {
+  switch (status) {
+    case FlowStatus.NEW:
+      return { icon: '📋', color: '#6b7280', label: 'New' };
+    case FlowStatus.SCHEDULED:
+      return { icon: '🕐', color: '#f59e0b', label: 'Scheduled' };
+    case FlowStatus.IN_PROGRESS:
+      return { icon: '▶️', color: '#3b82f6', label: 'In Progress' };
+    case FlowStatus.INPUT_REQUIRED:
+      return { icon: '❓', color: '#8b5cf6', label: 'Input Required' };
+    case FlowStatus.IN_REVIEW:
+      return { icon: '👁️', color: '#f97316', label: 'In Review' };
+    case FlowStatus.COMPLETE:
+      return { icon: '✅', color: '#10b981', label: 'Complete' };
+    case FlowStatus.ERROR:
+      return { icon: '❌', color: '#ef4444', label: 'Error' };
+    default:
+      return { icon: '❔', color: '#6b7280', label: 'Unknown' };
+  }
+}
+
 // ============================================================================
 // FLOW API SERVICE
 // ============================================================================
@@ -120,7 +141,7 @@ class FlowApiService {
   ): Promise<any> {
     const token = getAuthToken();
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+          'Content-Type': 'application/json',
     };
 
     if (token) {
@@ -137,13 +158,13 @@ class FlowApiService {
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, options);
-
-    if (!response.ok) {
+      
+      if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.detail || `API Error: ${response.statusText}`);
-    }
-
-    return await response.json();
+      }
+      
+      return await response.json();
   }
 
   // List flows for a business
@@ -255,6 +276,7 @@ class FlowApiService {
   // Helper formatters
   formatCredits = formatCredits;
   formatDuration = formatDuration;
+  getFlowStatusInfo = getFlowStatusInfo;
 }
 
 // Export singleton instance
@@ -280,4 +302,5 @@ export const flowApi = {
   getEditableData: (flowId: number) => flowApiService.getEditableData(flowId),
   formatCredits,
   formatDuration,
+  getFlowStatusInfo,
 };

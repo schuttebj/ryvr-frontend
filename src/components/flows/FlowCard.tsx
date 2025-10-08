@@ -34,7 +34,7 @@ import {
   AccessTime as TimeIcon,
 } from '@mui/icons-material';
 
-import { FlowCard as FlowCardType } from '../../types/workflow';
+import { FlowCard as FlowCardType, FlowStatus } from '../../types/workflow';
 import FlowApiService from '../../services/flowApi';
 
 interface FlowCardProps {
@@ -100,28 +100,28 @@ export default function FlowCard({
   
   const getStatusIcon = () => {
     switch (flow.status) {
-      case 'new':
+      case FlowStatus.NEW:
         return <ScheduleIcon sx={{ fontSize: 16 }} />;
-      case 'scheduled':
+      case FlowStatus.SCHEDULED:
         return <ScheduleIcon sx={{ fontSize: 16 }} />;
-      case 'in_progress':
+      case FlowStatus.IN_PROGRESS:
         return <PlayIcon sx={{ fontSize: 16 }} />;
-      case 'in_review':
+      case FlowStatus.IN_REVIEW:
         return <ReviewIcon sx={{ fontSize: 16 }} />;
-      case 'input_required':
+      case FlowStatus.INPUT_REQUIRED:
         return <PlayIcon sx={{ fontSize: 16 }} />;
-      case 'complete':
+      case FlowStatus.COMPLETE:
         return <CompleteIcon sx={{ fontSize: 16 }} />;
-      case 'error':
+      case FlowStatus.ERROR:
         return <ErrorIcon sx={{ fontSize: 16 }} />;
       default:
         return <ScheduleIcon sx={{ fontSize: 16 }} />;
     }
   };
   
-  const canStart = flow.status === 'new' || flow.status === 'scheduled' || flow.status === 'error';
+  const canStart = flow.status === FlowStatus.NEW || flow.status === FlowStatus.SCHEDULED || flow.status === FlowStatus.ERROR;
   const hasReviews = flow.pending_reviews && flow.pending_reviews.length > 0;
-  const needsInput = flow.status === 'input_required';
+  const needsInput = flow.status === FlowStatus.INPUT_REQUIRED;
   
   // =============================================================================
   // MAIN RENDER
