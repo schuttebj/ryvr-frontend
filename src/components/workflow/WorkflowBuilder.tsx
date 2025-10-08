@@ -896,22 +896,40 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       
       // Pass progress callback to update in real-time
       const validation = await workflowApi.validateWorkflow(workflow, (progress) => {
-        // Update validation result with incremental progress
-        setValidationResult((prev: any) => ({
-          ...prev,
-          isValid: true, // Assume valid until we see errors
-          errors: [],
-          warnings: [],
-          nodeResults: {},
-          overallStatus: 'valid',
-          executionFlow: progress.step ? [progress.step] : [],
-          summary: {
-            totalNodes: progress.total,
-            cachedNodes: 0,
-            freshNodes: progress.current,
-            message: `Processing step ${progress.current} of ${progress.total}...`
+        // Update validation result with incremental progress - ACCUMULATE steps
+        setValidationResult((prev: any) => {
+          // Get existing execution flow or start with empty array
+          const existingFlow = prev?.executionFlow || [];
+          
+          // Find if this step already exists (update it) or add it
+          const stepIndex = existingFlow.findIndex((s: any) => s.nodeId === progress.step.nodeId);
+          let updatedFlow;
+          
+          if (stepIndex >= 0) {
+            // Update existing step
+            updatedFlow = [...existingFlow];
+            updatedFlow[stepIndex] = progress.step;
+          } else {
+            // Add new step
+            updatedFlow = [...existingFlow, progress.step];
           }
-        }));
+          
+          return {
+            ...prev,
+            isValid: true, // Assume valid until we see errors
+            errors: prev?.errors || [],
+            warnings: prev?.warnings || [],
+            nodeResults: prev?.nodeResults || {},
+            overallStatus: 'valid' as const,
+            executionFlow: updatedFlow,
+            summary: {
+              totalNodes: progress.total,
+              cachedNodes: 0,
+              freshNodes: progress.current,
+              message: `Processing step ${progress.current} of ${progress.total}...`
+            }
+          };
+        });
       });
       
       setValidationResult(validation);
@@ -963,22 +981,40 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       
       // Pass progress callback to update in real-time
       const validation = await workflowApi.testFullWorkflow(workflow, (progress) => {
-        // Update validation result with incremental progress
-        setValidationResult((prev: any) => ({
-          ...prev,
-          isValid: true, // Assume valid until we see errors
-          errors: [],
-          warnings: [],
-          nodeResults: {},
-          overallStatus: 'valid',
-          executionFlow: progress.step ? [progress.step] : [],
-          summary: {
-            totalNodes: progress.total,
-            cachedNodes: 0,
-            freshNodes: progress.current,
-            message: `Processing step ${progress.current} of ${progress.total}...`
+        // Update validation result with incremental progress - ACCUMULATE steps
+        setValidationResult((prev: any) => {
+          // Get existing execution flow or start with empty array
+          const existingFlow = prev?.executionFlow || [];
+          
+          // Find if this step already exists (update it) or add it
+          const stepIndex = existingFlow.findIndex((s: any) => s.nodeId === progress.step.nodeId);
+          let updatedFlow;
+          
+          if (stepIndex >= 0) {
+            // Update existing step
+            updatedFlow = [...existingFlow];
+            updatedFlow[stepIndex] = progress.step;
+          } else {
+            // Add new step
+            updatedFlow = [...existingFlow, progress.step];
           }
-        }));
+          
+          return {
+            ...prev,
+            isValid: true, // Assume valid until we see errors
+            errors: prev?.errors || [],
+            warnings: prev?.warnings || [],
+            nodeResults: prev?.nodeResults || {},
+            overallStatus: 'valid' as const,
+            executionFlow: updatedFlow,
+            summary: {
+              totalNodes: progress.total,
+              cachedNodes: 0,
+              freshNodes: progress.current,
+              message: `Processing step ${progress.current} of ${progress.total}...`
+            }
+          };
+        });
       });
       
       setValidationResult(validation);
@@ -1016,6 +1052,38 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         throw new Error('No workflow ID available');
       }
       
+      // IMPORTANT: Ensure workflow is saved to localStorage before activating
+      // This is needed because activateWorkflow looks in localStorage
+      const workflow = {
+        id: idToActivate,
+        name: workflowName,
+        description: workflowDescription,
+        nodes,
+        edges,
+        isActive: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        tags: [],
+        executionCount: 0,
+        lastExecuted: null,
+        successRate: 0,
+        nodeResponses: {}
+      };
+      
+      // Save to localStorage first
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const existingIndex = workflows.findIndex((w: any) => w.id === idToActivate);
+      
+      if (existingIndex >= 0) {
+        workflows[existingIndex] = { ...workflows[existingIndex], ...workflow };
+      } else {
+        workflows.push(workflow);
+      }
+      
+      localStorage.setItem('workflows', JSON.stringify(workflows));
+      console.log(`✅ Saved workflow ${idToActivate} to localStorage before activation`);
+      
+      // Now activate
       const result = await workflowApi.activateWorkflow(idToActivate);
       
       if (result.success) {
@@ -1234,13 +1302,13 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                 {validating ? 'Validating...' : 'Validate Workflow (Use Cache)'}
               </Button>
               
-              {workflowId && (
+              {(workflowId || currentWorkflowId) && (
                 <Button
                   fullWidth
                   variant={workflowActive ? "contained" : "outlined"}
                   startIcon={activating ? <CircularProgress size={16} /> : (workflowActive ? <StopIcon /> : <PlayArrowIcon />)}
                   onClick={workflowActive ? handleDeactivateWorkflow : handleActivateWorkflow}
-                  disabled={activating || !workflowId}
+                  disabled={activating || (!workflowId && !currentWorkflowId)}
                   color={workflowActive ? "success" : "primary"}
                   sx={{ mb: 1 }}
                 >

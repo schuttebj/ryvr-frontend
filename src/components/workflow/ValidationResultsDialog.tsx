@@ -82,7 +82,7 @@ export default function ValidationResultsDialog({
   };
 
   // Calculate progress
-  const totalSteps = validationResult?.executionFlow?.length || 0;
+  const totalSteps = validationResult?.summary?.totalNodes || validationResult?.executionFlow?.length || 0;
   const completedSteps = validationResult?.executionFlow?.filter((step: any) => 
     step.status === 'success' || step.status === 'error'
   ).length || 0;
