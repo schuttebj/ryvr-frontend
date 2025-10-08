@@ -2708,20 +2708,27 @@ export const workflowApi = {
 
   // Note: executeWorkflow moved to V2 API section for backend execution
 
-  // Validate entire workflow before activation
+  // Validate entire workflow before activation (uses cached test data)
   validateWorkflow: async (workflow: any) => {
     console.log('Validating workflow:', workflow.name);
+    console.log('📦 Using cached test data from globalWorkflowData where available');
     
-    // Clear globalWorkflowData to start fresh for validation
-    clearWorkflowData();
-    console.log('🧹 Cleared globalWorkflowData for fresh validation run');
+    // DON'T clear globalWorkflowData - we want to use existing test data
+    console.log('ℹ️ Current cached nodes:', Object.keys(globalWorkflowData));
     
     const validation = {
       isValid: true,
       errors: [] as string[],
       warnings: [] as string[],
       nodeResults: {} as Record<string, any>,
-      overallStatus: 'valid' as 'valid' | 'error' | 'warning'
+      overallStatus: 'valid' as 'valid' | 'error' | 'warning',
+      executionFlow: [] as any[],
+      summary: {
+        totalNodes: 0,
+        cachedNodes: 0,
+        freshNodes: 0,
+        message: ''
+      }
     };
 
     // Check basic workflow structure
@@ -2936,16 +2943,33 @@ export const workflowApi = {
           }
         }
 
-        // Test node execution with timing
-        const startTime = performance.now();
-        const result = await workflowApi.executeNode(node.data.type, {
-          ...node.data.config,
-          inputMapping: node.data.config?.inputMapping,
-          customInputMapping: node.data.config?.customInputMapping
-        }, mappedInputData);
-        const endTime = performance.now();
+        // Check if we have cached test data for this node
+        const cachedData = globalWorkflowData[node.id];
+        let result;
+        let usedCache = false;
         
-        stepResult.executionTime = Math.round(endTime - startTime);
+        if (cachedData && cachedData.data) {
+          // Use cached test data
+          console.log(`✅ Using cached test data for ${node.id}`);
+          usedCache = true;
+          result = {
+            success: true,
+            data: cachedData.data
+          };
+          stepResult.executionTime = cachedData.executionTime || 0;
+        } else {
+          // No cached data - make API call
+          console.log(`🔄 No cached data for ${node.id}, making API call`);
+          const startTime = performance.now();
+          result = await workflowApi.executeNode(node.data.type, {
+            ...node.data.config,
+            inputMapping: node.data.config?.inputMapping,
+            customInputMapping: node.data.config?.customInputMapping
+          }, mappedInputData);
+          const endTime = performance.now();
+          stepResult.executionTime = Math.round(endTime - startTime);
+        }
+        
         stepResult.outputData = result.data;
 
         if (result.success) {
@@ -2962,26 +2986,30 @@ export const workflowApi = {
             const outputVariable = stepResult.dataMapping.outputVariable;
             (currentData as any)[outputVariable] = result.data;
             
-            // CRITICAL: Store node result in globalWorkflowData so subsequent nodes can reference it
-            // This allows variables like {{node_id.data.processed.field}} to resolve correctly
-            console.log(`📦 Storing result for ${node.id}:`, {
-              nodeType: node.data.type,
-              dataKeys: result.data ? Object.keys(result.data) : 'no data',
-              processedKeys: result.data?.processed ? Object.keys(result.data.processed) : 'no processed',
-              rawKeys: result.data?.raw ? Object.keys(result.data.raw) : 'no raw',
-              fullStructure: result.data
-            });
-            
-            await workflowApi.storeNodeResult(node.id, {
-              nodeId: node.id,
-              nodeType: node.data.type,
-              status: 'success',
-              data: result.data,
-              executedAt: new Date().toISOString(),
-              executionTime: stepResult.executionTime,
-              executionId: `validation_${Date.now()}` // Validation run ID
-            });
-            console.log(`✅ Stored validation result for ${node.id} in globalWorkflowData`);
+            // Store node result in globalWorkflowData ONLY if we made a fresh API call
+            if (!usedCache) {
+              // CRITICAL: Store node result in globalWorkflowData so subsequent nodes can reference it
+              // This allows variables like {{node_id.data.processed.field}} to resolve correctly
+              console.log(`📦 Storing NEW result for ${node.id}:`, {
+                nodeType: node.data.type,
+                dataKeys: result.data ? Object.keys(result.data) : 'no data',
+                processedKeys: result.data?.processed ? Object.keys(result.data.processed) : 'no processed',
+                rawKeys: result.data?.raw ? Object.keys(result.data.raw) : 'no raw'
+              });
+              
+              await workflowApi.storeNodeResult(node.id, {
+                nodeId: node.id,
+                nodeType: node.data.type,
+                status: 'success',
+                data: result.data,
+                executedAt: new Date().toISOString(),
+                executionTime: stepResult.executionTime,
+                executionId: `validation_${Date.now()}` // Validation run ID
+              });
+              console.log(`✅ Stored validation result for ${node.id} in globalWorkflowData`);
+            } else {
+              console.log(`♻️ Using existing cached data for ${node.id}, not storing again`);
+            }
           }
         } else {
           stepResult.status = 'error';
@@ -3037,8 +3065,37 @@ export const workflowApi = {
       validation.overallStatus = 'warning';
     }
 
+    // Add summary about cache usage
+    const totalNodes = sortedNodes.length;
+    const cachedNodes = sortedNodes.filter(node => globalWorkflowData[node.id]).length;
+    const freshNodes = totalNodes - cachedNodes;
+    
+    validation.summary = {
+      totalNodes,
+      cachedNodes,
+      freshNodes,
+      message: cachedNodes > 0 
+        ? `Used ${cachedNodes} cached test result(s), made ${freshNodes} fresh API call(s)`
+        : `Made ${freshNodes} fresh API call(s) (no cached data available)`
+    };
+
     console.log('Workflow validation completed:', validation);
     return validation;
+  },
+
+  // Test full workflow (always fresh - clears cache first)  
+  testFullWorkflow: async (workflow: any) => {
+    console.log('🧪 Testing full workflow:', workflow.name);
+    console.log('🧹 Clearing all cached test data for fresh execution');
+    
+    // Clear globalWorkflowData to start completely fresh
+    clearWorkflowData();
+    
+    // Use the same validation logic but with cleared cache
+    const result = await workflowApi.validateWorkflow(workflow);
+    result.summary.message = `Fresh execution: Made ${result.summary.freshNodes} API call(s)`;
+    
+    return result;
   },
 
   // Helper: Get nodes sorted for execution

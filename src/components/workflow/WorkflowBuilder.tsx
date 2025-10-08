@@ -835,6 +835,26 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       lastSavedState.current = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
       setSnackbarMessage('Workflow saved successfully');
       setSnackbarOpen(true);
+    } else {
+      // Fallback: Save to localStorage if no onSave handler
+      const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
+      const existingIndex = workflows.findIndex((w: any) => w.id === workflowIdToUse);
+      
+      if (existingIndex >= 0) {
+        workflows[existingIndex] = workflow;
+      } else {
+        workflows.push(workflow);
+      }
+      
+      localStorage.setItem('workflows', JSON.stringify(workflows));
+      
+      // Update currentWorkflowId
+      setCurrentWorkflowId(workflowIdToUse);
+      
+      setHasUnsavedChanges(false);
+      lastSavedState.current = JSON.stringify({ nodes, edges, workflowName, workflowDescription });
+      setSnackbarMessage('✅ Workflow saved to localStorage');
+      setSnackbarOpen(true);
     }
 
     setSaveDialogOpen(false);
@@ -848,19 +868,20 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const handleValidateWorkflow = async () => {
     setValidating(true);
     setValidationResult(null);
+    setShowValidationDialog(true); // Open dialog immediately
     
     try {
       const workflow = {
         id: workflowId || 'temp',
         name: workflowName || 'Untitled Workflow',
         description: workflowDescription || '',
-        nodes: nodes.map(node => ({
+        nodes: nodes.map((node: any) => ({
           id: node.id,
           type: node.type || 'default',
           position: node.position,
           data: node.data
         })),
-        edges: edges.map(edge => ({
+        edges: edges.map((edge: any) => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
@@ -875,10 +896,9 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       const validation = await workflowApi.validateWorkflow(workflow);
       
       setValidationResult(validation);
-      setShowValidationDialog(true);
       
       if (validation.isValid) {
-        setSnackbarMessage(`✅ Workflow validation passed!`);
+        setSnackbarMessage(`✅ Workflow validation passed! ${validation.summary.message}`);
       } else {
         setSnackbarMessage(`❌ Workflow validation failed with ${validation.errors.length} error(s)`);
       }
@@ -893,9 +913,57 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     }
   };
 
+  const handleTestFullFlow = async () => {
+    setValidating(true);
+    setValidationResult(null);
+    setShowValidationDialog(true); // Open dialog immediately
+    
+    try {
+      const workflow = {
+        id: workflowId || 'temp',
+        name: workflowName || 'Untitled Workflow',
+        description: workflowDescription || '',
+        nodes: nodes.map((node: any) => ({
+          id: node.id,
+          type: node.type || 'default',
+          position: node.position,
+          data: node.data
+        })),
+        edges: edges.map((edge: any) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          data: edge.data
+        })),
+        business_id: 'default-business', // TODO: Get from context/auth
+        isActive: false,
+      };
+
+      const { workflowApi } = await import('../../services/workflowApi');
+      const validation = await workflowApi.testFullWorkflow(workflow);
+      
+      setValidationResult(validation);
+      
+      if (validation.isValid) {
+        setSnackbarMessage(`✅ Full workflow test passed! ${validation.summary.message}`);
+      } else {
+        setSnackbarMessage(`❌ Workflow test failed with ${validation.errors.length} error(s)`);
+      }
+      setSnackbarOpen(true);
+      
+    } catch (error: any) {
+      console.error('Test failed:', error);
+      setSnackbarMessage(`❌ Test failed: ${error.message}`);
+      setSnackbarOpen(true);
+    } finally {
+      setValidating(false);
+    }
+  };
+
   const handleActivateWorkflow = async () => {
-    if (!workflowId) {
-      setSnackbarMessage('Please save the workflow before activating');
+    if (!workflowId && !currentWorkflowId) {
+      setSnackbarMessage('⚠️ Please save the workflow before activating');
       setSnackbarOpen(true);
       return;
     }
@@ -904,7 +972,13 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
     
     try {
       const { workflowApi } = await import('../../services/workflowApi');
-      const result = await workflowApi.activateWorkflow(workflowId);
+      const idToActivate = currentWorkflowId || workflowId;
+      
+      if (!idToActivate) {
+        throw new Error('No workflow ID available');
+      }
+      
+      const result = await workflowApi.activateWorkflow(idToActivate);
       
       if (result.success) {
         setSnackbarMessage('🚀 Workflow activated successfully!');
@@ -1102,7 +1176,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                 fullWidth
                 variant="outlined"
                 startIcon={<PlayIcon />}
-                onClick={() => setShowExecutionPanel(true)}
+                onClick={handleTestFullFlow}
                 disabled={nodes.length === 0}
                 color="success"
                 sx={{ mb: 1 }}
@@ -1119,7 +1193,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                 color="info"
                 sx={{ mb: 1 }}
               >
-                {validating ? 'Validating...' : 'Validate Workflow'}
+                {validating ? 'Validating...' : 'Validate Workflow (Use Cache)'}
               </Button>
               
               {workflowId && (
@@ -1518,6 +1592,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         onClose={() => setShowValidationDialog(false)}
         validationResult={validationResult}
         onActivate={workflowId ? handleActivateWorkflow : undefined}
+        validating={validating}
       />
 
       {/* Workflow Execution Panel */}
