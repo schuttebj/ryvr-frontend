@@ -2964,6 +2964,14 @@ export const workflowApi = {
             
             // CRITICAL: Store node result in globalWorkflowData so subsequent nodes can reference it
             // This allows variables like {{node_id.data.processed.field}} to resolve correctly
+            console.log(`📦 Storing result for ${node.id}:`, {
+              nodeType: node.data.type,
+              dataKeys: result.data ? Object.keys(result.data) : 'no data',
+              processedKeys: result.data?.processed ? Object.keys(result.data.processed) : 'no processed',
+              rawKeys: result.data?.raw ? Object.keys(result.data.raw) : 'no raw',
+              fullStructure: result.data
+            });
+            
             await workflowApi.storeNodeResult(node.id, {
               nodeId: node.id,
               nodeType: node.data.type,
