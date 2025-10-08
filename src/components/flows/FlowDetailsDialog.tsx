@@ -84,14 +84,14 @@ export default function FlowDetailsDialog({
 
   // Auto-refresh for running flows
   useEffect(() => {
-    if (!autoRefresh) return;
+    if (!autoRefresh || !open) return;
     
     const interval = setInterval(() => {
       fetchFlowDetails();
-    }, 2000); // Refresh every 2 seconds
+    }, 5000); // Refresh every 5 seconds (reduced from 2 seconds)
     
     return () => clearInterval(interval);
-  }, [autoRefresh, flowId]);
+  }, [autoRefresh, flowId, open]);
 
   const toggleStep = (stepId: string) => {
     setExpandedSteps(prev => ({ ...prev, [stepId]: !prev[stepId] }));
