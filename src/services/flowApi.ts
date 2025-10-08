@@ -1,4 +1,10 @@
-import apiClient from './apiClient';
+import { getAuthToken } from '../utils/auth';
+
+const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 export interface Flow {
   id: number;
@@ -62,84 +68,154 @@ export interface CreateFlowRequest {
   custom_field_values?: Record<string, any>;
 }
 
-export const flowApi = {
+export interface FlowTemplateResponse {
+  templates: FlowTemplate[];
+}
+
+export interface TemplatePreviewResponse {
+  template_id: number;
+  name: string;
+  description: string;
+  step_count: number;
+  editable_fields: any[];
+  credit_cost: number;
+  estimated_duration: number | null;
+  steps: any[];
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function formatCredits(credits: number): string {
+  if (credits === 0) return '0 credits';
+  if (credits < 1) return `${(credits * 100).toFixed(0)}¢`;
+  return `${credits.toFixed(2)} credits`;
+}
+
+function formatDuration(minutes: number | null): string {
+  if (!minutes) return 'Unknown duration';
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours}h ${mins}m`;
+}
+
+// ============================================================================
+// FLOW API SERVICE
+// ============================================================================
+
+class FlowApiService {
+  private baseUrl: string;
+
+  constructor() {
+    this.baseUrl = `${API_BASE}/api/v1`;
+  }
+
+  private async makeRequest(
+    endpoint: string,
+    method: string = 'GET',
+    body?: any
+  ): Promise<any> {
+    const token = getAuthToken();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const options: RequestInit = {
+      method,
+      headers,
+    };
+
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, options);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `API Error: ${response.statusText}`);
+    }
+
+    return await response.json();
+  }
+
   // List flows for a business
-  listFlows: async (businessId: number, status?: string): Promise<{ flows: Flow[]; total: number }> => {
-    const params = status ? { status } : {};
-    const response = await apiClient.get(`/flows/businesses/${businessId}/flows`, { params });
-    return response.data;
-  },
+  async getFlows(businessId: number, status?: string): Promise<{ flows: Flow[]; total: number }> {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.makeRequest(`/flows/businesses/${businessId}/flows${queryString}`);
+  }
 
   // Get flow details with step executions
-  getFlowDetails: async (flowId: number): Promise<FlowDetails> => {
-    const response = await apiClient.get(`/flows/flows/${flowId}/details`);
-    return response.data;
-  },
+  async getFlowDetails(flowId: number): Promise<FlowDetails> {
+    return this.makeRequest(`/flows/flows/${flowId}/details`);
+  }
 
   // Create a new flow
-  createFlow: async (businessId: number, flowRequest: CreateFlowRequest): Promise<{ flow_id: number; status: string; message: string }> => {
-    const response = await apiClient.post(`/flows/businesses/${businessId}/flows`, flowRequest);
-    return response.data;
-  },
+  async createFlow(businessId: number, flowRequest: CreateFlowRequest): Promise<{ flow_id: number; status: string; message: string }> {
+    return this.makeRequest(`/flows/businesses/${businessId}/flows`, 'POST', flowRequest);
+  }
 
   // Update flow
-  updateFlow: async (flowId: number, updates: Partial<Pick<Flow, 'title' | 'custom_field_values'>>): Promise<void> => {
-    await apiClient.patch(`/flows/flows/${flowId}`, updates);
-  },
+  async updateFlow(flowId: number, updates: { title?: string; custom_field_values?: Record<string, any>; status?: string }): Promise<void> {
+    await this.makeRequest(`/flows/flows/${flowId}`, 'PATCH', updates);
+  }
 
   // Start a flow
-  startFlow: async (flowId: number): Promise<{ message: string; flow_id: number; status: string }> => {
-    const response = await apiClient.post(`/flows/flows/${flowId}/start`);
-    return response.data;
-  },
+  async startFlow(flowId: number): Promise<{ message: string; flow_id: number; status: string }> {
+    return this.makeRequest(`/flows/flows/${flowId}/start`, 'POST');
+  }
 
   // Rerun a flow (creates new flow from completed/failed one)
-  rerunFlow: async (flowId: number): Promise<{ message: string; original_flow_id: number; new_flow_id: number; status: string }> => {
-    const response = await apiClient.post(`/flows/flows/${flowId}/rerun`);
-    return response.data;
-  },
+  async rerunFlow(flowId: number): Promise<{ message: string; original_flow_id: number; new_flow_id: number; status: string }> {
+    return this.makeRequest(`/flows/flows/${flowId}/rerun`, 'POST');
+  }
 
   // Delete a flow
-  deleteFlow: async (flowId: number): Promise<void> => {
-    await apiClient.delete(`/flows/flows/${flowId}`);
-  },
+  async deleteFlow(flowId: number): Promise<void> {
+    await this.makeRequest(`/flows/flows/${flowId}`, 'DELETE');
+  }
 
   // List available templates
-  listTemplates: async (category?: string, tags?: string): Promise<{ templates: FlowTemplate[] }> => {
-    const params: any = {};
-    if (category) params.category = category;
-    if (tags) params.tags = tags;
-    const response = await apiClient.get('/flows/templates', { params });
-    return response.data;
-  },
+  async listTemplates(category?: string, tags?: string): Promise<FlowTemplateResponse> {
+    const params = new URLSearchParams();
+    if (category) params.set('category', category);
+    if (tags) params.set('tags', tags);
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    return this.makeRequest(`/flows/templates${queryString}`);
+  }
 
   // Get template preview
-  getTemplatePreview: async (templateId: number): Promise<any> => {
-    const response = await apiClient.get(`/flows/templates/${templateId}/preview`);
-    return response.data;
-  },
+  async getTemplatePreview(templateId: number): Promise<TemplatePreviewResponse> {
+    return this.makeRequest(`/flows/templates/${templateId}/preview`);
+  }
 
   // Submit options selection
-  submitOptionsSelection: async (
-    flowId: number, 
-    stepId: string, 
+  async submitOptionsSelection(
+    flowId: number,
+    stepId: string,
     selectedOptions: any[]
-  ): Promise<any> => {
-    const response = await apiClient.post(`/flows/flows/${flowId}/select-options`, {
+  ): Promise<any> {
+    return this.makeRequest(`/flows/flows/${flowId}/select-options`, 'POST', {
       step_id: stepId,
-      selected_options: selectedOptions
+      selected_options: selectedOptions,
     });
-    return response.data;
-  },
+  }
 
-  // Get options data
-  getOptionsData: async (flowId: number, stepId: string): Promise<any> => {
-    const response = await apiClient.get(`/flows/flows/${flowId}/options/${stepId}`);
-    return response.data;
-  },
+  // Get options data for a specific step
+  async getFlowOptionsData(flowId: number, stepId: string): Promise<any> {
+    return this.makeRequest(`/flows/flows/${flowId}/options/${stepId}`);
+  }
 
   // Approve review with edits
-  approveReview: async (
+  async approveReview(
     flowId: number,
     stepId: string,
     approvalData: {
@@ -147,20 +223,47 @@ export const flowApi = {
       comments?: string;
       edited_steps?: string[];
       edited_data?: Record<string, any>;
+      step_id?: string;
     }
-  ): Promise<any> => {
-    const response = await apiClient.post(
+  ): Promise<any> {
+    return this.makeRequest(
       `/flows/flows/${flowId}/review/${stepId}/approve-with-edits`,
+      'POST',
       approvalData
     );
-    return response.data;
-  },
+  }
 
   // Get editable data for review
-  getEditableData: async (flowId: number): Promise<any> => {
-    const response = await apiClient.get(`/flows/flows/${flowId}/editable-data`);
-    return response.data;
-  },
-};
+  async getEditableData(flowId: number): Promise<any> {
+    return this.makeRequest(`/flows/flows/${flowId}/editable-data`);
+  }
 
-export default flowApi;
+  // Helper formatters
+  formatCredits = formatCredits;
+  formatDuration = formatDuration;
+}
+
+// Export singleton instance
+const flowApiService = new FlowApiService();
+export default flowApiService;
+
+// Also export the flowApi object for convenience
+export const flowApi = {
+  getFlows: (businessId: number, status?: string) => flowApiService.getFlows(businessId, status),
+  getFlowDetails: (flowId: number) => flowApiService.getFlowDetails(flowId),
+  createFlow: (businessId: number, flowRequest: CreateFlowRequest) => flowApiService.createFlow(businessId, flowRequest),
+  updateFlow: (flowId: number, updates: any) => flowApiService.updateFlow(flowId, updates),
+  startFlow: (flowId: number) => flowApiService.startFlow(flowId),
+  rerunFlow: (flowId: number) => flowApiService.rerunFlow(flowId),
+  deleteFlow: (flowId: number) => flowApiService.deleteFlow(flowId),
+  listTemplates: (category?: string, tags?: string) => flowApiService.listTemplates(category, tags),
+  getTemplatePreview: (templateId: number) => flowApiService.getTemplatePreview(templateId),
+  submitOptionsSelection: (flowId: number, stepId: string, selectedOptions: any[]) => 
+    flowApiService.submitOptionsSelection(flowId, stepId, selectedOptions),
+  getFlowOptionsData: (flowId: number, stepId: string) => flowApiService.getFlowOptionsData(flowId, stepId),
+  approveReview: (flowId: number, stepId: string, approvalData: any) => 
+    flowApiService.approveReview(flowId, stepId, approvalData),
+  getEditableData: (flowId: number) => flowApiService.getEditableData(flowId),
+  formatCredits,
+  formatDuration,
+};

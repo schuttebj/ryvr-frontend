@@ -69,7 +69,7 @@ export default function FlowsPage() {
   const [selectedFlowForOptions, setSelectedFlowForOptions] = useState<FlowCardType | null>(null);
   
   // Get available businesses from AuthContext
-  const availableBusinesses: FlowBusinessContext[] = (userContext?.businesses || []).map((business) => ({
+  const availableBusinesses: FlowBusinessContext[] = (userContext?.businesses || []).map((business: any) => ({
     id: business.id,
     name: business.name,
     agency_id: 0, // Not used in current structure
@@ -82,14 +82,14 @@ export default function FlowsPage() {
   console.log('🔍 FlowsPage - Debug Info:', {
     userRole: user?.role,
     businessCount: availableBusinesses.length,
-    businesses: availableBusinesses.map(b => ({ id: b.id, name: b.name })),
+    businesses: availableBusinesses.map((b: any) => ({ id: b.id, name: b.name })),
     currentBusinessId,
     selectedBusiness: selectedBusiness ? { id: selectedBusiness.id, name: selectedBusiness.name } : null
   });
   
   // Organize flows by status for Kanban columns
   const flowsByStatus = FLOW_COLUMNS.reduce((acc, column) => {
-    acc[column.id] = flows.filter(flow => flow.status === column.id);
+    acc[column.id] = flows.filter((flow: any) => flow.status === column.id);
     return acc;
   }, {} as Record<string, FlowCardType[]>);
   
@@ -128,9 +128,7 @@ export default function FlowsPage() {
     
     try {
       console.log('Loading flows for business:', selectedBusiness);
-      const response = await FlowApiService.getFlows(selectedBusiness.id, {
-        limit: 100 // Load all flows for now
-      });
+      const response = await FlowApiService.getFlows(selectedBusiness.id);
       setFlows(response.flows);
     } catch (err) {
       console.error('Error loading flows:', err);
@@ -162,8 +160,8 @@ export default function FlowsPage() {
     const newStatus = destination.droppableId as FlowStatus;
     
     // Optimistic update
-    setFlows(prevFlows => 
-      prevFlows.map(flow => 
+    setFlows((prevFlows: any[]) => 
+      prevFlows.map((flow: any) => 
         flow.id === flowId 
           ? { ...flow, status: newStatus }
           : flow
@@ -179,8 +177,8 @@ export default function FlowsPage() {
       console.error('Error updating flow status:', err);
       
       // Revert optimistic update on error
-      setFlows(prevFlows => 
-        prevFlows.map(flow => 
+      setFlows((prevFlows: any[]) => 
+        prevFlows.map((flow: any) => 
           flow.id === flowId 
             ? { ...flow, status: source.droppableId as FlowStatus }
             : flow
@@ -314,7 +312,7 @@ export default function FlowsPage() {
         
         {/* Droppable Area */}
         <Droppable droppableId={column.id}>
-          {(provided, snapshot) => (
+          {(provided: any, snapshot: any) => (
             <Box
               ref={provided.innerRef}
               {...provided.droppableProps}
@@ -333,7 +331,7 @@ export default function FlowsPage() {
                   draggableId={flow.id.toString()}
                   index={index}
                 >
-                  {(provided, snapshot) => (
+                  {(provided: any, snapshot: any) => (
                     <Box
                       ref={provided.innerRef}
                       {...provided.draggableProps}

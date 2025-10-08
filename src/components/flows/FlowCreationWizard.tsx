@@ -247,7 +247,7 @@ export default function FlowCreationWizard({
                       color="primary" 
                       variant="outlined" 
                     />
-                    {template.tags.slice(0, 2).map((tag, index) => (
+                    {template.tags.slice(0, 2).map((tag: string, index: number) => (
                       <Chip
                         key={index}
                         label={tag}
@@ -333,7 +333,7 @@ export default function FlowCreationWizard({
             </Typography>
             
             <Grid container spacing={3}>
-              {editableFields.map((field, index) => {
+              {editableFields.map((field: any, index: number) => {
                 const fieldKey = `${field.step_id}.${field.path}`;
                 const currentValue = customFieldValues[fieldKey] || '';
                 
@@ -366,7 +366,7 @@ export default function FlowCreationWizard({
                                 [fieldKey]: e.target.value
                               }))}
                             >
-                              {field.options.map((option, optIndex) => (
+                              {field.options.map((option: any, optIndex: number) => (
                                 <MenuItem key={optIndex} value={option.value}>
                                   {option.label}
                                 </MenuItem>
@@ -468,7 +468,7 @@ export default function FlowCreationWizard({
             </Typography>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {templatePreview.steps.map((step, index) => (
+              {templatePreview.steps.map((step: any, index: number) => (
                 <Box
                   key={index}
                   sx={{

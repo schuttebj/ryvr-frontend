@@ -119,14 +119,7 @@ export default function FlowOptionsInterface({
       await FlowApiService.submitOptionsSelection(
         flow.id,
         flow.current_step,
-        {
-          selected_options: selectedOptions,
-          selection_metadata: {
-            selection_mode: optionsData?.selection_mode,
-            selected_count: selectedOptions.length,
-            total_options: optionsData?.available_options?.length || 0
-          }
-        }
+        selectedOptions
       );
       
       onSelectionCompleted();
