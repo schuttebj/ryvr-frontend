@@ -39,7 +39,6 @@ import {
 import WorkflowBuilder from '../components/workflow/WorkflowBuilder';
 import WorkflowImportExport from '../components/workflow/WorkflowImportExport';
 import { workflowApi } from '../services/workflowApi';
-import { WorkflowTemplateV2 } from '../types/workflow';
 
 interface WorkflowSummary {
   id: string;
@@ -145,99 +144,7 @@ function WorkflowsList() {
     }
 
     setFilteredWorkflows(filtered);
-  }, [workflows, searchTerm, categoryFilter, statusFilter]); // Re-load when showBuilder changes
-
-  const handleWorkflowSave = useCallback(async (workflow: any) => {
-    try {
-      // Check if we're editing an existing workflow or creating a new one
-      const isEditing = editingWorkflowId && !isNaN(parseInt(editingWorkflowId));
-      
-      // Convert workflow to standard format
-      const workflowTemplate: WorkflowTemplateV2 = {
-        schema_version: "ryvr.workflow.v1" as const,
-        name: workflow.name,
-        description: workflow.description || '',
-        category: "general",
-        tags: workflow.tags || [],
-        inputs: {},
-        globals: {},
-        steps: workflow.nodes?.map((node: any, index: number) => {
-          // Find dependencies from edges
-          const incomingEdges = workflow.edges?.filter((edge: any) => edge.target === node.id) || [];
-          const depends_on = incomingEdges.map((edge: any) => edge.source);
-          
-          return {
-            id: node.id || `step_${index}`,
-            type: node.data?.nodeType || node.type || 'task',
-            name: node.data?.label || node.data?.name || `Step ${index + 1}`,
-            depends_on,
-            input: { 
-              bindings: {
-                ...node.data,
-                // Preserve node position for reconstruction
-                position: node.position
-              }
-            }
-          };
-        }) || [],
-        execution: {
-          execution_mode: "simulate" as const,
-          dry_run: true
-        }
-      };
-      
-      let result;
-      
-      if (isEditing) {
-        // Update existing template
-        console.log('Updating existing workflow template:', editingWorkflowId);
-        result = await workflowApi.updateWorkflowTemplate(parseInt(editingWorkflowId), workflowTemplate);
-      } else {
-        // Create new template
-        console.log('Creating new workflow template');
-        result = await workflowApi.createWorkflowTemplate(workflowTemplate);
-      }
-      
-      if (result.success && result.template) {
-        console.log('Successfully saved workflow template:', result.template);
-        
-        // Update the workflows list with the saved template
-        setWorkflows(prev => {
-          const template = result.template!;
-          const templateId = template.id?.toString() || '';
-          const existingIndex = prev.findIndex(w => w.id === templateId);
-          const workflowSummary: WorkflowSummary = {
-            id: templateId,
-            name: template.name,
-            description: template.description || '',
-            isActive: true,
-            nodes: template.steps || [],
-            successRate: 0,
-            createdAt: template.created_at || new Date().toISOString(),
-            tags: template.tags || [],
-            executionCount: 0,
-          };
-        
-          if (existingIndex >= 0) {
-            const updated = [...prev];
-            updated[existingIndex] = workflowSummary;
-            return updated;
-          } else {
-            return [...prev, workflowSummary];
-          }
-        });
-        
-        // Update editing state to reflect the saved template ID
-        if (!isEditing && result.template.id) {
-          setEditingWorkflowId(result.template.id.toString());
-        }
-      } else {
-        console.error('Failed to save workflow template:', result.error);
-      }
-    } catch (error) {
-      console.error('Failed to save workflow:', error);
-    }
-  }, [editingWorkflowId]);
+  }, [workflows, searchTerm, categoryFilter, statusFilter]);
 
   const handleCreateWorkflow = () => {
     navigate('new');
@@ -366,21 +273,6 @@ function WorkflowsList() {
   const getStatusLabel = (isActive: boolean) => {
     return isActive ? 'Active' : 'Draft';
   };
-
-  if (showBuilder) {
-    const LayoutComponent = getLayoutComponent();
-    return (
-      <LayoutComponent 
-        title={editingWorkflowId ? "Edit Workflow" : "Create Workflow"}
-        subtitle="Design your automation workflow"
-      >
-        <WorkflowBuilder
-          onSave={handleWorkflowSave}
-          workflowId={editingWorkflowId || undefined}
-        />
-      </LayoutComponent>
-    );
-  }
 
   const headerActions = (
     <Button
