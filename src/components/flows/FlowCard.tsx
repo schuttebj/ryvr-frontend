@@ -32,6 +32,9 @@ import {
   RateReview as ReviewIcon,
   Timeline as ProgressIcon,
   AccessTime as TimeIcon,
+  Visibility as ViewIcon,
+  Replay as RerunIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
 import { FlowCard as FlowCardType, FlowStatus } from '../../types/workflow';
@@ -43,6 +46,9 @@ interface FlowCardProps {
   onApproveReview?: (stepId: string) => void;
   onOpenReview?: () => void;
   onOpenOptions?: () => void;
+  onViewDetails?: () => void;
+  onRerun?: () => void;
+  onDelete?: () => void;
   isDragging?: boolean;
 }
 
@@ -52,6 +58,9 @@ export default function FlowCard({
   onApproveReview,
   onOpenReview,
   onOpenOptions,
+  onViewDetails,
+  onRerun,
+  onDelete,
   isDragging = false 
 }: FlowCardProps) {
   const theme = useTheme();
@@ -94,6 +103,21 @@ export default function FlowCard({
     handleMenuClose();
   };
   
+  const handleViewDetails = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onViewDetails?.();
+  };
+  
+  const handleRerun = () => {
+    onRerun?.();
+    handleMenuClose();
+  };
+  
+  const handleDelete = () => {
+    onDelete?.();
+    handleMenuClose();
+  };
+  
   // =============================================================================
   // RENDER HELPERS
   // =============================================================================
@@ -122,6 +146,8 @@ export default function FlowCard({
   const canStart = flow.status === FlowStatus.NEW || flow.status === FlowStatus.SCHEDULED || flow.status === FlowStatus.ERROR;
   const hasReviews = flow.pending_reviews && flow.pending_reviews.length > 0;
   const needsInput = flow.status === FlowStatus.INPUT_REQUIRED;
+  const canRerun = flow.status === FlowStatus.COMPLETE || flow.status === FlowStatus.ERROR;
+  const canDelete = flow.status !== FlowStatus.IN_PROGRESS;
   
   // =============================================================================
   // MAIN RENDER
@@ -130,8 +156,9 @@ export default function FlowCard({
   return (
     <>
       <Card
+        onClick={handleViewDetails}
         sx={{
-          cursor: 'grab',
+          cursor: 'pointer',
           transition: 'all 0.2s ease',
           transform: isDragging ? 'scale(1.02)' : 'scale(1)',
           boxShadow: isDragging 
@@ -358,9 +385,15 @@ export default function FlowCard({
         open={menuOpen}
         onClose={handleMenuClose}
         PaperProps={{
-          sx: { minWidth: 160 }
+          sx: { minWidth: 180 }
         }}
       >
+        {/* View Details - Always available */}
+        <MenuItem onClick={() => { handleViewDetails({} as any); handleMenuClose(); }}>
+          <ViewIcon sx={{ mr: 1, fontSize: 18 }} />
+          View Details
+        </MenuItem>
+        
         {canStart && (
           <MenuItem onClick={handleStartClick}>
             <PlayIcon sx={{ mr: 1, fontSize: 18 }} />
@@ -393,9 +426,19 @@ export default function FlowCard({
           </MenuItem>
         )}
         
-        {!canStart && !hasReviews && !needsInput && (
-          <MenuItem disabled>
-            No actions available
+        {/* Rerun - Only for completed or failed flows */}
+        {canRerun && (
+          <MenuItem onClick={handleRerun}>
+            <RerunIcon sx={{ mr: 1, fontSize: 18 }} />
+            Rerun Flow
+          </MenuItem>
+        )}
+        
+        {/* Delete - Available for non-running flows */}
+        {canDelete && (
+          <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+            <DeleteIcon sx={{ mr: 1, fontSize: 18 }} />
+            Delete Flow
           </MenuItem>
         )}
       </Menu>

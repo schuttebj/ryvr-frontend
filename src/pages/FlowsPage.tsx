@@ -38,6 +38,7 @@ import FlowCard from '../components/flows/FlowCard';
 import BusinessSelector from '../components/flows/BusinessSelector';
 import FlowReviewInterface from '../components/flows/FlowReviewInterface';
 import FlowOptionsInterface from '../components/flows/FlowOptionsInterface';
+import FlowDetailsDialog from '../components/flows/FlowDetailsDialog';
 import { useAuth } from '../contexts/AuthContext';
 
 // Import layout based on user role
@@ -67,6 +68,8 @@ export default function FlowsPage() {
   const [selectedFlowForReview, setSelectedFlowForReview] = useState<FlowCardType | null>(null);
   const [optionsInterfaceOpen, setOptionsInterfaceOpen] = useState(false);
   const [selectedFlowForOptions, setSelectedFlowForOptions] = useState<FlowCardType | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedFlowForDetails, setSelectedFlowForDetails] = useState<number | null>(null);
   
   // Get available businesses from AuthContext
   const availableBusinesses: FlowBusinessContext[] = (userContext?.businesses || []).map((business: any) => ({
@@ -251,6 +254,43 @@ export default function FlowsPage() {
     await loadFlows();
   };
   
+  const handleViewDetails = (flowId: number) => {
+    setSelectedFlowForDetails(flowId);
+    setDetailsDialogOpen(true);
+  };
+  
+  const handleCloseDetails = () => {
+    setDetailsDialogOpen(false);
+    setSelectedFlowForDetails(null);
+  };
+  
+  const handleRerunFlow = async (flowId: number) => {
+    try {
+      const result = await FlowApiService.rerunFlow(flowId);
+      console.log('Flow rerun created:', result);
+      await loadFlows();
+      setError(null);
+    } catch (err) {
+      console.error('Error rerunning flow:', err);
+      setError('Failed to rerun flow');
+    }
+  };
+  
+  const handleDeleteFlow = async (flowId: number) => {
+    if (!confirm('Are you sure you want to delete this flow? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      await FlowApiService.deleteFlow(flowId);
+      await loadFlows();
+      setError(null);
+    } catch (err) {
+      console.error('Error deleting flow:', err);
+      setError('Failed to delete flow');
+    }
+  };
+  
   // =============================================================================
   // RENDER HELPERS
   // =============================================================================
@@ -349,6 +389,9 @@ export default function FlowsPage() {
                         onApproveReview={(stepId) => handleApproveReview(flow.id, stepId)}
                         onOpenReview={() => handleOpenReviewInterface(flow)}
                         onOpenOptions={() => handleOpenOptionsInterface(flow)}
+                        onViewDetails={() => handleViewDetails(flow.id)}
+                        onRerun={() => handleRerunFlow(flow.id)}
+                        onDelete={() => handleDeleteFlow(flow.id)}
                         isDragging={snapshot.isDragging}
                       />
                     </Box>
@@ -502,6 +545,15 @@ export default function FlowsPage() {
           open={optionsInterfaceOpen}
           onClose={handleCloseOptionsInterface}
           onSelectionCompleted={handleOptionsCompleted}
+        />
+        
+        {/* Flow Details Dialog */}
+        <FlowDetailsDialog
+          open={detailsDialogOpen}
+          onClose={handleCloseDetails}
+          flowId={selectedFlowForDetails}
+          onRerun={selectedFlowForDetails ? () => handleRerunFlow(selectedFlowForDetails) : undefined}
+          onDelete={selectedFlowForDetails ? () => handleDeleteFlow(selectedFlowForDetails) : undefined}
         />
       </Box>
     );
