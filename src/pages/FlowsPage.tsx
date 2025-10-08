@@ -325,7 +325,6 @@ export default function FlowsPage() {
                   : 'transparent',
                 borderRadius: 2,
                 transition: 'background-color 0.2s ease',
-                p: 1,
               }}
             >
               {columnFlows.map((flow, index) => (
