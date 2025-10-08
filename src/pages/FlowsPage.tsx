@@ -129,7 +129,8 @@ export default function FlowsPage() {
     try {
       console.log('Loading flows for business:', selectedBusiness);
       const response = await FlowApiService.getFlows(selectedBusiness.id);
-      setFlows(response.flows);
+      // Flows are already typed correctly with FlowStatus enum
+      setFlows(response.flows as FlowCardType[]);
     } catch (err) {
       console.error('Error loading flows:', err);
       setError(`Failed to load flows: ${(err as Error).message}`);

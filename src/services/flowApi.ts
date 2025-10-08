@@ -1,4 +1,5 @@
 import { getAuthToken } from '../utils/auth';
+import { FlowStatus } from '../types/workflow';
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
 
@@ -12,7 +13,7 @@ export interface Flow {
   template_name: string;
   template_id: number;
   business_id: number;
-  status: string;
+  status: FlowStatus;  // Use the enum from workflow types
   progress: number;
   current_step: string | null;
   total_steps: number;
@@ -150,12 +151,25 @@ class FlowApiService {
     const params = new URLSearchParams();
     if (status) params.set('status', status);
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    return this.makeRequest(`/flows/businesses/${businessId}/flows${queryString}`);
+    const response = await this.makeRequest(`/flows/businesses/${businessId}/flows${queryString}`);
+    
+    // Convert backend string status to FlowStatus enum
+    const flows = response.flows.map((flow: any) => ({
+      ...flow,
+      status: flow.status as FlowStatus
+    }));
+    
+    return { ...response, flows };
   }
 
   // Get flow details with step executions
   async getFlowDetails(flowId: number): Promise<FlowDetails> {
-    return this.makeRequest(`/flows/flows/${flowId}/details`);
+    const response = await this.makeRequest(`/flows/flows/${flowId}/details`);
+    // Convert backend string status to FlowStatus enum
+    return {
+      ...response,
+      status: response.status as FlowStatus
+    };
   }
 
   // Create a new flow

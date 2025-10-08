@@ -44,7 +44,7 @@ import {
   FlowBusinessContext, 
   CreateFlowRequest
 } from '../../types/workflow';
-import FlowApiService, { FlowTemplateResponse, TemplatePreviewResponse } from '../../services/flowApi';
+import FlowApiService, { FlowTemplate, TemplatePreviewResponse } from '../../services/flowApi';
 
 interface FlowCreationWizardProps {
   open: boolean;
@@ -73,8 +73,8 @@ export default function FlowCreationWizard({
   const [error, setError] = useState<string | null>(null);
   
   // Template selection
-  const [templates, setTemplates] = useState<FlowTemplateResponse[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<FlowTemplateResponse | null>(null);
+  const [templates, setTemplates] = useState<FlowTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<FlowTemplate | null>(null);
   const [templatePreview, setTemplatePreview] = useState<TemplatePreviewResponse | null>(null);
   
   // Field customization
@@ -104,9 +104,7 @@ export default function FlowCreationWizard({
   const loadTemplates = async () => {
     setLoading(true);
     try {
-      const response = await FlowApiService.getPublishedTemplates({
-        businessId: selectedBusiness?.id
-      });
+      const response = await FlowApiService.listTemplates();
       setTemplates(response.templates);
     } catch (err) {
       console.error('Error loading templates:', err);
