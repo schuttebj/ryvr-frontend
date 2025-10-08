@@ -42,6 +42,7 @@ interface FlowCardProps {
   onStart?: () => void;
   onApproveReview?: (stepId: string) => void;
   onOpenReview?: () => void;
+  onOpenOptions?: () => void;
   isDragging?: boolean;
 }
 
@@ -50,6 +51,7 @@ export default function FlowCard({
   onStart, 
   onApproveReview,
   onOpenReview,
+  onOpenOptions,
   isDragging = false 
 }: FlowCardProps) {
   const theme = useTheme();
@@ -87,6 +89,11 @@ export default function FlowCard({
     handleMenuClose();
   };
   
+  const handleOpenOptionsInterface = () => {
+    onOpenOptions?.();
+    handleMenuClose();
+  };
+  
   // =============================================================================
   // RENDER HELPERS
   // =============================================================================
@@ -101,6 +108,8 @@ export default function FlowCard({
         return <PlayIcon sx={{ fontSize: 16 }} />;
       case 'in_review':
         return <ReviewIcon sx={{ fontSize: 16 }} />;
+      case 'input_required':
+        return <PlayIcon sx={{ fontSize: 16 }} />;
       case 'complete':
         return <CompleteIcon sx={{ fontSize: 16 }} />;
       case 'error':
@@ -112,6 +121,7 @@ export default function FlowCard({
   
   const canStart = flow.status === 'new' || flow.status === 'scheduled' || flow.status === 'error';
   const hasReviews = flow.pending_reviews && flow.pending_reviews.length > 0;
+  const needsInput = flow.status === 'input_required';
   
   // =============================================================================
   // MAIN RENDER
@@ -376,7 +386,14 @@ export default function FlowCard({
           </>
         )}
         
-        {!canStart && !hasReviews && (
+        {needsInput && (
+          <MenuItem onClick={handleOpenOptionsInterface}>
+            <PlayIcon sx={{ mr: 1, fontSize: 18 }} />
+            Select Options
+          </MenuItem>
+        )}
+        
+        {!canStart && !hasReviews && !needsInput && (
           <MenuItem disabled>
             No actions available
           </MenuItem>

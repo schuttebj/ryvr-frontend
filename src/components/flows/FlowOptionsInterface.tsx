@@ -20,13 +20,8 @@ import {
   LinearProgress,
   Stack,
   IconButton,
-  FormControl,
-  FormLabel,
-  RadioGroup,
-  Radio,
   FormControlLabel,
   Checkbox,
-  FormGroup,
   useTheme,
   alpha,
   Chip,
@@ -34,9 +29,8 @@ import {
 import {
   Close as CloseIcon,
   CheckCircle as SelectIcon,
-  RadioButtonUnchecked as RadioIcon,
-  CheckBoxOutlineBlank as CheckboxIcon,
-  CheckBox as CheckboxCheckedIcon,
+  RadioButtonUncheckedOutlined as RadioIcon,
+  RadioButtonCheckedOutlined as RadioCheckedIcon,
 } from '@mui/icons-material';
 
 import { FlowCard as FlowCardType } from '../../types/workflow';
@@ -184,9 +178,9 @@ export default function FlowOptionsInterface({
           <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {isSelected ? (
-                <RadioIcon color="primary" />
+                <RadioCheckedIcon color="primary" />
               ) : (
-                <RadioButtonUnchecked sx={{ color: 'text.secondary' }} />
+                <RadioIcon sx={{ color: 'text.secondary' }} />
               )}
               <Box sx={{ flex: 1 }}>
                 <Typography variant="body1" sx={{ fontWeight: isSelected ? 600 : 400 }}>

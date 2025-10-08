@@ -459,7 +459,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}/select-options`, response.status);
         }
         const error = await response.json();
         throw new Error(error.detail || 'Failed to submit options selection');
@@ -487,7 +487,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}/options/${stepId}`, response.status);
         }
         const error = await response.json();
         throw new Error(error.detail || 'Failed to get flow options');
@@ -531,7 +531,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}/review/${stepId}/approve-with-edits`, response.status);
         }
         const error = await response.json();
         throw new Error(error.detail || 'Failed to process review');
@@ -571,7 +571,7 @@ export class FlowApiService {
       
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
-          handleAuthError();
+          handleAuthError(`/flows/flows/${flowId}/editable-data`, response.status);
         }
         const error = await response.json();
         throw new Error(error.detail || 'Failed to get editable data');

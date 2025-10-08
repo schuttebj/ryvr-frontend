@@ -350,6 +350,7 @@ export default function FlowsPage() {
                         onStart={() => handleStartFlow(flow.id)}
                         onApproveReview={(stepId) => handleApproveReview(flow.id, stepId)}
                         onOpenReview={() => handleOpenReviewInterface(flow)}
+                        onOpenOptions={() => handleOpenOptionsInterface(flow)}
                         isDragging={snapshot.isDragging}
                       />
                     </Box>
