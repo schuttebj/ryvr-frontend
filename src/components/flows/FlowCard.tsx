@@ -146,8 +146,9 @@ export default function FlowCard({
   const canStart = flow.status === FlowStatus.NEW || flow.status === FlowStatus.SCHEDULED || flow.status === FlowStatus.ERROR;
   const hasReviews = flow.pending_reviews && flow.pending_reviews.length > 0;
   const needsInput = flow.status === FlowStatus.INPUT_REQUIRED;
-  const canRerun = flow.status === FlowStatus.COMPLETE || flow.status === FlowStatus.ERROR;
-  const canDelete = flow.status !== FlowStatus.IN_PROGRESS;
+  // Always allow rerun and delete
+  const canRerun = true;
+  const canDelete = true;
   
   // =============================================================================
   // MAIN RENDER
