@@ -1415,7 +1415,8 @@ export const workflowApi = {
             id: template.id?.toString() || workflowId,
             name: template.name,
             description: template.description || '',
-            isActive: true,
+            isActive: template.status === 'published', // Convert status to isActive
+            status: template.status, // Keep original status field
             createdAt: template.created_at || new Date().toISOString(),
             updatedAt: template.updated_at || new Date().toISOString(),
             tags: template.tags || [],
@@ -3264,7 +3265,7 @@ export const workflowApi = {
     return validation;
   },
 
-  // Activate workflow (with validation)
+  // Activate workflow (with validation and backend sync)
   activateWorkflow: async (workflowId: string) => {
     try {
       // Load workflow
@@ -3282,16 +3283,49 @@ export const workflowApi = {
         throw new Error(`Cannot activate workflow with errors: ${validation.errors.join(', ')}`);
       }
 
-      // Update workflow status
+      // Update workflow status locally
       workflow.isActive = true;
+      workflow.status = 'published'; // Backend status field
       workflow.updatedAt = new Date().toISOString();
       workflow.lastValidated = new Date().toISOString();
       workflow.validationResult = validation;
 
-      // Save updated workflow
+      // Save updated workflow to localStorage
       const workflowIndex = workflows.findIndex((w: any) => w.id === workflowId);
       workflows[workflowIndex] = workflow;
       localStorage.setItem('workflows', JSON.stringify(workflows));
+
+      // If this is a backend template (numeric ID), update backend status
+      if (!isNaN(parseInt(workflowId))) {
+        try {
+          console.log(`Publishing workflow template ${workflowId} to backend...`);
+          
+          // Get the template to update
+          const templateResult = await workflowApi.getWorkflowTemplate(parseInt(workflowId));
+          
+          if (templateResult.success && templateResult.template) {
+            // Update status to 'published'
+            const updatedTemplate = {
+              ...templateResult.template,
+              status: 'published' as const
+            };
+            
+            const updateResult = await workflowApi.updateWorkflowTemplate(
+              parseInt(workflowId),
+              updatedTemplate
+            );
+            
+            if (updateResult.success) {
+              console.log(`✅ Workflow template ${workflowId} published to backend`);
+            } else {
+              console.warn(`⚠️ Failed to update backend status: ${updateResult.error}`);
+            }
+          }
+        } catch (backendError) {
+          console.warn('Failed to update backend status:', backendError);
+          // Don't fail activation if backend update fails
+        }
+      }
 
       return { success: true, workflow, validation };
     } catch (error: any) {
@@ -3300,7 +3334,7 @@ export const workflowApi = {
     }
   },
 
-  // Deactivate workflow
+  // Deactivate workflow (unpublish to draft)
   deactivateWorkflow: async (workflowId: string) => {
     try {
       const workflows = JSON.parse(localStorage.getItem('workflows') || '[]');
@@ -3311,9 +3345,42 @@ export const workflowApi = {
       }
 
       workflows[workflowIndex].isActive = false;
+      workflows[workflowIndex].status = 'draft'; // Backend status field
       workflows[workflowIndex].updatedAt = new Date().toISOString();
       
       localStorage.setItem('workflows', JSON.stringify(workflows));
+
+      // If this is a backend template (numeric ID), update backend status
+      if (!isNaN(parseInt(workflowId))) {
+        try {
+          console.log(`Unpublishing workflow template ${workflowId} to draft...`);
+          
+          // Get the template to update
+          const templateResult = await workflowApi.getWorkflowTemplate(parseInt(workflowId));
+          
+          if (templateResult.success && templateResult.template) {
+            // Update status back to 'draft'
+            const updatedTemplate = {
+              ...templateResult.template,
+              status: 'draft' as const
+            };
+            
+            const updateResult = await workflowApi.updateWorkflowTemplate(
+              parseInt(workflowId),
+              updatedTemplate
+            );
+            
+            if (updateResult.success) {
+              console.log(`✅ Workflow template ${workflowId} unpublished to draft`);
+            } else {
+              console.warn(`⚠️ Failed to update backend status: ${updateResult.error}`);
+            }
+          }
+        } catch (backendError) {
+          console.warn('Failed to update backend status:', backendError);
+          // Don't fail deactivation if backend update fails
+        }
+      }
 
       return { success: true, workflow: workflows[workflowIndex] };
     } catch (error: any) {
