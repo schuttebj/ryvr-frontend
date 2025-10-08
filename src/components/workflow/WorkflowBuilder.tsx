@@ -893,7 +893,26 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       };
 
       const { workflowApi } = await import('../../services/workflowApi');
-      const validation = await workflowApi.validateWorkflow(workflow);
+      
+      // Pass progress callback to update in real-time
+      const validation = await workflowApi.validateWorkflow(workflow, (progress) => {
+        // Update validation result with incremental progress
+        setValidationResult((prev: any) => ({
+          ...prev,
+          isValid: true, // Assume valid until we see errors
+          errors: [],
+          warnings: [],
+          nodeResults: {},
+          overallStatus: 'valid',
+          executionFlow: progress.step ? [progress.step] : [],
+          summary: {
+            totalNodes: progress.total,
+            cachedNodes: 0,
+            freshNodes: progress.current,
+            message: `Processing step ${progress.current} of ${progress.total}...`
+          }
+        }));
+      });
       
       setValidationResult(validation);
       
@@ -941,7 +960,26 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       };
 
       const { workflowApi } = await import('../../services/workflowApi');
-      const validation = await workflowApi.testFullWorkflow(workflow);
+      
+      // Pass progress callback to update in real-time
+      const validation = await workflowApi.testFullWorkflow(workflow, (progress) => {
+        // Update validation result with incremental progress
+        setValidationResult((prev: any) => ({
+          ...prev,
+          isValid: true, // Assume valid until we see errors
+          errors: [],
+          warnings: [],
+          nodeResults: {},
+          overallStatus: 'valid',
+          executionFlow: progress.step ? [progress.step] : [],
+          summary: {
+            totalNodes: progress.total,
+            cachedNodes: 0,
+            freshNodes: progress.current,
+            message: `Processing step ${progress.current} of ${progress.total}...`
+          }
+        }));
+      });
       
       setValidationResult(validation);
       

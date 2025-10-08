@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../components/layout/AdminLayout';
 // import AgencyLayout from '../components/layout/AgencyLayout'; // Unused in simplified structure
 import BusinessLayout from '../components/layout/BusinessLayout';
@@ -54,11 +55,20 @@ interface WorkflowSummary {
 }
 
 export default function WorkflowsPage() {
+  return (
+    <Routes>
+      <Route index element={<WorkflowsList />} />
+      <Route path=":workflowId" element={<WorkflowBuilderPage />} />
+      <Route path="new" element={<WorkflowBuilderPage />} />
+    </Routes>
+  );
+}
+
+function WorkflowsList() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [filteredWorkflows, setFilteredWorkflows] = useState<WorkflowSummary[]>([]);
-  const [showBuilder, setShowBuilder] = useState(false);
-  const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
   
   // Filter and search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,14 +110,10 @@ export default function WorkflowsPage() {
     }
   }, []);
 
-  // Load workflows on component mount and when returning from builder
+  // Load workflows on component mount
   useEffect(() => {
-    // Only load workflows when not showing builder (i.e., when returning to list)
-    if (!showBuilder) {
-      loadWorkflows();
-      setEditingWorkflowId(null); // Reset editing mode when returning to list
-    }
-  }, [showBuilder, loadWorkflows]);
+    loadWorkflows();
+  }, [loadWorkflows]);
 
   // Filter workflows based on search and filter criteria
   useEffect(() => {
@@ -234,14 +240,11 @@ export default function WorkflowsPage() {
   }, [editingWorkflowId]);
 
   const handleCreateWorkflow = () => {
-    // Don't create a workflow summary here - let the builder handle the creation
-    setEditingWorkflowId(null); // Clear editing mode for new workflow
-    setShowBuilder(true);
+    navigate('new');
   };
 
   const handleEditWorkflow = (workflowId: string) => {
-    setEditingWorkflowId(workflowId); // Set the workflow ID for editing
-    setShowBuilder(true);
+    navigate(workflowId);
     setAnchorEl(null);
   };
 
@@ -601,6 +604,38 @@ export default function WorkflowsPage() {
 
       {/* Create Workflow Dialog removed - now go directly to builder */}
       </Box>
+    </LayoutComponent>
+  );
+}
+
+// Separate component for workflow builder page
+function WorkflowBuilderPage() {
+  const { workflowId } = useParams<{ workflowId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleSaveWorkflow = async (workflow: any) => {
+    try {
+      await workflowApi.saveWorkflow(workflow);
+      // Navigate back to list after saving
+      navigate('/admin/workflows');
+    } catch (error) {
+      console.error('Failed to save workflow:', error);
+    }
+  };
+
+  // Determine which layout to use based on user role
+  const LayoutComponent = user?.role === 'admin' ? AdminLayout : BusinessLayout;
+
+  return (
+    <LayoutComponent 
+      title={workflowId && workflowId !== 'new' ? "Edit Workflow" : "Create Workflow"}
+      subtitle={workflowId && workflowId !== 'new' ? "Modify your workflow" : "Build a new automation"}
+    >
+      <WorkflowBuilder 
+        workflowId={workflowId && workflowId !== 'new' ? workflowId : undefined}
+        onSave={handleSaveWorkflow}
+      />
     </LayoutComponent>
   );
 } 

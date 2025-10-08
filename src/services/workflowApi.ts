@@ -2709,7 +2709,7 @@ export const workflowApi = {
   // Note: executeWorkflow moved to V2 API section for backend execution
 
   // Validate entire workflow before activation (uses cached test data)
-  validateWorkflow: async (workflow: any) => {
+  validateWorkflow: async (workflow: any, onProgress?: (progress: { current: number; total: number; step: any }) => void) => {
     console.log('Validating workflow:', workflow.name);
     console.log('📦 Using cached test data from globalWorkflowData where available');
     
@@ -2911,6 +2911,18 @@ export const workflowApi = {
           }
         };
         
+        // Add to execution flow immediately so progress can be tracked
+        executionFlow.push(stepResult);
+        
+        // Notify progress callback
+        if (onProgress) {
+          onProgress({
+            current: stepIndex,
+            total: sortedNodes.length,
+            step: stepResult
+          });
+        }
+        
         // Check node configuration
         const nodeValidation = workflowApi.validateNodeConfiguration(node);
         if (!nodeValidation.isValid) {
@@ -2919,7 +2931,15 @@ export const workflowApi = {
           validation.errors.push(`Node "${node.data.label}": ${nodeValidation.errors.join(', ')}`);
           validation.isValid = false;
           validation.nodeResults[node.id] = { status: 'error', errors: nodeValidation.errors };
-          executionFlow.push(stepResult);
+          
+          // Update progress with error
+          if (onProgress) {
+            onProgress({
+              current: stepIndex,
+              total: sortedNodes.length,
+              step: stepResult
+            });
+          }
           continue;
         }
 
@@ -2981,6 +3001,15 @@ export const workflowApi = {
             executionTime: stepResult.executionTime
           };
           
+          // Notify progress with success
+          if (onProgress) {
+            onProgress({
+              current: stepIndex,
+              total: sortedNodes.length,
+              step: stepResult
+            });
+          }
+          
           // Update current data for next node
           if (result.data) {
             const outputVariable = stepResult.dataMapping.outputVariable;
@@ -3021,9 +3050,16 @@ export const workflowApi = {
             errors: [result.error],
             message: 'Node test failed'
           };
+          
+          // Notify progress with error
+          if (onProgress) {
+            onProgress({
+              current: stepIndex,
+              total: sortedNodes.length,
+              step: stepResult
+            });
+          }
         }
-        
-        executionFlow.push(stepResult);
 
       } catch (error: any) {
         const errorMsg = `Node "${node.data.label}" validation error: ${error.message}`;
@@ -3084,7 +3120,7 @@ export const workflowApi = {
   },
 
   // Test full workflow (always fresh - clears cache first)  
-  testFullWorkflow: async (workflow: any) => {
+  testFullWorkflow: async (workflow: any, onProgress?: (progress: { current: number; total: number; step: any }) => void) => {
     console.log('🧪 Testing full workflow:', workflow.name);
     console.log('🧹 Clearing all cached test data for fresh execution');
     
@@ -3092,7 +3128,7 @@ export const workflowApi = {
     clearWorkflowData();
     
     // Use the same validation logic but with cleared cache
-    const result = await workflowApi.validateWorkflow(workflow);
+    const result = await workflowApi.validateWorkflow(workflow, onProgress);
     result.summary.message = `Fresh execution: Made ${result.summary.freshNodes} API call(s)`;
     
     return result;
