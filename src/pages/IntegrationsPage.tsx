@@ -565,19 +565,16 @@ export default function IntegrationsPage() {
   const handleSaveDynamicIntegrationConfig = async () => {
     if (!configuringDynamicIntegration) return;
     
-    // Get current business from context or first available business
-    const currentBusiness = businesses.length > 0 ? businesses[0] : null;
-    if (!currentBusiness) {
-      alert('No business available. Please select a business first.');
-      return;
-    }
+    // Get business ID from localStorage or use a default
+    // In a multi-tenant system, this should come from BusinessContext
+    const businessId = localStorage.getItem('selected_business_id') || '1';
 
     try {
       setSavingDynamicConfig(true);
 
       // Create business integration
       const response = await fetch(
-        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${currentBusiness.id}/integrations`,
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${businessId}/integrations`,
         {
           method: 'POST',
           headers: {
