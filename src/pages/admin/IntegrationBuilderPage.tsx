@@ -1,8 +1,7 @@
-// Integration Builder - Main Admin Page
-import React, { useState } from 'react';
+// Integration Builder - Wizard Flow with Admin Layout
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Button,
   Card,
@@ -28,11 +27,17 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  Tabs,
-  Tab,
   Switch,
   FormControlLabel,
   Divider,
+  Stepper,
+  Step,
+  StepLabel,
+  Stack,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -42,31 +47,28 @@ import {
   PlayArrow as TestIcon,
   AutoAwesome as AIIcon,
   ArrowBack as BackIcon,
+  ArrowForward as ForwardIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import AdminLayout from '../../components/layout/AdminLayout';
 import { integrationBuilderApi, type IntegrationOperation } from '../../services/integrationBuilderApi';
+import ReactJson from 'react-json-view';
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-  return (
-    <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  );
-}
+const WIZARD_STEPS = ['Parse Documentation', 'Platform & Auth', 'Review Operations', 'Save'];
 
 export default function IntegrationBuilderPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // AI Parser
+  const [aiDocumentation, setAiDocumentation] = useState('');
+  const [aiInstructions, setAiInstructions] = useState('');
+  const [aiParsing, setAiParsing] = useState(false);
+  const [parsedConfig, setParsedConfig] = useState<any>(null);
 
   // Platform Configuration
   const [platformName, setPlatformName] = useState('');
@@ -93,23 +95,55 @@ export default function IntegrationBuilderPage() {
   const [oauthAuthUrl, setOauthAuthUrl] = useState('');
   const [oauthTokenUrl, setOauthTokenUrl] = useState('');
   const [oauthScopes, setOauthScopes] = useState('');
-  const [oauthClientId, setOauthClientId] = useState('');
-  const [oauthClientSecret, setOauthClientSecret] = useState('');
 
   // Operations
   const [operations, setOperations] = useState<IntegrationOperation[]>([]);
-  const [selectedOperation, setSelectedOperation] = useState<IntegrationOperation | null>(null);
+  const [editingOperation, setEditingOperation] = useState<IntegrationOperation | null>(null);
   const [operationDialogOpen, setOperationDialogOpen] = useState(false);
 
-  // AI Parser
-  const [aiDocumentation, setAiDocumentation] = useState('');
-  const [aiInstructions, setAiInstructions] = useState('');
-  const [aiParsing, setAiParsing] = useState(false);
-  const [aiResult, setAiResult] = useState<any>(null);
+  // Load parsed config into form
+  useEffect(() => {
+    if (parsedConfig) {
+      setPlatformName(parsedConfig.platform.name || '');
+      setProvider(parsedConfig.platform.name?.toLowerCase().replace(/\s+/g, '_') || '');
+      setBaseUrl(parsedConfig.platform.base_url || '');
+      setAuthType(parsedConfig.platform.auth_type || 'bearer');
+      setColor(parsedConfig.platform.color || '#5f5eff');
+      setDocumentationUrl(parsedConfig.platform.documentation_url || '');
+      
+      setAuthCredentials(parsedConfig.auth_config.credentials || []);
+      setOperations(parsedConfig.operations || []);
+    }
+  }, [parsedConfig]);
 
-  // Test Panel
-  const [testDialogOpen, setTestDialogOpen] = useState(false);
-  const [testOperation, setTestOperation] = useState<IntegrationOperation | null>(null);
+  const handleParseDocumentation = async () => {
+    try {
+      setAiParsing(true);
+      setError(null);
+
+      const result = await integrationBuilderApi.parseDocumentation({
+        platform_name: platformName || 'API Platform',
+        documentation: aiDocumentation,
+        instructions: aiInstructions,
+      });
+
+      if (result.success) {
+        setParsedConfig(result.config);
+        setSuccess('Documentation parsed successfully!');
+        // Auto-advance to next step
+        setTimeout(() => {
+          setActiveStep(1);
+          setSuccess(null);
+        }, 1500);
+      } else {
+        setError(result.error || 'Failed to parse documentation');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to parse documentation');
+    } finally {
+      setAiParsing(false);
+    }
+  };
 
   const handleSaveIntegration = async () => {
     try {
@@ -151,8 +185,6 @@ export default function IntegrationBuilderPage() {
           auth_url: oauthAuthUrl,
           token_url: oauthTokenUrl,
           scopes: oauthScopes.split(',').map(s => s.trim()).filter(Boolean),
-          client_id: oauthClientId,
-          client_secret: oauthClientSecret,
         } : undefined,
         operations,
       };
@@ -160,82 +192,37 @@ export default function IntegrationBuilderPage() {
       await integrationBuilderApi.createIntegration(integrationData);
       setSuccess(`Integration "${platformName}" created successfully!`);
       
-      // Reset form or navigate
+      // Navigate to integrations page
       setTimeout(() => {
         navigate('/admin/integrations');
       }, 2000);
       
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create integration');
+      setError(err.response?.data?.detail || err.message || 'Failed to save integration');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAIParse = async () => {
-    try {
-      setAiParsing(true);
-      setError(null);
-
-      const result = await integrationBuilderApi.parseDocumentation({
-        platform_name: platformName || 'API Platform',
-        documentation: aiDocumentation,
-        instructions: aiInstructions,
-      });
-
-      if (result.success) {
-        setAiResult(result);
-        
-        // Apply parsed configuration
-        const config = result.config;
-        
-        if (config.platform) {
-          setPlatformName(config.platform.name);
-          setProvider(config.platform.name.toLowerCase().replace(/\s+/g, '_'));
-          setBaseUrl(config.platform.base_url);
-          setAuthType(config.platform.auth_type);
-          if (config.platform.color) setColor(config.platform.color);
-          if (config.platform.documentation_url) setDocumentationUrl(config.platform.documentation_url);
-        }
-
-        if (config.auth_config) {
-          setAuthCredentials(config.auth_config.credentials || []);
-        }
-
-        if (config.operations) {
-          setOperations(config.operations);
-        }
-
-        setSuccess('Documentation parsed successfully! Review and adjust as needed.');
-      } else {
-        setError(result.error || 'Failed to parse documentation');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'AI parsing failed');
-    } finally {
-      setAiParsing(false);
+  const handleNext = () => {
+    if (activeStep === 0 && !parsedConfig) {
+      setError('Please parse documentation first');
+      return;
     }
+    if (activeStep === 1 && (!platformName || !baseUrl)) {
+      setError('Platform name and base URL are required');
+      return;
+    }
+    setError(null);
+    setActiveStep((prev) => prev + 1);
   };
 
-  const handleAddCredential = () => {
-    setAuthCredentials([
-      ...authCredentials,
-      { name: '', type: 'string', required: true, fixed: false, description: '' },
-    ]);
-  };
-
-  const handleUpdateCredential = (index: number, field: string, value: any) => {
-    const updated = [...authCredentials];
-    updated[index] = { ...updated[index], [field]: value };
-    setAuthCredentials(updated);
-  };
-
-  const handleRemoveCredential = (index: number) => {
-    setAuthCredentials(authCredentials.filter((_, i) => i !== index));
+  const handleBack = () => {
+    setActiveStep((prev) => prev - 1);
   };
 
   const handleAddOperation = () => {
-    setSelectedOperation({
+    setEditingOperation({
       id: '',
       name: '',
       description: '',
@@ -245,540 +232,484 @@ export default function IntegrationBuilderPage() {
       base_credits: 1,
       is_async: false,
       parameters: [],
-      headers: [{ name: 'Content-Type', value: 'application/json', fixed: true }],
+      headers: [],
     });
     setOperationDialogOpen(true);
   };
 
   const handleEditOperation = (operation: IntegrationOperation) => {
-    setSelectedOperation(operation);
+    setEditingOperation(operation);
     setOperationDialogOpen(true);
   };
 
   const handleSaveOperation = () => {
-    if (!selectedOperation) return;
+    if (!editingOperation) return;
 
-    if (operations.find(op => op.id === selectedOperation.id && op !== selectedOperation)) {
-      // Update existing
-      setOperations(operations.map(op => op.id === selectedOperation.id ? selectedOperation : op));
+    const existingIndex = operations.findIndex(op => op.id === editingOperation.id);
+    if (existingIndex >= 0) {
+      const updated = [...operations];
+      updated[existingIndex] = editingOperation;
+      setOperations(updated);
     } else {
-      // Add new
-      setOperations([...operations, selectedOperation]);
+      setOperations([...operations, editingOperation]);
     }
-    
     setOperationDialogOpen(false);
-    setSelectedOperation(null);
+    setEditingOperation(null);
   };
 
   const handleDeleteOperation = (operationId: string) => {
     setOperations(operations.filter(op => op.id !== operationId));
   };
 
-  const handleTestOperation = (operation: IntegrationOperation) => {
-    setTestOperation(operation);
-    setTestDialogOpen(true);
+  const renderStepContent = () => {
+    switch (activeStep) {
+      case 0:
+        return (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                <AIIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                AI Documentation Parser
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Paste your API documentation below and let AI extract the integration configuration
+              </Typography>
+
+              <TextField
+                fullWidth
+                label="Platform Name (Optional)"
+                value={platformName}
+                onChange={(e) => setPlatformName(e.target.value)}
+                sx={{ mb: 2 }}
+                helperText="e.g., Brevo, SendGrid, Stripe"
+              />
+
+              <TextField
+                fullWidth
+                multiline
+                rows={12}
+                label="API Documentation"
+                value={aiDocumentation}
+                onChange={(e) => setAiDocumentation(e.target.value)}
+                placeholder="Paste API documentation here..."
+                sx={{ mb: 2 }}
+              />
+
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Additional Instructions (Optional)"
+                value={aiInstructions}
+                onChange={(e) => setAiInstructions(e.target.value)}
+                placeholder="e.g., Focus on email sending endpoints, Extract only GET operations"
+                sx={{ mb: 3 }}
+              />
+
+              <Button
+                variant="contained"
+                onClick={handleParseDocumentation}
+                disabled={!aiDocumentation || aiParsing}
+                startIcon={aiParsing ? <CircularProgress size={20} /> : <AIIcon />}
+                fullWidth
+                size="large"
+              >
+                {aiParsing ? 'Parsing Documentation...' : 'Parse with AI'}
+              </Button>
+
+              {parsedConfig && (
+                <Alert severity="success" sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    ✓ Successfully extracted {parsedConfig.operations?.length || 0} operations
+                  </Typography>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 1:
+        return (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Platform & Authentication</Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Platform Name"
+                    value={platformName}
+                    onChange={(e) => setPlatformName(e.target.value)}
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Provider Identifier"
+                    value={provider}
+                    onChange={(e) => setProvider(e.target.value)}
+                    required
+                    helperText="Lowercase with underscores, e.g., brevo_api"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Base URL"
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    required
+                    placeholder="https://api.example.com"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Authentication Type</InputLabel>
+                    <Select
+                      value={authType}
+                      label="Authentication Type"
+                      onChange={(e) => setAuthType(e.target.value as any)}
+                    >
+                      <MenuItem value="bearer">Bearer Token</MenuItem>
+                      <MenuItem value="api_key">API Key</MenuItem>
+                      <MenuItem value="basic">Basic Auth</MenuItem>
+                      <MenuItem value="oauth2">OAuth 2.0</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    type="color"
+                    label="Brand Color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Icon URL (Optional)"
+                    value={iconUrl}
+                    onChange={(e) => setIconUrl(e.target.value)}
+                    placeholder="https://example.com/icon.svg"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Documentation URL (Optional)"
+                    value={documentationUrl}
+                    onChange={(e) => setDocumentationUrl(e.target.value)}
+                    placeholder="https://developers.example.com"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={isSystemWide}
+                        onChange={(e) => setIsSystemWide(e.target.checked)}
+                      />
+                    }
+                    label="System-wide Integration"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={requiresUserConfig}
+                        onChange={(e) => setRequiresUserConfig(e.target.checked)}
+                      />
+                    }
+                    label="Requires User Configuration"
+                  />
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Typography variant="h6" gutterBottom>Credentials</Typography>
+              <List>
+                {authCredentials.map((cred, index) => (
+                  <ListItem key={index}>
+                    <ListItemText
+                      primary={cred.name}
+                      secondary={`${cred.type} • ${cred.required ? 'Required' : 'Optional'} • ${cred.fixed ? 'Fixed' : 'Flexible'}`}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </CardContent>
+          </Card>
+        );
+
+      case 2:
+        return (
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h6">Operations ({operations.length})</Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddOperation}
+                >
+                  Add Operation
+                </Button>
+              </Box>
+
+              <TableContainer component={Paper} variant="outlined">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Name</TableCell>
+                      <TableCell>Endpoint</TableCell>
+                      <TableCell>Method</TableCell>
+                      <TableCell>Category</TableCell>
+                      <TableCell>Credits</TableCell>
+                      <TableCell>Parameters</TableCell>
+                      <TableCell align="right">Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {operations.map((operation) => (
+                      <TableRow key={operation.id}>
+                        <TableCell>{operation.name}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                            {operation.endpoint}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip label={operation.method} size="small" color="primary" />
+                        </TableCell>
+                        <TableCell>{operation.category}</TableCell>
+                        <TableCell>{operation.base_credits}</TableCell>
+                        <TableCell>{operation.parameters.length}</TableCell>
+                        <TableCell align="right">
+                          <IconButton size="small" onClick={() => handleEditOperation(operation)}>
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => handleDeleteOperation(operation.id)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {operations.length === 0 && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  No operations defined. Click "Add Operation" to create one.
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        );
+
+      case 3:
+        return (
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Review & Save</Typography>
+              <Divider sx={{ mb: 3 }} />
+
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Review your integration configuration before saving
+              </Alert>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Platform</Typography>
+                  <Typography variant="body1">{platformName}</Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Base URL</Typography>
+                  <Typography variant="body1" sx={{ fontFamily: 'monospace', fontSize: '0.9rem' }}>
+                    {baseUrl}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Auth Type</Typography>
+                  <Chip label={authType} size="small" />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle2" color="text.secondary">Operations</Typography>
+                  <Typography variant="body1">{operations.length} operations</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>Credentials</Typography>
+                  {authCredentials.map((cred, index) => (
+                    <Chip key={index} label={cred.name} size="small" sx={{ mr: 1, mb: 1 }} />
+                  ))}
+                </Grid>
+              </Grid>
+
+              <Button
+                variant="contained"
+                size="large"
+                fullWidth
+                onClick={handleSaveIntegration}
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+                sx={{ mt: 3 }}
+              >
+                {loading ? 'Saving Integration...' : 'Save Integration'}
+              </Button>
+            </CardContent>
+          </Card>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <IconButton onClick={() => navigate('/admin/integrations')}>
-          <BackIcon />
-        </IconButton>
-        <Typography variant="h4">Integration Builder</Typography>
-      </Box>
+    <AdminLayout
+      title="Integration Builder"
+      subtitle="Create custom integrations using AI-powered documentation parsing"
+      actions={
+        <Button
+          variant="outlined"
+          startIcon={<BackIcon />}
+          onClick={() => navigate('/admin/integrations')}
+        >
+          Back to Integrations
+        </Button>
+      }
+    >
+      <Box>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+            {success}
+          </Alert>
+        )}
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+          {WIZARD_STEPS.map((label) => (
+            <Step key={label}>
+              <StepLabel>{label}</StepLabel>
+            </Step>
+          ))}
+        </Stepper>
 
-      <Card>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}>
-          <Tab label="Platform Configuration" />
-          <Tab label="Authentication" />
-          <Tab label="Operations" />
-          <Tab label="AI Documentation Parser" />
-        </Tabs>
+        {renderStepContent()}
 
-        <CardContent>
-          <TabPanel value={activeTab} index={0}>
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+          <Button
+            onClick={handleBack}
+            disabled={activeStep === 0}
+            startIcon={<BackIcon />}
+          >
+            Back
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          {activeStep < WIZARD_STEPS.length - 1 && (
+            <Button
+              variant="contained"
+              onClick={handleNext}
+              endIcon={<ForwardIcon />}
+              disabled={activeStep === 0 && !parsedConfig}
+            >
+              Next
+            </Button>
+          )}
+        </Stack>
+
+        {/* Operation Editor Dialog */}
+        <Dialog open={operationDialogOpen} onClose={() => setOperationDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>{editingOperation?.id ? 'Edit Operation' : 'Add Operation'}</DialogTitle>
+          <DialogContent>
+            {editingOperation && (
+              <Stack spacing={2} sx={{ mt: 1 }}>
                 <TextField
                   fullWidth
-                  label="Platform Name"
-                  value={platformName}
-                  onChange={(e) => setPlatformName(e.target.value)}
-                  helperText="E.g., 'SendGrid', 'Brevo', 'DataForSEO'"
+                  label="Operation ID"
+                  value={editingOperation.id}
+                  onChange={(e) => setEditingOperation({ ...editingOperation, id: e.target.value })}
+                  helperText="Unique identifier, e.g., send_email"
                 />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Provider ID"
-                  value={provider}
-                  onChange={(e) => setProvider(e.target.value)}
-                  helperText="Lowercase identifier (auto-generated from name)"
+                  label="Name"
+                  value={editingOperation.name}
+                  onChange={(e) => setEditingOperation({ ...editingOperation, name: e.target.value })}
                 />
-              </Grid>
-
-              <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Base URL"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://api.example.com/v1"
-                  helperText="API base URL without trailing slash"
+                  multiline
+                  rows={2}
+                  label="Description"
+                  value={editingOperation.description}
+                  onChange={(e) => setEditingOperation({ ...editingOperation, description: e.target.value })}
                 />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Authentication Type</InputLabel>
-                  <Select
-                    value={authType}
-                    onChange={(e) => setAuthType(e.target.value as any)}
-                  >
-                    <MenuItem value="basic">Basic Auth</MenuItem>
-                    <MenuItem value="bearer">Bearer Token</MenuItem>
-                    <MenuItem value="api_key">API Key</MenuItem>
-                    <MenuItem value="oauth2">OAuth 2.0</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Brand Color"
-                  type="color"
-                  value={color}
-                  onChange={(e) => setColor(e.target.value)}
+                  label="Endpoint"
+                  value={editingOperation.endpoint}
+                  onChange={(e) => setEditingOperation({ ...editingOperation, endpoint: e.target.value })}
+                  helperText="API endpoint path, e.g., /v1/send"
                 />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Icon URL"
-                  value={iconUrl}
-                  onChange={(e) => setIconUrl(e.target.value)}
-                  placeholder="https://..."
-                />
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Documentation URL"
-                  value={documentationUrl}
-                  onChange={(e) => setDocumentationUrl(e.target.value)}
-                  placeholder="https://docs.example.com"
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={isSystemWide}
-                      onChange={(e) => setIsSystemWide(e.target.checked)}
-                    />
-                  }
-                  label="System-wide (all users can use without configuration)"
-                />
-              </Grid>
-
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={requiresUserConfig}
-                      onChange={(e) => setRequiresUserConfig(e.target.checked)}
-                    />
-                  }
-                  label="Requires user configuration (users must provide their own credentials)"
-                />
-              </Grid>
-            </Grid>
-          </TabPanel>
-
-          <TabPanel value={activeTab} index={1}>
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Credential Fields
-              </Typography>
-              <Button
-                startIcon={<AddIcon />}
-                onClick={handleAddCredential}
-                variant="outlined"
-              >
-                Add Credential Field
-              </Button>
-            </Box>
-
-            {authCredentials.map((cred, index) => (
-              <Card key={index} sx={{ mb: 2, p: 2 }}>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Field Name"
-                      value={cred.name}
-                      onChange={(e) => handleUpdateCredential(index, 'name', e.target.value)}
-                      placeholder="api_key, username, etc."
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={2}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Type</InputLabel>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={4}>
+                    <FormControl fullWidth>
+                      <InputLabel>Method</InputLabel>
                       <Select
-                        value={cred.type}
-                        onChange={(e) => handleUpdateCredential(index, 'type', e.target.value)}
+                        value={editingOperation.method}
+                        label="Method"
+                        onChange={(e) => setEditingOperation({ ...editingOperation, method: e.target.value as any })}
                       >
-                        <MenuItem value="string">String</MenuItem>
-                        <MenuItem value="password">Password</MenuItem>
-                        <MenuItem value="number">Number</MenuItem>
+                        <MenuItem value="GET">GET</MenuItem>
+                        <MenuItem value="POST">POST</MenuItem>
+                        <MenuItem value="PUT">PUT</MenuItem>
+                        <MenuItem value="PATCH">PATCH</MenuItem>
+                        <MenuItem value="DELETE">DELETE</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>
-
-                  <Grid item xs={6} md={2}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={cred.required}
-                          onChange={(e) => handleUpdateCredential(index, 'required', e.target.checked)}
-                          size="small"
-                        />
-                      }
-                      label="Required"
-                    />
-                  </Grid>
-
-                  <Grid item xs={6} md={2}>
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={cred.fixed}
-                          onChange={(e) => handleUpdateCredential(index, 'fixed', e.target.checked)}
-                          size="small"
-                        />
-                      }
-                      label="Fixed"
-                    />
-                  </Grid>
-
-                  <Grid item xs={10} md={2}>
+                  <Grid item xs={12} md={4}>
                     <TextField
                       fullWidth
-                      size="small"
-                      label="Description"
-                      value={cred.description}
-                      onChange={(e) => handleUpdateCredential(index, 'description', e.target.value)}
+                      label="Category"
+                      value={editingOperation.category}
+                      onChange={(e) => setEditingOperation({ ...editingOperation, category: e.target.value })}
                     />
                   </Grid>
-
-                  <Grid item xs={2} md={1}>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleRemoveCredential(index)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </Grid>
-                </Grid>
-              </Card>
-            ))}
-
-            {authType === 'oauth2' && (
-              <>
-                <Divider sx={{ my: 3 }} />
-                <Typography variant="h6" gutterBottom>
-                  OAuth 2.0 Configuration
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={4}>
                     <TextField
                       fullWidth
-                      label="OAuth Provider"
-                      value={oauthProvider}
-                      onChange={(e) => setOauthProvider(e.target.value)}
-                      placeholder="google, facebook, etc."
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Authorization URL"
-                      value={oauthAuthUrl}
-                      onChange={(e) => setOauthAuthUrl(e.target.value)}
-                      placeholder="https://accounts.google.com/o/oauth2/auth"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Token URL"
-                      value={oauthTokenUrl}
-                      onChange={(e) => setOauthTokenUrl(e.target.value)}
-                      placeholder="https://oauth2.googleapis.com/token"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Scopes (comma-separated)"
-                      value={oauthScopes}
-                      onChange={(e) => setOauthScopes(e.target.value)}
-                      placeholder="analytics.readonly, profile"
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Client ID"
-                      value={oauthClientId}
-                      onChange={(e) => setOauthClientId(e.target.value)}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      type="password"
-                      label="Client Secret"
-                      value={oauthClientSecret}
-                      onChange={(e) => setOauthClientSecret(e.target.value)}
+                      type="number"
+                      label="Base Credits"
+                      value={editingOperation.base_credits}
+                      onChange={(e) => setEditingOperation({ ...editingOperation, base_credits: parseInt(e.target.value) || 1 })}
                     />
                   </Grid>
                 </Grid>
-              </>
+              </Stack>
             )}
-          </TabPanel>
-
-          <TabPanel value={activeTab} index={2}>
-            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="h6">Operations ({operations.length})</Typography>
-              <Button
-                startIcon={<AddIcon />}
-                onClick={handleAddOperation}
-                variant="contained"
-              >
-                Add Operation
-              </Button>
-            </Box>
-
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Method</TableCell>
-                    <TableCell>Endpoint</TableCell>
-                    <TableCell>Category</TableCell>
-                    <TableCell>Parameters</TableCell>
-                    <TableCell>Async</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {operations.map((op) => (
-                    <TableRow key={op.id}>
-                      <TableCell>{op.name}</TableCell>
-                      <TableCell>
-                        <Chip label={op.method} size="small" />
-                      </TableCell>
-                      <TableCell>{op.endpoint}</TableCell>
-                      <TableCell>{op.category}</TableCell>
-                      <TableCell>{op.parameters.length}</TableCell>
-                      <TableCell>{op.is_async ? 'Yes' : 'No'}</TableCell>
-                      <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditOperation(op)}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteOperation(op.id)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleTestOperation(op)}
-                        >
-                          <TestIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {operations.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        No operations defined. Add your first operation or use the AI parser.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </TabPanel>
-
-          <TabPanel value={activeTab} index={3}>
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Paste your API documentation below and let AI extract the integration configuration.
-            </Typography>
-
-            <TextField
-              fullWidth
-              multiline
-              rows={10}
-              label="API Documentation"
-              value={aiDocumentation}
-              onChange={(e) => setAiDocumentation(e.target.value)}
-              placeholder="Paste API documentation here..."
-              sx={{ mb: 2 }}
-            />
-
-            <TextField
-              fullWidth
-              label="Instructions (optional)"
-              value={aiInstructions}
-              onChange={(e) => setAiInstructions(e.target.value)}
-              placeholder="E.g., 'Focus on email sending endpoints'"
-              sx={{ mb: 2 }}
-            />
-
-            <Button
-              variant="contained"
-              startIcon={aiParsing ? <CircularProgress size={20} /> : <AIIcon />}
-              onClick={handleAIParse}
-              disabled={!aiDocumentation || aiParsing}
-            >
-              {aiParsing ? 'Parsing...' : 'Parse with AI'}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOperationDialogOpen(false)}>Cancel</Button>
+            <Button variant="contained" onClick={handleSaveOperation}>
+              Save Operation
             </Button>
-
-            {aiResult && (
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Parsed Configuration
-                </Typography>
-                <Paper sx={{ p: 2, bgcolor: '#f5f5f5', maxHeight: 400, overflow: 'auto' }}>
-                  <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {JSON.stringify(aiResult.config, null, 2)}
-                  </pre>
-                </Paper>
-                {aiResult.validation && (
-                  <Box sx={{ mt: 2 }}>
-                    {aiResult.validation.errors?.length > 0 && (
-                      <Alert severity="error">
-                        <strong>Errors:</strong>
-                        <ul>
-                          {aiResult.validation.errors.map((err: string, i: number) => (
-                            <li key={i}>{err}</li>
-                          ))}
-                        </ul>
-                      </Alert>
-                    )}
-                    {aiResult.validation.warnings?.length > 0 && (
-                      <Alert severity="warning" sx={{ mt: 1 }}>
-                        <strong>Warnings:</strong>
-                        <ul>
-                          {aiResult.validation.warnings.map((warn: string, i: number) => (
-                            <li key={i}>{warn}</li>
-                          ))}
-                        </ul>
-                      </Alert>
-                    )}
-                  </Box>
-                )}
-              </Box>
-            )}
-          </TabPanel>
-        </CardContent>
-
-        <Box sx={{ p: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-          <Button onClick={() => navigate('/admin/integrations')}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
-            onClick={handleSaveIntegration}
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : 'Save Integration'}
-          </Button>
-        </Box>
-      </Card>
-
-      {/* Operation Editor Dialog - Simplified for now */}
-      <Dialog
-        open={operationDialogOpen}
-        onClose={() => setOperationDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          {selectedOperation?.name ? 'Edit Operation' : 'Add Operation'}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Operation editor - Configure endpoint, parameters, and settings
-          </Typography>
-          {/* Full operation editor would go here - simplified for demo */}
-          <Alert severity="info">
-            Full operation editor implementation in progress. Use AI parser for now.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOperationDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveOperation} variant="contained">
-            Save
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Test Dialog - Simplified */}
-      <Dialog
-        open={testDialogOpen}
-        onClose={() => setTestDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Test Operation: {testOperation?.name}</DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Save the integration first, then you can test operations with live API calls.
-          </Alert>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setTestDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </AdminLayout>
   );
 }
-

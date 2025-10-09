@@ -75,6 +75,20 @@ interface Integration {
   is_enabled_for_agencies?: boolean;
   is_enabled_for_individuals?: boolean;
   is_enabled_for_businesses?: boolean;
+  
+  // Dynamic Integration fields
+  is_dynamic?: boolean;
+  platform_config?: {
+    name: string;
+    base_url: string;
+    auth_type: string;
+    color?: string;
+    icon_url?: string;
+    documentation_url?: string;
+  };
+  operation_configs?: {
+    operations?: any[];
+  };
 }
 
 // Available account-level integrations - system integrations (OpenAI, DataForSEO) are managed separately
@@ -764,6 +778,82 @@ export default function IntegrationsPage() {
                       }}>
                         {systemIntegrationStatuses[integration.id]?.is_system_integration ? '✓ Available' : '○ Not configured'}
                       </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Dynamic Integrations (Built with Integration Builder) */}
+      {databaseIntegrations.some(i => i.is_dynamic) && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Dynamic Integrations
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Custom integrations built with the Integration Builder
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {databaseIntegrations
+              .filter(i => i.is_dynamic)
+              .map((integration: any) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={integration.id}>
+                  <Card 
+                    sx={{ 
+                      height: '140px',
+                      border: 2,
+                      borderColor: integration.platform_config?.color || 'primary.main',
+                      position: 'relative',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        {integration.platform_config?.icon_url ? (
+                          <Box 
+                            component="img" 
+                            src={integration.platform_config.icon_url}
+                            alt={integration.name}
+                            sx={{ width: 24, height: 24, mr: 1 }}
+                          />
+                        ) : (
+                          <ApiIcon sx={{ mr: 1, color: integration.platform_config?.color || 'primary.main' }} />
+                        )}
+                        <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600 }}>
+                          {integration.name}
+                        </Typography>
+                        <Chip 
+                          label="Dynamic" 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: `${integration.platform_config?.color || '#5f5eff'}20`,
+                            color: integration.platform_config?.color || 'primary.main',
+                            fontSize: '0.65rem',
+                            height: '20px',
+                          }} 
+                        />
+                      </Box>
+                      
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        {integration.operation_configs?.operations?.length || 0} operations available
+                      </Typography>
+                      
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        Auth: {integration.platform_config?.auth_type || 'N/A'}
+                      </Typography>
+                      
+                      {integration.platform_config?.documentation_url && (
+                        <Button
+                          size="small"
+                          href={integration.platform_config.documentation_url}
+                          target="_blank"
+                          sx={{ fontSize: '0.7rem', p: 0.5, mt: 1 }}
+                        >
+                          View Docs
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>
