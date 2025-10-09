@@ -89,6 +89,11 @@ export default function IntegrationBuilderPage() {
   // OAuth Configuration (for future use if needed)
   const oauthScopes = '';
 
+  // Operations
+  const [operations, setOperations] = useState<IntegrationOperation[]>([]);
+  const [editingOperation, setEditingOperation] = useState<IntegrationOperation | null>(null);
+  const [operationDialogOpen, setOperationDialogOpen] = useState(false);
+
   // AI Parser for adding operations
   const [addOperationsDialogOpen, setAddOperationsDialogOpen] = useState(false);
   const [addOperationsDoc, setAddOperationsDoc] = useState('');
