@@ -2633,7 +2633,7 @@ export const workflowApi = {
                 throw new Error(`Provider ${provider} not found in catalog`);
               }
               
-              const operations = providerData.operations || {};
+              const operations: any = providerData.operations || {};
               const operation = operations[operationId];
               
               if (!operation) {
