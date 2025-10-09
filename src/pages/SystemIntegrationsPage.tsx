@@ -665,9 +665,8 @@ export default function SystemIntegrationsPage() {
               
               if (!testOperation) return null;
               
-              const configurableParams = testOperation.parameters?.filter((p: any) => 
-                !p.fixed && p.location === 'body'
-              ) || [];
+              // Show all non-fixed parameters (not just body location)
+              const configurableParams = testOperation.parameters?.filter((p: any) => !p.fixed) || [];
               
               if (configurableParams.length === 0) return null;
               
@@ -678,14 +677,22 @@ export default function SystemIntegrationsPage() {
                     Operation Parameters
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Configure default values for {testOperation.name}
+                    Configure values for {testOperation.name} ({configurableParams.length} parameters)
                   </Typography>
                   
                   {configurableParams.map((param: any) => {
+                    const helperText = [
+                      param.description,
+                      `Location: ${param.location}`,
+                      param.required ? '(Required)' : '(Optional)'
+                    ].filter(Boolean).join(' • ');
                     if (param.type === 'select') {
                       return (
                         <FormControl key={param.name} fullWidth sx={{ mb: 2 }}>
-                          <InputLabel>{param.name}{param.required && ' *'}</InputLabel>
+                          <InputLabel>
+                            {param.name}
+                            {param.required && <span style={{ color: 'error.main' }}> *</span>}
+                          </InputLabel>
                           <Select
                             value={dynamicFormData[param.name] ?? param.default ?? ''}
                             onChange={(e) => setDynamicFormData(prev => ({
@@ -698,11 +705,9 @@ export default function SystemIntegrationsPage() {
                               <MenuItem key={opt} value={opt}>{opt}</MenuItem>
                             ))}
                           </Select>
-                          {param.description && (
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                              {param.description}
-                            </Typography>
-                          )}
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5, display: 'block' }}>
+                            {helperText}
+                          </Typography>
                         </FormControl>
                       );
                     } else if (param.type === 'number') {
@@ -711,33 +716,36 @@ export default function SystemIntegrationsPage() {
                           key={param.name}
                           fullWidth
                           type="number"
-                          label={param.name}
+                          label={param.name + (param.required ? ' *' : '')}
                           value={dynamicFormData[param.name] ?? param.default ?? ''}
                           onChange={(e) => setDynamicFormData(prev => ({
                             ...prev,
                             [param.name]: parseFloat(e.target.value) || ''
                           }))}
                           required={param.required}
-                          helperText={param.description}
+                          helperText={helperText}
                           sx={{ mb: 2 }}
                         />
                       );
                     } else if (param.type === 'boolean') {
                       return (
-                        <FormControlLabel
-                          key={param.name}
-                          control={
-                            <Switch
-                              checked={dynamicFormData[param.name] ?? param.default ?? false}
-                              onChange={(e) => setDynamicFormData(prev => ({
-                                ...prev,
-                                [param.name]: e.target.checked
-                              }))}
-                            />
-                          }
-                          label={param.name + (param.required ? ' *' : '')}
-                          sx={{ mb: 2, display: 'block' }}
-                        />
+                        <Box key={param.name} sx={{ mb: 2 }}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={dynamicFormData[param.name] ?? param.default ?? false}
+                                onChange={(e) => setDynamicFormData(prev => ({
+                                  ...prev,
+                                  [param.name]: e.target.checked
+                                }))}
+                              />
+                            }
+                            label={param.name + (param.required ? ' *' : '')}
+                          />
+                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
+                            {helperText}
+                          </Typography>
+                        </Box>
                       );
                     } else {
                       // text or string
@@ -747,14 +755,14 @@ export default function SystemIntegrationsPage() {
                           fullWidth
                           multiline={param.type === 'text'}
                           rows={param.type === 'text' ? 3 : 1}
-                          label={param.name}
+                          label={param.name + (param.required ? ' *' : '')}
                           value={dynamicFormData[param.name] ?? param.default ?? ''}
                           onChange={(e) => setDynamicFormData(prev => ({
                             ...prev,
                             [param.name]: e.target.value
                           }))}
                           required={param.required}
-                          helperText={param.description}
+                          helperText={helperText}
                           sx={{ mb: 2 }}
                         />
                       );
