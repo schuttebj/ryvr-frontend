@@ -25,6 +25,7 @@ import FlowsPage from './pages/FlowsPage';
 import FilesPage from './pages/FilesPage';
 import ChatPage from './pages/ChatPage';
 import IntegrationBuilderPage from './pages/admin/IntegrationBuilderPage';
+import AllIntegrationsPage from './pages/admin/AllIntegrationsPage';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -86,6 +87,7 @@ function AppRoutes() {
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="integration-builder" element={<IntegrationBuilderPage />} />
               <Route path="integration-builder/edit/:id" element={<IntegrationBuilderPage />} />
+              <Route path="integration-builder/all" element={<AllIntegrationsPage />} />
               <Route path="system-integrations" element={<SystemIntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings/*" element={<SystemSettingsPage />} />

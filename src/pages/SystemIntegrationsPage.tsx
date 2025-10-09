@@ -71,6 +71,12 @@ export default function SystemIntegrationsPage() {
   const [refreshingModels, setRefreshingModels] = useState(false);
   const [availableModels, setAvailableModels] = useState<any[]>([]);
   
+  // Dynamic system integrations
+  const [dynamicSystemIntegrations, setDynamicSystemIntegrations] = useState<any[]>([]);
+  const [configuringDynamicIntegration, setConfiguringDynamicIntegration] = useState<any | null>(null);
+  const [dynamicFormData, setDynamicFormData] = useState<Record<string, any>>({});
+  const [savingDynamic, setSavingDynamic] = useState(false);
+  
   // OpenAI configuration form
   const [formData, setFormData] = useState({
     apiKey: '',
@@ -82,6 +88,7 @@ export default function SystemIntegrationsPage() {
   useEffect(() => {
     loadSystemIntegrationStatuses();
     loadAvailableModels();
+    loadDynamicSystemIntegrations();
   }, []);
 
   const loadAvailableModels = async () => {
@@ -162,6 +169,30 @@ export default function SystemIntegrationsPage() {
     }
   };
 
+  const loadDynamicSystemIntegrations = async () => {
+    try {
+      const response = await fetch(
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/integrations`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
+          },
+        }
+      );
+      
+      if (!response.ok) throw new Error('Failed to load integrations');
+      
+      const data = await response.json();
+      
+      // Filter only dynamic system-wide integrations
+      const dynamicSystem = data.filter((i: any) => i.is_dynamic === true && i.is_system_wide === true);
+      setDynamicSystemIntegrations(dynamicSystem);
+      
+    } catch (error) {
+      console.error('Failed to load dynamic system integrations:', error);
+    }
+  };
+
   const handleToggleIntegration = async (integration: SystemIntegration) => {
     if (integration.status?.is_system_integration) {
       // Disable system integration
@@ -234,6 +265,56 @@ export default function SystemIntegrationsPage() {
       console.error('Failed to configure OpenAI:', error);
     } finally {
       setConfiguring(null);
+    }
+  };
+
+  const handleConfigureDynamicIntegration = (integration: any) => {
+    setConfiguringDynamicIntegration(integration);
+    const initialData: Record<string, any> = {};
+    if (integration.auth_config?.credentials) {
+      integration.auth_config.credentials.forEach((cred: any) => {
+        initialData[cred.name] = '';
+      });
+    }
+    setDynamicFormData(initialData);
+  };
+
+  const handleSaveDynamicIntegrationConfig = async () => {
+    if (!configuringDynamicIntegration) return;
+
+    try {
+      setSavingDynamic(true);
+
+      // Save to system_integrations table
+      const response = await fetch(
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/integrations/${configuringDynamicIntegration.id}/system-configure`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
+          },
+          body: JSON.stringify({
+            credentials: dynamicFormData,
+            is_active: true
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to save system integration configuration');
+      }
+
+      alert(`${configuringDynamicIntegration.name} configured as system integration!`);
+      setConfiguringDynamicIntegration(null);
+      setDynamicFormData({});
+      await loadDynamicSystemIntegrations();
+
+    } catch (error: any) {
+      console.error('Failed to save configuration:', error);
+      alert(`Failed to save configuration: ${error.message}`);
+    } finally {
+      setSavingDynamic(false);
     }
   };
 
@@ -345,6 +426,73 @@ export default function SystemIntegrationsPage() {
           ))}
         </Grid>
 
+        {/* Dynamic System Integrations Section */}
+        {dynamicSystemIntegrations.length > 0 && (
+          <Box sx={{ mt: 6 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Dynamic System Integrations
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Custom integrations marked as system-wide that are available to all users
+            </Typography>
+
+            <Grid container spacing={3}>
+              {dynamicSystemIntegrations.map((integration) => (
+                <Grid item xs={12} md={6} key={integration.id}>
+                  <Card sx={{ height: '100%', border: 1, borderColor: 'divider' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <Box sx={{ color: integration.platform_config?.color || '#5f5eff', mr: 2 }}>
+                          {integration.platform_config?.icon_url ? (
+                            <Box 
+                              component="img" 
+                              src={integration.platform_config.icon_url}
+                              alt={integration.name}
+                              sx={{ width: 32, height: 32 }}
+                            />
+                          ) : (
+                            <OpenAIIcon />
+                          )}
+                        </Box>
+                        <Typography variant="h6" sx={{ flex: 1 }}>
+                          {integration.name}
+                        </Typography>
+                        <ConfigureIcon color="action" />
+                      </Box>
+
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary" 
+                        sx={{ mb: 2, minHeight: '40px' }}
+                      >
+                        {integration.platform_config?.description || 'Dynamic system integration'}
+                      </Typography>
+
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                          Operations: {integration.operation_configs?.operations?.length || 0}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                          Auth Type: {integration.platform_config?.auth_type || 'N/A'}
+                        </Typography>
+
+                        <Button
+                          size="small"
+                          variant="contained"
+                          onClick={() => handleConfigureDynamicIntegration(integration)}
+                          sx={{ width: '100%' }}
+                        >
+                          Configure System-wide
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        )}
+
         {/* OpenAI Configuration Dialog */}
         <Dialog 
           open={openAIDialog} 
@@ -455,6 +603,64 @@ export default function SystemIntegrationsPage() {
                 ? (editingIntegration.status?.is_system_integration ? 'Updating...' : 'Configuring...')
                 : (editingIntegration?.status?.is_system_integration ? 'Update' : 'Configure')
               }
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dynamic Integration Configuration Dialog */}
+        <Dialog 
+          open={!!configuringDynamicIntegration} 
+          onClose={() => setConfiguringDynamicIntegration(null)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Configure {configuringDynamicIntegration?.name} System Integration
+          </DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Configure this integration for system-wide use. All users will be able to use this integration.
+            </Typography>
+            
+            {configuringDynamicIntegration?.auth_config?.credentials?.map((credential: any) => {
+              const isPassword = credential.type === 'password' || 
+                               credential.name.toLowerCase().includes('key') || 
+                               credential.name.toLowerCase().includes('secret');
+              
+              return (
+                <TextField
+                  key={credential.name}
+                  fullWidth
+                  label={credential.name}
+                  type={isPassword ? 'password' : 'text'}
+                  value={dynamicFormData[credential.name] || ''}
+                  onChange={(e) => setDynamicFormData(prev => ({
+                    ...prev,
+                    [credential.name]: e.target.value
+                  }))}
+                  required={credential.required}
+                  helperText={credential.description}
+                  sx={{ mb: 2 }}
+                />
+              );
+            })}
+
+            {configuringDynamicIntegration?.auth_config?.credentials?.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                No authentication required for this integration.
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setConfiguringDynamicIntegration(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveDynamicIntegrationConfig}
+              disabled={savingDynamic}
+              variant="contained"
+            >
+              {savingDynamic ? 'Saving...' : 'Save System Configuration'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -105,6 +105,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         path: '/admin/integration-builder',
         active: isActive('/admin/integration-builder'),
         onClick: () => navigate('/admin/integration-builder'),
+        hasSubmenu: true,
+        submenu: [
+          { label: 'Builder', path: '/admin/integration-builder' },
+          { label: 'All Integrations', path: '/admin/integration-builder/all' },
+        ],
       },
       {
         label: 'System Integrations',

@@ -148,6 +148,13 @@ export default function IntegrationsPage() {
   const [systemIntegrationStatuses, setSystemIntegrationStatuses] = useState<Record<string, SystemIntegrationStatus>>({});
   const [databaseIntegrations, setDatabaseIntegrations] = useState<Integration[]>([]);
 
+  // Dynamic integration configuration state
+  const [configuringDynamicIntegration, setConfiguringDynamicIntegration] = useState<any | null>(null);
+  const [dynamicIntegrationFormData, setDynamicIntegrationFormData] = useState<Record<string, any>>({});
+  const [savingDynamicConfig, setSavingDynamicConfig] = useState(false);
+  const [testingDynamicConnection, setTestingDynamicConnection] = useState(false);
+  const [dynamicTestResult, setDynamicTestResult] = useState<any>(null);
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -548,6 +555,106 @@ export default function IntegrationsPage() {
     }
   };
 
+  const handleConfigureDynamicIntegration = (integration: any) => {
+    setConfiguringDynamicIntegration(integration);
+    // Initialize form data with empty values for each credential field
+    const initialData: Record<string, any> = {};
+    if (integration.auth_config?.credentials) {
+      integration.auth_config.credentials.forEach((cred: any) => {
+        initialData[cred.name] = '';
+      });
+    }
+    setDynamicIntegrationFormData(initialData);
+  };
+
+  const handleDynamicIntegrationFieldChange = (fieldName: string, value: any) => {
+    setDynamicIntegrationFormData(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
+
+  const handleSaveDynamicIntegrationConfig = async () => {
+    if (!configuringDynamicIntegration || !selectedBusiness) return;
+
+    try {
+      setSavingDynamicConfig(true);
+
+      // Create business integration
+      const response = await fetch(
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${selectedBusiness.id}/integrations`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
+          },
+          body: JSON.stringify({
+            integration_id: configuringDynamicIntegration.id,
+            credentials: dynamicIntegrationFormData,
+            is_active: true
+          })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to save integration configuration');
+      }
+
+      alert(`${configuringDynamicIntegration.name} configured successfully!`);
+      setConfiguringDynamicIntegration(null);
+      setDynamicIntegrationFormData({});
+      setDynamicTestResult(null);
+
+      // Reload integrations
+      await loadDatabaseIntegrations();
+
+    } catch (error: any) {
+      console.error('Failed to save configuration:', error);
+      alert(`Failed to save configuration: ${error.message}`);
+    } finally {
+      setSavingDynamicConfig(false);
+    }
+  };
+
+  const handleTestDynamicConnection = async () => {
+    if (!configuringDynamicIntegration) return;
+
+    try {
+      setTestingDynamicConnection(true);
+      setDynamicTestResult(null);
+
+      // Get the first operation for testing
+      const testOperation = configuringDynamicIntegration.operation_configs?.operations?.[0];
+      
+      if (!testOperation) {
+        setDynamicTestResult({
+          success: false,
+          error: 'No operations available for testing'
+        });
+        return;
+      }
+
+      // Test using the integration builder test endpoint
+      const result = await integrationBuilderApi.testOperation(
+        configuringDynamicIntegration.id,
+        testOperation.id,
+        dynamicIntegrationFormData
+      );
+
+      setDynamicTestResult(result);
+
+    } catch (error: any) {
+      console.error('Test failed:', error);
+      setDynamicTestResult({
+        success: false,
+        error: error.response?.data?.detail || error.message || 'Test failed'
+      });
+    } finally {
+      setTestingDynamicConnection(false);
+    }
+  };
+
   const handleTest = async (integration: Integration) => {
     setTesting(true);
     setTestResult(null);
@@ -879,21 +986,13 @@ export default function IntegrationsPage() {
                         )}
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant="contained"
                           startIcon={<SettingsIcon fontSize="small" />}
-                          onClick={() => window.location.href = `/admin/integration-builder/edit/${integration.id}`}
+                          onClick={() => handleConfigureDynamicIntegration(integration)}
                           sx={{ fontSize: '0.7rem', px: 1, py: 0.5 }}
                         >
-                          Edit
+                          Configure
                         </Button>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteDynamicIntegration(parseInt(integration.id), integration.name)}
-                          sx={{ p: 0.5 }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
                       </Box>
                     </CardContent>
                   </Card>
@@ -1581,6 +1680,82 @@ export default function IntegrationsPage() {
         onClose={() => setCopySuccess('')}
         message={copySuccess}
       />
+
+      {/* Dynamic Integration Configuration Dialog */}
+      <Dialog 
+        open={!!configuringDynamicIntegration} 
+        onClose={() => {
+          setConfiguringDynamicIntegration(null);
+          setDynamicTestResult(null);
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Configure {configuringDynamicIntegration?.name}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            {configuringDynamicIntegration?.auth_config?.credentials?.map((credential: any) => {
+              const isPassword = credential.type === 'password' || credential.name.toLowerCase().includes('key') || credential.name.toLowerCase().includes('secret');
+              
+              return (
+                <TextField
+                  key={credential.name}
+                  fullWidth
+                  label={credential.name}
+                  type={isPassword ? 'password' : 'text'}
+                  value={dynamicIntegrationFormData[credential.name] || ''}
+                  onChange={(e) => handleDynamicIntegrationFieldChange(credential.name, e.target.value)}
+                  required={credential.required}
+                  helperText={credential.description}
+                  sx={{ mb: 2 }}
+                />
+              );
+            })}
+            
+            {configuringDynamicIntegration?.auth_config?.credentials?.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                No authentication required for this integration.
+              </Typography>
+            )}
+
+            {/* Test Result */}
+            {dynamicTestResult && (
+              <Alert 
+                severity={dynamicTestResult.success ? 'success' : 'error'}
+                sx={{ mt: 2 }}
+              >
+                {dynamicTestResult.success 
+                  ? '✓ Connection test successful!' 
+                  : `✗ Test failed: ${dynamicTestResult.error}`}
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => {
+            setConfiguringDynamicIntegration(null);
+            setDynamicTestResult(null);
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleTestDynamicConnection}
+            disabled={testingDynamicConnection || !configuringDynamicIntegration?.operation_configs?.operations?.length}
+            startIcon={testingDynamicConnection ? <CircularProgress size={16} /> : null}
+          >
+            {testingDynamicConnection ? 'Testing...' : 'Test Connection'}
+          </Button>
+          <Button 
+            onClick={handleSaveDynamicIntegrationConfig} 
+            variant="contained"
+            disabled={savingDynamicConfig}
+          >
+            {savingDynamicConfig ? 'Saving...' : 'Save Configuration'}
+          </Button>
+        </DialogActions>
+      </Dialog>
       </Box>
     </AdminLayout>
   );
