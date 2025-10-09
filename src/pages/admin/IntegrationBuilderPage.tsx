@@ -54,6 +54,11 @@ import { integrationBuilderApi, type IntegrationOperation } from '../../services
 
 const WIZARD_STEPS = ['Parse Documentation', 'Platform & Auth', 'Review Operations', 'Save'];
 
+// Generate a unique ID for operations
+const generateOperationId = () => {
+  return `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
 export default function IntegrationBuilderPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -127,7 +132,13 @@ export default function IntegrationBuilderPage() {
       setDocumentationUrl(parsedConfig.platform.documentation_url || '');
       
       setAuthCredentials(parsedConfig.auth_config.credentials || []);
-      setOperations(parsedConfig.operations || []);
+      
+      // Assign unique IDs to operations to prevent duplicates
+      const operationsWithUniqueIds = (parsedConfig.operations || []).map((op: any) => ({
+        ...op,
+        id: generateOperationId()
+      }));
+      setOperations(operationsWithUniqueIds);
     }
   }, [parsedConfig]);
 
@@ -288,12 +299,14 @@ export default function IntegrationBuilderPage() {
       });
 
       if (result.success && result.config.operations) {
-        // Add new operations to existing ones (avoid duplicates)
-        const existingOpIds = new Set(operations.map(op => op.id));
-        const newOps = result.config.operations.filter((op: IntegrationOperation) => !existingOpIds.has(op.id));
+        // Assign unique IDs to all new operations
+        const newOpsWithUniqueIds = result.config.operations.map((op: IntegrationOperation) => ({
+          ...op,
+          id: generateOperationId()
+        }));
         
-        setOperations([...operations, ...newOps]);
-        setSuccess(`Added ${newOps.length} new operations! (Skipped ${result.config.operations.length - newOps.length} duplicates)`);
+        setOperations([...operations, ...newOpsWithUniqueIds]);
+        setSuccess(`Added ${newOpsWithUniqueIds.length} new operations!`);
         setAddOperationsDialogOpen(false);
         setAddOperationsDoc('');
         setAddOperationsInstructions('');
@@ -326,7 +339,7 @@ export default function IntegrationBuilderPage() {
 
   const handleAddOperation = () => {
     setEditingOperation({
-      id: '',
+      id: generateOperationId(), // Generate unique ID immediately
       name: '',
       description: '',
       endpoint: '',
@@ -350,10 +363,12 @@ export default function IntegrationBuilderPage() {
 
     const existingIndex = operations.findIndex(op => op.id === editingOperation.id);
     if (existingIndex >= 0) {
+      // Update existing operation
       const updated = [...operations];
       updated[existingIndex] = editingOperation;
       setOperations(updated);
     } else {
+      // Add new operation (ID already generated in handleAddOperation)
       setOperations([...operations, editingOperation]);
     }
     setOperationDialogOpen(false);
@@ -856,8 +871,8 @@ export default function IntegrationBuilderPage() {
                   fullWidth
                   label="Operation ID"
                   value={editingOperation.id}
-                  onChange={(e) => setEditingOperation({ ...editingOperation, id: e.target.value })}
-                  helperText="Unique identifier, e.g., send_email"
+                  disabled
+                  helperText="Auto-generated unique identifier"
                 />
                 <TextField
                   fullWidth
