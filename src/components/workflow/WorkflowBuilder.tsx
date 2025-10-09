@@ -55,6 +55,11 @@ import WorkflowExecutionPanel from './WorkflowExecutionPanel';
 import BaseNode from './BaseNode';
 import ExpandableBasicTextField from './ExpandableBasicTextField';
 import { workflowApi } from '../../services/workflowApi';
+import { 
+  convertToolCatalogToNodePalette, 
+  getCategoryColor,
+  type NodePaletteItem as DynamicNodePaletteItem 
+} from '../../utils/toolCatalogUtils';
 
 // Custom node components
 const TriggerNode = (props: any) => <BaseNode {...props} nodeType="trigger" />;
@@ -585,7 +590,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const navigate = useNavigate();
   const theme = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [edges, setEdges, onEdgesState] = useEdgesState<Edge>([]);
   const [settingsNode, setSettingsNode] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -602,6 +607,11 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [workflowActive, setWorkflowActive] = useState(false);
   const [variableSelectorOpen, setVariableSelectorOpen] = useState(false);
+  
+  // Dynamic node palette from tool catalog
+  const [nodePaletteItems, setNodePaletteItems] = useState<DynamicNodePaletteItem[]>([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -611,6 +621,51 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
   // Auto-save timer
   const autoSaveTimer = useRef<number | null>(null);
   const lastSavedState = useRef<string>('');
+
+  // Load tool catalog on mount for dynamic node palette
+  useEffect(() => {
+    const loadToolCatalog = async () => {
+      try {
+        setLoadingCatalog(true);
+        setCatalogError(null);
+        
+        console.log('📥 Fetching tool catalog from backend...');
+        const catalog = await workflowApi.getToolCatalog();
+        console.log('✅ Tool catalog loaded:', catalog);
+        
+        // Convert catalog to node palette items
+        const paletteItems = convertToolCatalogToNodePalette(catalog);
+        console.log(`✅ Generated ${paletteItems.length} node palette items from catalog`);
+        
+        setNodePaletteItems(paletteItems);
+        setLoadingCatalog(false);
+      } catch (error) {
+        console.error('❌ Failed to load tool catalog:', error);
+        setCatalogError('Failed to load available tools. Using fallback nodes.');
+        setLoadingCatalog(false);
+        
+        // Fallback to basic nodes if catalog fails to load
+        const fallbackNodes: DynamicNodePaletteItem[] = [
+          {
+            type: 'trigger',
+            category: 'trigger',
+            label: 'Manual Trigger',
+            description: 'Start workflow manually',
+            icon: '⚡',
+            provider: 'builtin',
+            operation: 'trigger',
+            baseCredits: 0,
+            isAsync: false,
+            fields: [],
+            authType: 'none',
+          }
+        ];
+        setNodePaletteItems(fallbackNodes);
+      }
+    };
+    
+    loadToolCatalog();
+  }, []); // Only run on mount
 
   // Load existing workflow data when editing
   useEffect(() => {
@@ -768,33 +823,42 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         y: event.clientY - 100,
       };
 
-      // Map node types to ReactFlow node types for rendering
-      const getReactFlowNodeType = (type: string): string => {
+      // Find the node info from palette
+      const paletteItem = nodePaletteItems.find(item => item.type === nodeType);
+      
+      // Map node types to ReactFlow node types for rendering (only 4 types needed)
+      const getReactFlowNodeType = (type: string, category: string): string => {
         if (type === 'trigger' || type.includes('trigger')) return 'trigger';
-        if (type.startsWith('seo_')) return 'serp';
-        if (type.startsWith('ai_')) return 'ai';
-        if (type.startsWith('email_') || type === 'email') return 'email';
-        // Default to email for backward compatibility, but store actual type in data
-        return 'email';
+        if (category === 'data' || type.startsWith('transform_')) return 'email'; // Use email as transform renderer for now
+        if (['review', 'options', 'conditional', 'gate'].some(t => type.includes(t))) return 'email'; // Control flow
+        // Most nodes are integrations
+        return 'serp'; // Use serp as the generic integration renderer
       };
 
       const newNode: Node = {
         id: `${nodeType}-${Date.now()}`,
-        type: getReactFlowNodeType(nodeType),
+        type: getReactFlowNodeType(nodeType, paletteItem?.category || ''),
         position,
         data: {
           id: `${nodeType}-${Date.now()}`,
-          type: nodeType as WorkflowNodeType, // Store actual node type here
-          label: nodePaletteItems.find(item => item.type === nodeType)?.label || nodeType,
-          description: nodePaletteItems.find(item => item.type === nodeType)?.description || '',
+          type: nodeType as WorkflowNodeType, // Store actual node type (e.g., "dataforseo_serp_google_organic")
+          label: paletteItem?.label || nodeType,
+          description: paletteItem?.description || '',
           config: {},
           isValid: true,
+          // Store additional metadata from catalog
+          provider: paletteItem?.provider,
+          operation: paletteItem?.operation,
+          category: paletteItem?.category,
+          baseCredits: paletteItem?.baseCredits || 0,
+          isAsync: paletteItem?.isAsync || false,
+          fields: paletteItem?.fields || [],
         } as unknown as Record<string, unknown>,
       };
 
       setNodes((nds: Node[]) => nds.concat(newNode));
     },
-    [setNodes]
+    [nodePaletteItems, setNodes]
   );
 
   const onNodeClick = (_event: React.MouseEvent, node: Node) => {
