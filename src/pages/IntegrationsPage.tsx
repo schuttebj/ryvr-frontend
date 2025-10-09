@@ -541,19 +541,7 @@ export default function IntegrationsPage() {
     }
   };
 
-  const handleDeleteDynamicIntegration = async (integrationId: number, integrationName: string) => {
-    if (window.confirm(`Delete integration "${integrationName}"? This cannot be undone and will remove it from all workflows.`)) {
-      try {
-        await integrationBuilderApi.deleteIntegration(integrationId);
-        // Reload integrations
-        await loadDatabaseIntegrations();
-        alert(`Integration "${integrationName}" deleted successfully`);
-      } catch (error: any) {
-        console.error('Failed to delete integration:', error);
-        alert(`Failed to delete integration: ${error.response?.data?.detail || error.message}`);
-      }
-    }
-  };
+  // Removed - no longer needed as Edit/Delete are on All Integrations page
 
   const handleConfigureDynamicIntegration = (integration: any) => {
     setConfiguringDynamicIntegration(integration);
@@ -575,14 +563,21 @@ export default function IntegrationsPage() {
   };
 
   const handleSaveDynamicIntegrationConfig = async () => {
-    if (!configuringDynamicIntegration || !selectedBusiness) return;
+    if (!configuringDynamicIntegration) return;
+    
+    // Get current business from context or first available business
+    const currentBusiness = businesses.length > 0 ? businesses[0] : null;
+    if (!currentBusiness) {
+      alert('No business available. Please select a business first.');
+      return;
+    }
 
     try {
       setSavingDynamicConfig(true);
 
       // Create business integration
       const response = await fetch(
-        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${selectedBusiness.id}/integrations`,
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${currentBusiness.id}/integrations`,
         {
           method: 'POST',
           headers: {
@@ -1743,7 +1738,6 @@ export default function IntegrationsPage() {
           <Button 
             onClick={handleTestDynamicConnection}
             disabled={testingDynamicConnection || !configuringDynamicIntegration?.operation_configs?.operations?.length}
-            startIcon={testingDynamicConnection ? <CircularProgress size={16} /> : null}
           >
             {testingDynamicConnection ? 'Testing...' : 'Test Connection'}
           </Button>
