@@ -44,6 +44,10 @@ export interface NodePaletteItem {
   isAsync: boolean;
   fields: ToolCatalogField[];
   authType: string;
+  isBuiltin?: boolean; // True for hardcoded trigger/action nodes
+  isDynamic?: boolean; // True for integrations built via Integration Builder
+  color?: string; // Custom color for the node
+  iconUrl?: string; // Custom icon URL
 }
 
 export interface ToolCatalog {
