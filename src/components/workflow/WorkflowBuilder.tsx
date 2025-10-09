@@ -67,59 +67,8 @@ const SerpNode = (props: any) => <BaseNode {...props} nodeType="serp" />;
 const AiNode = (props: any) => <BaseNode {...props} nodeType="ai" />;
 const EmailNode = (props: any) => <BaseNode {...props} nodeType="email" />;
 
-// Note: BRAND_COLORS below is kept for reference but now replaced by getCategoryColor() 
-// from toolCatalogUtils which provides dynamic category-based colors
-const BRAND_COLORS = {
-  // Core system
-  trigger: '#9C27B0',      // Purple for triggers
-  action: '#FF5722',       // Deep Orange for actions
-  client: '#2196F3',       // Blue for client data
-  
-  // AI & Content
-  ai: '#10B981',           // OpenAI Green
-  content: '#F59E0B',      // Amber for content
-  
-  // Google Services
-  google: '#4285F4',       // Google Blue
-  analytics: '#FF6D01',    // Google Analytics Orange
-  ads: '#34A853',         // Google Ads Green
-  maps: '#EA4335',        // Google Maps Red
-  gtm: '#4285F4',         // GTM Blue
-  
-  // SEO Tools
-  seo: '#6366F1',         // Indigo for SEO
-  ahrefs: '#FF6B35',      // Ahrefs Orange
-  
-  // Social Media
-  meta: '#1877F2',        // Meta/Facebook Blue
-  twitter: '#1DA1F2',     // Twitter Blue
-  linkedin: '#0A66C2',    // LinkedIn Blue
-  instagram: '#E4405F',   // Instagram Pink
-  
-  // CRM & Marketing
-  hubspot: '#FF7A59',     // HubSpot Orange
-  mailchimp: '#FFE01B',   // Mailchimp Yellow
-  
-  // E-commerce
-  shopify: '#96BF48',     // Shopify Green
-  woocommerce: '#96588A', // WooCommerce Purple
-  
-  // Communication
-  slack: '#4A154B',       // Slack Purple
-  discord: '#5865F2',     // Discord Blurple
-  teams: '#6264A7',       // Teams Purple
-  
-  // Project Management
-  asana: '#F06A6A',       // Asana Red
-  trello: '#0079BF',      // Trello Blue
-  notion: '#000000',      // Notion Black
-  
-  // WordPress
-  wordpress: '#21759B',   // WordPress Blue
-  
-  // Default fallback
-  default: '#64748B'      // Slate Gray
-};
+// Note: BRAND_COLORS removed - now using getCategoryColor() from toolCatalogUtils
+// which provides dynamic category-based colors from the backend tool catalog
 
 // Note: getNodeColor function removed - now using getCategoryColor from toolCatalogUtils
 // for dynamic category-based coloring instead of hardcoded node type matching
