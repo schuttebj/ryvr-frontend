@@ -86,8 +86,8 @@ export default function IntegrationBuilderPage() {
     description: string;
   }>>([]);
 
-  // OAuth Configuration (for future use)
-  const [oauthScopes, setOauthScopes] = useState('');
+  // OAuth Configuration (for future use if needed)
+  const oauthScopes = '';
 
   // Operations
   const [operations, setOperations] = useState<IntegrationOperation[]>([]);
