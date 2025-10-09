@@ -56,6 +56,7 @@ export interface IntegrationOperation {
   category: string;
   base_credits: number;
   is_async: boolean;
+  is_test_operation?: boolean;
   async_config?: AsyncOperationConfig;
   parameters: OperationParameter[];
   headers: OperationHeader[];
