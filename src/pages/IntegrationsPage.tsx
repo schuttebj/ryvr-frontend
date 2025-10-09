@@ -555,13 +555,40 @@ export default function IntegrationsPage() {
 
   // Removed - no longer needed as Edit/Delete are on All Integrations page
 
-  const handleConfigureDynamicIntegration = (integration: any) => {
+  const handleConfigureDynamicIntegration = async (integration: any) => {
     setConfiguringDynamicIntegration(integration);
+    
+    // Load existing credentials if available
+    const businessId = localStorage.getItem('selected_business_id') || '1';
+    try {
+      const response = await fetch(
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${businessId}/integrations`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const businessIntegrations = await response.json();
+        const existing = businessIntegrations.find((bi: any) => bi.integration_id === parseInt(integration.id));
+        
+        if (existing && existing.credentials) {
+          // Load existing credentials
+          setDynamicIntegrationFormData(existing.credentials);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load existing credentials:', error);
+    }
+    
     // Initialize form data with empty values for each credential field
     const initialData: Record<string, any> = {};
     if (integration.auth_config?.credentials) {
       integration.auth_config.credentials.forEach((cred: any) => {
-        initialData[cred.name] = '';
+        initialData[cred.name] = cred.default || '';
       });
     }
     setDynamicIntegrationFormData(initialData);

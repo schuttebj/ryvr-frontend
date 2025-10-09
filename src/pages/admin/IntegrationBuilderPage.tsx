@@ -75,6 +75,8 @@ export default function IntegrationBuilderPage() {
   const [platformName, setPlatformName] = useState('');
   const [provider, setProvider] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
+  const [hasSandbox, setHasSandbox] = useState(false);
+  const [sandboxBaseUrl, setSandboxBaseUrl] = useState('');
   const [authType, setAuthType] = useState<'basic' | 'bearer' | 'api_key' | 'oauth2'>('bearer');
   const [color, setColor] = useState('#5f5eff');
   const [iconUrl, setIconUrl] = useState('');
@@ -118,6 +120,8 @@ export default function IntegrationBuilderPage() {
       setPlatformName(parsedConfig.platform.name || '');
       setProvider(parsedConfig.platform.name?.toLowerCase().replace(/\s+/g, '_') || '');
       setBaseUrl(parsedConfig.platform.base_url || '');
+      setHasSandbox(parsedConfig.platform.has_sandbox || false);
+      setSandboxBaseUrl(parsedConfig.platform.sandbox_base_url || '');
       setAuthType(parsedConfig.platform.auth_type || 'bearer');
       setColor(parsedConfig.platform.color || '#5f5eff');
       setDocumentationUrl(parsedConfig.platform.documentation_url || '');
@@ -146,6 +150,8 @@ export default function IntegrationBuilderPage() {
         setPlatformName(integration.platform_config.name || '');
         setProvider(integration.provider || '');
         setBaseUrl(integration.platform_config.base_url || '');
+        setHasSandbox(integration.platform_config.has_sandbox || false);
+        setSandboxBaseUrl(integration.platform_config.sandbox_base_url || '');
         setAuthType(integration.platform_config.auth_type || 'bearer');
         setColor(integration.platform_config.color || '#5f5eff');
         setIconUrl(integration.platform_config.icon_url || '');
@@ -228,6 +234,8 @@ export default function IntegrationBuilderPage() {
         platform_config: {
           name: platformName,
           base_url: baseUrl,
+          has_sandbox: hasSandbox,
+          sandbox_base_url: sandboxBaseUrl,
           auth_type: authType,
           color,
           icon_url: iconUrl,
@@ -498,6 +506,34 @@ export default function IntegrationBuilderPage() {
                     placeholder="https://api.example.com"
                   />
                 </Grid>
+                
+                {/* Sandbox Mode Toggle */}
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={hasSandbox}
+                        onChange={(e) => setHasSandbox(e.target.checked)}
+                      />
+                    }
+                    label="Has Sandbox/Test Environment"
+                  />
+                </Grid>
+                
+                {/* Sandbox Base URL (only shown if sandbox is enabled) */}
+                {hasSandbox && (
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Sandbox Base URL"
+                      value={sandboxBaseUrl}
+                      onChange={(e) => setSandboxBaseUrl(e.target.value)}
+                      placeholder="https://api.sandbox.example.com"
+                      helperText="Separate URL for testing/sandbox environment"
+                    />
+                  </Grid>
+                )}
+                
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth>
                     <InputLabel>Authentication Type</InputLabel>
