@@ -2607,7 +2607,97 @@ export const workflowApi = {
           break;
           
         default:
-          throw new Error(`Unsupported node type: ${nodeType}`);
+          // Handle dynamic integrations (from Integration Builder)
+          // Format: provider_operationId (e.g., brevo_op_1760047761057_r6j5fw9qd)
+          if (nodeType.includes('_op_')) {
+            try {
+              console.log('🔧 Executing dynamic integration node:', nodeType);
+              
+              // Parse provider and operation from node type
+              const parts = nodeType.split('_op_');
+              const provider = parts[0];
+              const operationId = parts.length > 1 ? `op_${parts[1]}` : '';
+              
+              // Get integration info from tool catalog
+              const catalogResponse = await workflowApi.getToolCatalog();
+              if (!catalogResponse.success || !catalogResponse.catalog) {
+                throw new Error('Failed to load tool catalog');
+              }
+              
+              const providers = catalogResponse.catalog.providers || {};
+              const providerData = Array.isArray(providers) 
+                ? providers.find((p: any) => p.id === provider)
+                : providers[provider];
+              
+              if (!providerData) {
+                throw new Error(`Provider ${provider} not found in catalog`);
+              }
+              
+              const operations = providerData.operations || {};
+              const operation = operations[operationId];
+              
+              if (!operation) {
+                throw new Error(`Operation ${operationId} not found for ${provider}`);
+              }
+              
+              // Find integration ID from loaded integrations
+              const integrations = JSON.parse(localStorage.getItem('database_integrations') || '[]');
+              const integration = integrations.find((i: any) => 
+                i.provider?.toLowerCase().replace(/\s+/g, '_') === provider
+              );
+              
+              if (!integration) {
+                throw new Error(`Integration for ${provider} not configured. Please configure it first.`);
+              }
+              
+              // Build parameters from config
+              const parameters = { ...finalConfig };
+              delete parameters.integrationId;
+              delete parameters.outputVariable;
+              
+              // Get business ID
+              const businessId = localStorage.getItem('selected_business_id') || '1';
+              
+              // Execute the operation via the backend
+              const token = getAuthToken();
+              const response = await fetch(
+                `${API_BASE}/api/v1/integrations/builder/${integration.id}/operations/${operationId}/test`,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    integration_id: integration.id,
+                    operation_id: operationId,
+                    test_parameters: parameters,
+                    business_id: parseInt(businessId),
+                  }),
+                }
+              );
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || errorData.error || 'Operation failed');
+              }
+              
+              const operationResult = await response.json();
+              
+              if (!operationResult.success) {
+                throw new Error(operationResult.error || 'Operation failed');
+              }
+              
+              result = operationResult.data || operationResult;
+              console.log('✅ Dynamic integration executed successfully:', result);
+              
+            } catch (error: any) {
+              console.error('Dynamic integration execution failed:', error);
+              throw new Error(`Dynamic integration failed: ${error.message}`);
+            }
+          } else {
+            throw new Error(`Unsupported node type: ${nodeType}`);
+          }
       }
       
       // Structure the return data in standardized format

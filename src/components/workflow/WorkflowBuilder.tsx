@@ -995,7 +995,11 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                     return item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.description.toLowerCase().includes(searchTerm.toLowerCase());
                   })
-                  .map((item: DynamicNodePaletteItem) => (
+                  .map((item: DynamicNodePaletteItem) => {
+                    // Use custom color from integration or fall back to category color
+                    const nodeColor = item.color || getCategoryColor(item.category);
+                    
+                    return (
                     <Paper
                       key={item.type}
                       elevation={1}
@@ -1006,20 +1010,20 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                         mb: 1,
                         cursor: 'grab',
                         border: `1px solid ${theme.palette.divider}`,
-                        borderLeft: `4px solid ${getCategoryColor(item.category)}`,
+                        borderLeft: `4px solid ${nodeColor}`,
                         borderRadius: '4px',
-                        backgroundColor: `${getCategoryColor(item.category)}08`, // Very subtle 3% tint
+                        backgroundColor: `${nodeColor}08`, // Very subtle 3% tint
                         '&:hover': {
-                          backgroundColor: `${getCategoryColor(item.category)}15`, // Slightly more visible on hover (8% tint)
+                          backgroundColor: `${nodeColor}15`, // Slightly more visible on hover (8% tint)
                           borderColor: theme.palette.divider,
-                          borderLeftColor: getCategoryColor(item.category),
-                          boxShadow: `0 2px 8px ${getCategoryColor(item.category)}20`,
+                          borderLeftColor: nodeColor,
+                          boxShadow: `0 2px 8px ${nodeColor}20`,
                           transform: 'translateY(-1px)',
                         },
                         '&:active': {
                           cursor: 'grabbing',
                           transform: 'translateY(0)',
-                          backgroundColor: `${getCategoryColor(item.category)}20`, // More visible when pressed
+                          backgroundColor: `${nodeColor}20`, // More visible when pressed
                         },
                         transition: 'all 0.2s ease',
                       }}
@@ -1031,7 +1035,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                         {item.description}
                       </Typography>
                     </Paper>
-                  ))}
+                    );
+                  })}
               </Box>
             ));
             })()}
