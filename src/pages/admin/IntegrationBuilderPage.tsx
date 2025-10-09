@@ -47,7 +47,7 @@ import {
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { integrationBuilderApi, type IntegrationOperation } from '../../services/integrationBuilderApi';
 
@@ -55,8 +55,12 @@ const WIZARD_STEPS = ['Parse Documentation', 'Platform & Auth', 'Review Operatio
 
 export default function IntegrationBuilderPage() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
+  
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingIntegration, setLoadingIntegration] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -114,6 +118,52 @@ export default function IntegrationBuilderPage() {
       setOperations(parsedConfig.operations || []);
     }
   }, [parsedConfig]);
+
+  // Load existing integration in edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      loadExistingIntegration(parseInt(id));
+    }
+  }, [isEditMode, id]);
+
+  const loadExistingIntegration = async (integrationId: number) => {
+    try {
+      setLoadingIntegration(true);
+      setError(null);
+
+      const integration = await integrationBuilderApi.getIntegration(integrationId);
+      
+      // Populate form with existing data
+      if (integration.platform_config) {
+        setPlatformName(integration.platform_config.name || '');
+        setProvider(integration.provider || '');
+        setBaseUrl(integration.platform_config.base_url || '');
+        setAuthType(integration.platform_config.auth_type || 'bearer');
+        setColor(integration.platform_config.color || '#5f5eff');
+        setIconUrl(integration.platform_config.icon_url || '');
+        setDocumentationUrl(integration.platform_config.documentation_url || '');
+      }
+      
+      setIsSystemWide(integration.is_system_wide || false);
+      setRequiresUserConfig(integration.requires_user_config !== false);
+      
+      if (integration.auth_config) {
+        setAuthCredentials(integration.auth_config.credentials || []);
+      }
+      
+      if (integration.operation_configs && integration.operation_configs.operations) {
+        setOperations(integration.operation_configs.operations);
+      }
+      
+      // Skip step 1 in edit mode
+      setActiveStep(1);
+      
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to load integration');
+    } finally {
+      setLoadingIntegration(false);
+    }
+  };
 
   const handleParseDocumentation = async () => {
     try {
@@ -188,8 +238,15 @@ export default function IntegrationBuilderPage() {
         operations,
       };
 
-      await integrationBuilderApi.createIntegration(integrationData);
-      setSuccess(`Integration "${platformName}" created successfully!`);
+      if (isEditMode && id) {
+        // Update existing integration
+        await integrationBuilderApi.updateIntegration(parseInt(id), integrationData);
+        setSuccess(`Integration "${platformName}" updated successfully!`);
+      } else {
+        // Create new integration
+        await integrationBuilderApi.createIntegration(integrationData);
+        setSuccess(`Integration "${platformName}" created successfully!`);
+      }
       
       // Navigate to integrations page
       setTimeout(() => {
@@ -197,7 +254,7 @@ export default function IntegrationBuilderPage() {
       }, 2000);
       
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to save integration');
+      setError(err.response?.data?.detail || err.message || `Failed to ${isEditMode ? 'update' : 'save'} integration`);
     } finally {
       setLoading(false);
     }
@@ -613,8 +670,8 @@ export default function IntegrationBuilderPage() {
 
   return (
     <AdminLayout
-      title="Integration Builder"
-      subtitle="Create custom integrations using AI-powered documentation parsing"
+      title={isEditMode ? "Edit Integration" : "Integration Builder"}
+      subtitle={isEditMode ? "Update your custom integration" : "Create custom integrations using AI-powered documentation parsing"}
       actions={
         <Button
           variant="outlined"
@@ -626,48 +683,64 @@ export default function IntegrationBuilderPage() {
       }
     >
       <Box>
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
+        {loadingIntegration && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            <CircularProgress />
+          </Box>
         )}
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-            {success}
-          </Alert>
+        {!loadingIntegration && (
+          <>
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+                {success}
+              </Alert>
+            )}
+
+            {isEditMode && (
+              <Alert severity="info" sx={{ mb: 3 }}>
+                Editing existing integration. You can update platform details, modify operations, or add new ones.
+              </Alert>
+            )}
+
+            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+              {WIZARD_STEPS.filter((_, index) => !isEditMode || index > 0).map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+
+            {renderStepContent()}
+
+            <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
+              <Button
+                onClick={handleBack}
+                disabled={activeStep === (isEditMode ? 1 : 0)}
+                startIcon={<BackIcon />}
+              >
+                Back
+              </Button>
+              <Box sx={{ flex: 1 }} />
+              {activeStep < WIZARD_STEPS.length - 1 && (
+                <Button
+                  variant="contained"
+                  onClick={handleNext}
+                  endIcon={<ForwardIcon />}
+                  disabled={(activeStep === 0 && !parsedConfig && !isEditMode)}
+                >
+                  Next
+                </Button>
+              )}
+            </Stack>
+          </>
         )}
-
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {WIZARD_STEPS.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {renderStepContent()}
-
-        <Stack direction="row" spacing={2} sx={{ mt: 3 }}>
-          <Button
-            onClick={handleBack}
-            disabled={activeStep === 0}
-            startIcon={<BackIcon />}
-          >
-            Back
-          </Button>
-          <Box sx={{ flex: 1 }} />
-          {activeStep < WIZARD_STEPS.length - 1 && (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              endIcon={<ForwardIcon />}
-              disabled={activeStep === 0 && !parsedConfig}
-            >
-              Next
-            </Button>
-          )}
-        </Stack>
 
         {/* Operation Editor Dialog */}
         <Dialog open={operationDialogOpen} onClose={() => setOperationDialogOpen(false)} maxWidth="md" fullWidth>

@@ -85,6 +85,7 @@ function AppRoutes() {
               <Route path="chat" element={<ChatPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
               <Route path="integration-builder" element={<IntegrationBuilderPage />} />
+              <Route path="integration-builder/edit/:id" element={<IntegrationBuilderPage />} />
               <Route path="system-integrations" element={<SystemIntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings/*" element={<SystemSettingsPage />} />

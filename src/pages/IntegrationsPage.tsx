@@ -808,13 +808,13 @@ export default function IntegrationsPage() {
                 <Grid item xs={12} sm={6} md={4} lg={3} key={integration.id}>
                   <Card 
                     sx={{ 
-                      height: '140px',
+                      height: '180px',
                       border: 2,
                       borderColor: integration.platform_config?.color || 'primary.main',
                       position: 'relative',
                     }}
                   >
-                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         {integration.platform_config?.icon_url ? (
                           <Box 
@@ -849,16 +849,42 @@ export default function IntegrationsPage() {
                         Auth: {integration.platform_config?.auth_type || 'N/A'}
                       </Typography>
                       
-                      {integration.platform_config?.documentation_url && (
+                      <Box sx={{ flex: 1 }} />
+                      
+                      <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                        {integration.platform_config?.documentation_url && (
+                          <Button
+                            size="small"
+                            href={integration.platform_config.documentation_url}
+                            target="_blank"
+                            sx={{ fontSize: '0.7rem', px: 1, py: 0.5 }}
+                          >
+                            Docs
+                          </Button>
+                        )}
                         <Button
                           size="small"
-                          href={integration.platform_config.documentation_url}
-                          target="_blank"
-                          sx={{ fontSize: '0.7rem', p: 0.5, mt: 1 }}
+                          variant="outlined"
+                          startIcon={<SettingsIcon fontSize="small" />}
+                          onClick={() => window.location.href = `/admin/integration-builder/edit/${integration.id}`}
+                          sx={{ fontSize: '0.7rem', px: 1, py: 0.5 }}
                         >
-                          View Docs
+                          Edit
                         </Button>
-                      )}
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            if (window.confirm(`Delete integration "${integration.name}"? This cannot be undone.`)) {
+                              // TODO: Call delete API
+                              alert('Delete functionality coming soon');
+                            }
+                          }}
+                          sx={{ p: 0.5 }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </CardContent>
                   </Card>
                 </Grid>
