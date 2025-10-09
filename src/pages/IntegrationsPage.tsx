@@ -87,6 +87,17 @@ interface Integration {
     icon_url?: string;
     documentation_url?: string;
   };
+  auth_config?: {
+    type: string;
+    credentials?: Array<{
+      name: string;
+      type: string;
+      required: boolean;
+      fixed: boolean;
+      description: string;
+      default?: any;
+    }>;
+  };
   operation_configs?: {
     operations?: any[];
   };
@@ -250,6 +261,7 @@ export default function IntegrationsPage() {
         // Dynamic Integration fields
         is_dynamic: dbIntegration.is_dynamic,
         platform_config: dbIntegration.platform_config,
+        auth_config: dbIntegration.auth_config,
         operation_configs: dbIntegration.operation_configs,
       }));
       
