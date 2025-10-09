@@ -52,7 +52,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
-import { integrationBuilderApi, type IntegrationOperation } from '../../services/integrationBuilderApi';
+import { integrationBuilderApi, type IntegrationOperation, type OperationParameter } from '../../services/integrationBuilderApi';
 
 const WIZARD_STEPS = ['Parse Documentation', 'Platform & Auth', 'Review Operations', 'Save'];
 
@@ -473,28 +473,6 @@ export default function IntegrationBuilderPage() {
     });
     setParameterDefaults(defaults);
     setParamConfigDialogOpen(true);
-  };
-
-  const handleSaveParameterDefaults = () => {
-    if (!configuringOperation) return;
-
-    // Update the operation with new parameter defaults
-    const updated = operations.map(op => {
-      if (op.id === configuringOperation.id) {
-        return {
-          ...op,
-          parameters: op.parameters.map(param => ({
-            ...param,
-            default: parameterDefaults[param.name] ?? param.default
-          }))
-        };
-      }
-      return op;
-    });
-
-    setOperations(updated);
-    setParamConfigDialogOpen(false);
-    setConfiguringOperation(null);
   };
 
   const handleTestOperation = (operation: IntegrationOperation) => {
