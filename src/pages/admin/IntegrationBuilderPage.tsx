@@ -1,5 +1,5 @@
 // Integration Builder - Wizard Flow with Admin Layout
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -37,23 +37,19 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
-  PlayArrow as TestIcon,
   AutoAwesome as AIIcon,
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
-  Check as CheckIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
 import { integrationBuilderApi, type IntegrationOperation } from '../../services/integrationBuilderApi';
-import ReactJson from 'react-json-view';
 
 const WIZARD_STEPS = ['Parse Documentation', 'Platform & Auth', 'Review Operations', 'Save'];
 
@@ -90,10 +86,7 @@ export default function IntegrationBuilderPage() {
     description: string;
   }>>([]);
 
-  // OAuth Configuration
-  const [oauthProvider, setOauthProvider] = useState('');
-  const [oauthAuthUrl, setOauthAuthUrl] = useState('');
-  const [oauthTokenUrl, setOauthTokenUrl] = useState('');
+  // OAuth Configuration (for future use)
   const [oauthScopes, setOauthScopes] = useState('');
 
   // Operations
@@ -181,9 +174,9 @@ export default function IntegrationBuilderPage() {
           credentials: authCredentials,
         },
         oauth_config: authType === 'oauth2' ? {
-          provider: oauthProvider,
-          auth_url: oauthAuthUrl,
-          token_url: oauthTokenUrl,
+          provider: platformName.toLowerCase(),
+          auth_url: '',
+          token_url: '',
           scopes: oauthScopes.split(',').map(s => s.trim()).filter(Boolean),
         } : undefined,
         operations,
