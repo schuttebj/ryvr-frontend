@@ -41,6 +41,7 @@ import VariableTextField from './VariableTextField';
 import ExpandableTextField from './ExpandableTextField';
 import JsonSchemaBuilder from './JsonSchemaBuilder';
 import { Z_INDEX } from '../../constants/zIndex';
+import type { NodePaletteItem, ToolCatalogField } from '../../utils/toolCatalogUtils';
 
 interface ClientForSelection {
   id: string;
@@ -69,9 +70,10 @@ interface NodeSettingsPanelProps {
   onClose: () => void;
   onSave: (nodeId: string, updatedData: WorkflowNodeData) => void;
   onDelete: (nodeId: string) => void;
+  nodePaletteItems?: NodePaletteItem[];
 }
 
-export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: NodeSettingsPanelProps) {
+export default function NodeSettingsPanel({ node, onClose, onSave, onDelete, nodePaletteItems = [] }: NodeSettingsPanelProps) {
   const theme = useTheme();
   const { getModelOptions, fetchModelsWithApiKey } = useOpenAIModels();
   const [formData, setFormData] = useState<WorkflowNodeData>(
@@ -348,6 +350,144 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         [key]: value,
       },
     }));
+  };
+
+  const renderDynamicField = (field: ToolCatalogField) => {
+    const value = formData.config?.[field.name] || field.default || '';
+    
+    switch (field.type) {
+      case 'select':
+        return (
+          <FormControl fullWidth key={field.name} sx={{ mb: 2 }}>
+            <InputLabel>{field.name}</InputLabel>
+            <Select
+              value={value}
+              label={field.name}
+              onChange={(e) => handleConfigChange(field.name, e.target.value)}
+              MenuProps={selectMenuProps}
+            >
+              {field.options?.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+            {field.description && (
+              <FormHelperText>{field.description}</FormHelperText>
+            )}
+          </FormControl>
+        );
+      
+      case 'multiselect':
+        return (
+          <FormControl fullWidth key={field.name} sx={{ mb: 2 }}>
+            <InputLabel>{field.name}</InputLabel>
+            <Select
+              multiple
+              value={Array.isArray(value) ? value : []}
+              label={field.name}
+              onChange={(e) => handleConfigChange(field.name, e.target.value)}
+              MenuProps={selectMenuProps}
+            >
+              {field.options?.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+            {field.description && (
+              <FormHelperText>{field.description}</FormHelperText>
+            )}
+          </FormControl>
+        );
+      
+      case 'textarea':
+        return (
+          <ExpandableTextField
+            fullWidth
+            multiline
+            rows={4}
+            label={field.name}
+            value={value}
+            onChange={(val) => handleConfigChange(field.name, val)}
+            helperText={field.description}
+            availableData={{}}
+          />
+        );
+      
+      case 'number':
+      case 'integer':
+        return (
+          <TextField
+            key={field.name}
+            fullWidth
+            type="number"
+            label={field.name}
+            value={value}
+            onChange={(e) => handleConfigChange(field.name, e.target.value ? parseFloat(e.target.value) : '')}
+            inputProps={{
+              min: field.min,
+              max: field.max,
+              step: field.step || (field.type === 'integer' ? 1 : 0.1)
+            }}
+            helperText={field.description}
+            required={field.required}
+            sx={{ mb: 2 }}
+          />
+        );
+      
+      case 'boolean':
+      case 'checkbox':
+        return (
+          <FormControlLabel
+            key={field.name}
+            control={
+              <Switch
+                checked={Boolean(value)}
+                onChange={(e) => handleConfigChange(field.name, e.target.checked)}
+              />
+            }
+            label={field.name}
+            sx={{ mb: 2, display: 'block' }}
+          />
+        );
+      
+      case 'json':
+        return (
+          <ExpandableTextField
+            fullWidth
+            multiline
+            rows={6}
+            label={field.name}
+            value={typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+            onChange={(val) => {
+              try {
+                handleConfigChange(field.name, JSON.parse(val));
+              } catch {
+                handleConfigChange(field.name, val);
+              }
+            }}
+            helperText={field.description || "JSON object"}
+            availableData={{}}
+          />
+        );
+      
+      case 'string':
+      default:
+        return (
+          <VariableTextField
+            key={field.name}
+            fullWidth
+            label={field.name}
+            value={value}
+            onChange={(val) => handleConfigChange(field.name, val)}
+            helperText={field.description}
+            required={field.required}
+            availableData={{}}
+            sx={{ mb: 2 }}
+          />
+        );
+    }
   };
 
   const handleFetchModelsFromIntegration = async () => {
@@ -1725,6 +1865,40 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete }: N
         );
 
       default:
+        // Check if this is a dynamic node from the tool catalog
+        const paletteItem = nodePaletteItems.find(item => item.type === formData.type);
+        
+        if (paletteItem && paletteItem.fields && paletteItem.fields.length > 0) {
+          return (
+            <Box sx={{ mt: 2 }}>
+              <Alert severity="info" sx={{ mb: 3 }}>
+                <Typography variant="body2">
+                  <strong>{paletteItem.label}</strong> - {paletteItem.description}
+                </Typography>
+                <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                  Provider: {paletteItem.provider} | Credits: {paletteItem.baseCredits}
+                  {paletteItem.isAsync && ' | Async Operation'}
+                </Typography>
+              </Alert>
+              
+              <Typography variant="subtitle2" gutterBottom sx={{ mb: 2 }}>
+                Operation Parameters
+              </Typography>
+              
+              {paletteItem.fields.map(field => renderDynamicField(field))}
+              
+              <TextField
+                fullWidth
+                label="Output Variable Name"
+                value={formData.config?.outputVariable || `${paletteItem.provider}_result`}
+                onChange={(e) => handleConfigChange('outputVariable', e.target.value)}
+                sx={{ mt: 2 }}
+                helperText="Name for this step's output data"
+              />
+            </Box>
+          );
+        }
+        
         return (
           <Box sx={{ mt: 2 }}>
             <Alert severity="info">

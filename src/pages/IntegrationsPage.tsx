@@ -53,6 +53,7 @@ import {
   getDatabaseIntegrations,
   SystemIntegrationStatus
 } from '../services/systemIntegrationApi';
+import { integrationBuilderApi } from '../services/integrationBuilderApi';
 
 interface Integration {
   id: string;
@@ -533,6 +534,20 @@ export default function IntegrationsPage() {
     }
   };
 
+  const handleDeleteDynamicIntegration = async (integrationId: number, integrationName: string) => {
+    if (window.confirm(`Delete integration "${integrationName}"? This cannot be undone and will remove it from all workflows.`)) {
+      try {
+        await integrationBuilderApi.deleteIntegration(integrationId);
+        // Reload integrations
+        await loadDatabaseIntegrations();
+        alert(`Integration "${integrationName}" deleted successfully`);
+      } catch (error: any) {
+        console.error('Failed to delete integration:', error);
+        alert(`Failed to delete integration: ${error.response?.data?.detail || error.message}`);
+      }
+    }
+  };
+
   const handleTest = async (integration: Integration) => {
     setTesting(true);
     setTestResult(null);
@@ -874,12 +889,7 @@ export default function IntegrationsPage() {
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => {
-                            if (window.confirm(`Delete integration "${integration.name}"? This cannot be undone.`)) {
-                              // TODO: Call delete API
-                              alert('Delete functionality coming soon');
-                            }
-                          }}
+                          onClick={() => handleDeleteDynamicIntegration(parseInt(integration.id), integration.name)}
                           sx={{ p: 0.5 }}
                         >
                           <DeleteIcon fontSize="small" />

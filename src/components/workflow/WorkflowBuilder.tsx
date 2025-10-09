@@ -1254,6 +1254,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
             onClose={() => setSettingsNode(null)}
             onSave={handleSettingsSave}
             onDelete={handleNodeDelete}
+            nodePaletteItems={nodePaletteItems}
           />
         </Paper>
       )}

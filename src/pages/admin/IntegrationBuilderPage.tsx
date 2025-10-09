@@ -46,6 +46,7 @@ import {
   AutoAwesome as AIIcon,
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
+  PlayArrow as TestIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
@@ -103,6 +104,13 @@ export default function IntegrationBuilderPage() {
   const [addOperationsDoc, setAddOperationsDoc] = useState('');
   const [addOperationsInstructions, setAddOperationsInstructions] = useState('');
   const [parsingOperations, setParsingOperations] = useState(false);
+
+  // Test Operation
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [testingOperation, setTestingOperation] = useState<IntegrationOperation | null>(null);
+  const [testParameters, setTestParameters] = useState<Record<string, any>>({});
+  const [testResult, setTestResult] = useState<any>(null);
+  const [testing, setTesting] = useState(false);
 
   // Load parsed config into form
   useEffect(() => {
@@ -348,6 +356,44 @@ export default function IntegrationBuilderPage() {
     setOperations(operations.filter(op => op.id !== operationId));
   };
 
+  const handleTestOperation = (operation: IntegrationOperation) => {
+    setTestingOperation(operation);
+    // Initialize test parameters with default values
+    const initialParams: Record<string, any> = {};
+    operation.parameters.forEach(param => {
+      if (!param.fixed) {
+        initialParams[param.name] = param.default || '';
+      }
+    });
+    setTestParameters(initialParams);
+    setTestResult(null);
+    setTestDialogOpen(true);
+  };
+
+  const handleRunTest = async () => {
+    if (!testingOperation || !id) return;
+
+    try {
+      setTesting(true);
+      setTestResult(null);
+
+      const result = await integrationBuilderApi.testOperation(
+        parseInt(id),
+        testingOperation.id,
+        testParameters
+      );
+
+      setTestResult(result);
+    } catch (err: any) {
+      setTestResult({
+        success: false,
+        error: err.response?.data?.detail || err.message || 'Test failed',
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const renderStepContent = () => {
     switch (activeStep) {
       case 0:
@@ -588,12 +634,19 @@ export default function IntegrationBuilderPage() {
                         <TableCell>{operation.base_credits}</TableCell>
                         <TableCell>{operation.parameters.length}</TableCell>
                         <TableCell align="right">
-                          <IconButton size="small" onClick={() => handleEditOperation(operation)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => handleDeleteOperation(operation.id)}>
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
+                          <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                            {isEditMode && (
+                              <IconButton size="small" onClick={() => handleTestOperation(operation)} color="info">
+                                <TestIcon fontSize="small" />
+                              </IconButton>
+                            )}
+                            <IconButton size="small" onClick={() => handleEditOperation(operation)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton size="small" onClick={() => handleDeleteOperation(operation.id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -863,6 +916,87 @@ export default function IntegrationBuilderPage() {
               startIcon={parsingOperations ? <CircularProgress size={20} /> : <AIIcon />}
             >
               {parsingOperations ? 'Parsing...' : 'Parse Operations'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Test Operation Dialog */}
+        <Dialog open={testDialogOpen} onClose={() => setTestDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <TestIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Test Operation: {testingOperation?.name}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Test this operation with live API calls. Fill in the required parameters below.
+            </Typography>
+
+            {testingOperation && (
+              <Stack spacing={2} sx={{ mb: 3 }}>
+                <Alert severity="info">
+                  <Typography variant="body2">
+                    <strong>Endpoint:</strong> {testingOperation.method} {testingOperation.endpoint}
+                  </Typography>
+                </Alert>
+
+                {testingOperation.parameters.filter(p => !p.fixed).length === 0 ? (
+                  <Alert severity="info">
+                    No configurable parameters for this operation. All parameters are fixed.
+                  </Alert>
+                ) : (
+                  <>
+                    <Typography variant="subtitle2">Parameters:</Typography>
+                    {testingOperation.parameters
+                      .filter(param => !param.fixed)
+                      .map((param) => (
+                        <TextField
+                          key={param.name}
+                          fullWidth
+                          label={param.name}
+                          value={testParameters[param.name] || ''}
+                          onChange={(e) => setTestParameters({
+                            ...testParameters,
+                            [param.name]: e.target.value
+                          })}
+                          required={param.required}
+                          helperText={param.description}
+                          placeholder={param.default?.toString() || ''}
+                        />
+                      ))}
+                  </>
+                )}
+              </Stack>
+            )}
+
+            {testResult && (
+              <Box>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle2" gutterBottom>
+                  Test Result:
+                </Typography>
+                <Alert severity={testResult.success ? 'success' : 'error'} sx={{ mb: 2 }}>
+                  {testResult.success ? '✓ Test successful!' : `✗ Test failed: ${testResult.error}`}
+                </Alert>
+                {testResult.response && (
+                  <Paper variant="outlined" sx={{ p: 2, maxHeight: 400, overflow: 'auto', bgcolor: '#f5f5f5' }}>
+                    <Typography variant="caption" color="text.secondary">Response:</Typography>
+                    <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                      {JSON.stringify(testResult.response, null, 2)}
+                    </pre>
+                  </Paper>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setTestDialogOpen(false)}>Close</Button>
+            <Button
+              variant="contained"
+              onClick={handleRunTest}
+              disabled={testing}
+              startIcon={testing ? <CircularProgress size={20} /> : <TestIcon />}
+            >
+              {testing ? 'Testing...' : 'Run Test'}
             </Button>
           </DialogActions>
         </Dialog>
