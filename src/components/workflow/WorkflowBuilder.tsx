@@ -143,15 +143,25 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         console.log('📥 Fetching tool catalog from backend...');
         const result = await workflowApi.getToolCatalog();
         
+        console.log('📦 Raw API result:', result);
+        
         if (!result.success || !result.catalog) {
           throw new Error(result.error || 'Failed to load catalog');
         }
         
         console.log('✅ Tool catalog loaded:', result.catalog);
+        console.log('📊 Catalog structure:', {
+          schema_version: result.catalog.schema_version,
+          providers_type: Array.isArray(result.catalog.providers) ? 'Array' : 'Record',
+          providers_count: Array.isArray(result.catalog.providers) 
+            ? result.catalog.providers.length 
+            : Object.keys(result.catalog.providers || {}).length
+        });
         
         // Convert catalog to node palette items
         const paletteItems = convertToolCatalogToNodePalette(result.catalog);
         console.log(`✅ Generated ${paletteItems.length} node palette items from catalog`);
+        console.log('🎨 Sample node:', paletteItems[0]);
         
         setNodePaletteItems(paletteItems);
         setLoadingCatalog(false);

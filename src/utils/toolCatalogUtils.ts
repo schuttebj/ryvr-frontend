@@ -106,6 +106,9 @@ export const getCategoryColor = (category: string): string => {
  * Handles both V1 (Record) and V2 (Array) provider formats
  */
 export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[] => {
+  console.log('🔄 Converting catalog to palette items...');
+  console.log('📥 Input catalog:', catalog);
+  
   const nodes: NodePaletteItem[] = [];
   
   // Add built-in trigger node
@@ -124,10 +127,18 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
   });
   
   // Handle both V1 (Record) and V2 (Array) formats
-  const providersData = catalog.providers || [];
+  const providersData = catalog?.providers || catalog || [];
+  console.log('📦 Providers data:', providersData);
+  console.log('📦 Providers type:', Array.isArray(providersData) ? 'Array' : 'Object/Record');
+  
   const providersList = Array.isArray(providersData) 
     ? providersData 
-    : Object.entries(providersData).map(([id, provider]: [string, any]) => ({ id, ...provider }));
+    : Object.entries(providersData).map(([id, provider]: [string, any]) => {
+        console.log(`  🔸 Processing provider: ${id}`, provider);
+        return { id, ...provider };
+      });
+  
+  console.log(`📊 Total providers to process: ${providersList.length}`);
   
   // Convert each provider's operations to nodes
   for (const provider of providersList) {
@@ -135,9 +146,11 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
     const operations = provider.operations || {};
     const category = provider.category || provider.label || 'other';
     
+    console.log(`  ⚙️ Provider: ${providerId}, Operations:`, Object.keys(operations));
+    
     for (const [operationId, operation] of Object.entries(operations)) {
       const op = operation as any;
-      nodes.push({
+      const nodeItem = {
         type: `${providerId}_${operationId}`,
         category,
         label: op.name || operationId,
@@ -149,10 +162,14 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
         isAsync: op.is_async || op.isAsync || false,
         fields: op.fields || [],
         authType: provider.auth_type || provider.authType || 'none',
-      });
+      };
+      
+      console.log(`    ➕ Created node: ${nodeItem.type}`);
+      nodes.push(nodeItem);
     }
   }
   
+  console.log(`✅ Total nodes created: ${nodes.length}`);
   return nodes;
 };
 
