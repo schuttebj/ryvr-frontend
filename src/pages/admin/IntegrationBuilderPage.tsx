@@ -37,6 +37,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  Tooltip,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -47,6 +48,7 @@ import {
   ArrowBack as BackIcon,
   ArrowForward as ForwardIcon,
   PlayArrow as TestIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import AdminLayout from '../../components/layout/AdminLayout';
@@ -83,6 +85,7 @@ export default function IntegrationBuilderPage() {
   const [hasSandbox, setHasSandbox] = useState(false);
   const [sandboxBaseUrl, setSandboxBaseUrl] = useState('');
   const [authType, setAuthType] = useState<'basic' | 'bearer' | 'api_key' | 'oauth2'>('bearer');
+  const [apiKeyHeaderName, setApiKeyHeaderName] = useState('api-key');
   const [color, setColor] = useState('#5f5eff');
   const [iconUrl, setIconUrl] = useState('');
   const [documentationUrl, setDocumentationUrl] = useState('');
@@ -118,6 +121,11 @@ export default function IntegrationBuilderPage() {
   const [testParameters, setTestParameters] = useState<Record<string, any>>({});
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
+
+  // Parameter Configuration
+  const [paramConfigDialogOpen, setParamConfigDialogOpen] = useState(false);
+  const [configuringOperation, setConfiguringOperation] = useState<IntegrationOperation | null>(null);
+  const [parameterDefaults, setParameterDefaults] = useState<Record<string, any>>({});
 
   // Load parsed config into form
   useEffect(() => {
@@ -174,6 +182,9 @@ export default function IntegrationBuilderPage() {
       
       if (integration.auth_config) {
         setAuthCredentials(integration.auth_config.credentials || []);
+        if (integration.auth_config.header_name) {
+          setApiKeyHeaderName(integration.auth_config.header_name);
+        }
       }
       
       if (integration.operation_configs && integration.operation_configs.operations) {
@@ -255,6 +266,7 @@ export default function IntegrationBuilderPage() {
         auth_config: {
           type: authType,
           credentials: authCredentials,
+          ...(authType === 'api_key' && { header_name: apiKeyHeaderName }),
         },
         oauth_config: authType === 'oauth2' ? {
           provider: platformName.toLowerCase(),
@@ -377,6 +389,39 @@ export default function IntegrationBuilderPage() {
 
   const handleDeleteOperation = (operationId: string) => {
     setOperations(operations.filter(op => op.id !== operationId));
+  };
+
+  const handleConfigureParameters = (operation: IntegrationOperation) => {
+    setConfiguringOperation(operation);
+    // Initialize with existing defaults
+    const defaults: Record<string, any> = {};
+    operation.parameters.forEach(param => {
+      defaults[param.name] = param.default || '';
+    });
+    setParameterDefaults(defaults);
+    setParamConfigDialogOpen(true);
+  };
+
+  const handleSaveParameterDefaults = () => {
+    if (!configuringOperation) return;
+
+    // Update the operation with new parameter defaults
+    const updated = operations.map(op => {
+      if (op.id === configuringOperation.id) {
+        return {
+          ...op,
+          parameters: op.parameters.map(param => ({
+            ...param,
+            default: parameterDefaults[param.name] ?? param.default
+          }))
+        };
+      }
+      return op;
+    });
+
+    setOperations(updated);
+    setParamConfigDialogOpen(false);
+    setConfiguringOperation(null);
   };
 
   const handleTestOperation = (operation: IntegrationOperation) => {
@@ -573,12 +618,27 @@ export default function IntegrationBuilderPage() {
                       onChange={(e) => setAuthType(e.target.value as any)}
                     >
                       <MenuItem value="bearer">Bearer Token</MenuItem>
-                      <MenuItem value="api_key">API Key</MenuItem>
+                      <MenuItem value="api_key">API Key (Custom Header)</MenuItem>
                       <MenuItem value="basic">Basic Auth</MenuItem>
                       <MenuItem value="oauth2">OAuth 2.0</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
+                
+                {/* API Key Header Name (only shown for api_key auth) */}
+                {authType === 'api_key' && (
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="API Key Header Name"
+                      value={apiKeyHeaderName}
+                      onChange={(e) => setApiKeyHeaderName(e.target.value)}
+                      placeholder="api-key"
+                      helperText="Header name for API key (e.g., 'api-key', 'X-API-Key', 'Authorization')"
+                    />
+                  </Grid>
+                )}
+                
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -701,17 +761,30 @@ export default function IntegrationBuilderPage() {
                         <TableCell>{operation.parameters.length}</TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                            {isEditMode && (
-                              <IconButton size="small" onClick={() => handleTestOperation(operation)} color="info">
-                                <TestIcon fontSize="small" />
-                              </IconButton>
+                            {operation.parameters.length > 0 && (
+                              <Tooltip title="Configure default parameters">
+                                <IconButton size="small" onClick={() => handleConfigureParameters(operation)} color="success">
+                                  <SettingsIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
                             )}
-                            <IconButton size="small" onClick={() => handleEditOperation(operation)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" onClick={() => handleDeleteOperation(operation.id)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                            {isEditMode && (
+                              <Tooltip title="Test operation">
+                                <IconButton size="small" onClick={() => handleTestOperation(operation)} color="info">
+                                  <TestIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            <Tooltip title="Edit operation">
+                              <IconButton size="small" onClick={() => handleEditOperation(operation)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete operation">
+                              <IconButton size="small" onClick={() => handleDeleteOperation(operation.id)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -1099,6 +1172,56 @@ export default function IntegrationBuilderPage() {
               startIcon={testing ? <CircularProgress size={20} /> : <TestIcon />}
             >
               {testing ? 'Testing...' : 'Run Test'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Parameter Configuration Dialog */}
+        <Dialog open={paramConfigDialogOpen} onClose={() => setParamConfigDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Configure Default Parameters: {configuringOperation?.name}
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Set default values for operation parameters. These defaults will be used when configuring the integration.
+            </Typography>
+
+            {configuringOperation && (
+              <Stack spacing={2}>
+                {configuringOperation.parameters.length === 0 ? (
+                  <Alert severity="info">
+                    This operation has no configurable parameters.
+                  </Alert>
+                ) : (
+                  configuringOperation.parameters.map((param) => (
+                    <Box key={param.name}>
+                      <TextField
+                        fullWidth
+                        label={param.name}
+                        value={parameterDefaults[param.name] || ''}
+                        onChange={(e) => setParameterDefaults({
+                          ...parameterDefaults,
+                          [param.name]: e.target.value
+                        })}
+                        helperText={`${param.description || ''} ${param.required ? '(Required)' : '(Optional)'} - Location: ${param.location}`}
+                        placeholder={param.default?.toString() || ''}
+                        type={param.type === 'number' ? 'number' : 'text'}
+                      />
+                    </Box>
+                  ))
+                )}
+              </Stack>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setParamConfigDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveParameterDefaults}
+              startIcon={<SaveIcon />}
+            >
+              Save Defaults
             </Button>
           </DialogActions>
         </Dialog>
