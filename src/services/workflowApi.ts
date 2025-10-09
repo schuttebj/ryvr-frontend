@@ -2640,14 +2640,42 @@ export const workflowApi = {
                 throw new Error(`Operation ${operationId} not found for ${provider}`);
               }
               
-              // Find integration ID from loaded integrations
-              const integrations = JSON.parse(localStorage.getItem('database_integrations') || '[]');
-              const integration = integrations.find((i: any) => 
+              // Find the base integration from database_integrations
+              const databaseIntegrations = JSON.parse(localStorage.getItem('database_integrations') || '[]');
+              const baseIntegration = databaseIntegrations.find((i: any) => 
                 i.provider?.toLowerCase().replace(/\s+/g, '_') === provider
               );
               
-              if (!integration) {
-                throw new Error(`Integration for ${provider} not configured. Please configure it first.`);
+              if (!baseIntegration) {
+                throw new Error(`Integration ${provider} not found in system. Please contact administrator.`);
+              }
+              
+              // Find the configured business integration
+              const businessId = localStorage.getItem('selected_business_id') || '1';
+              const token = getAuthToken();
+              
+              // Fetch business integrations to get the configured one
+              const bizIntResponse = await fetch(
+                `${API_BASE}/api/v1/integrations/business/${businessId}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
+              );
+              
+              if (!bizIntResponse.ok) {
+                throw new Error(`Failed to fetch business integrations`);
+              }
+              
+              const businessIntegrations = await bizIntResponse.json();
+              const configuredIntegration = businessIntegrations.find((bi: any) => 
+                bi.integration_id === baseIntegration.id
+              );
+              
+              if (!configuredIntegration) {
+                throw new Error(`Integration for ${provider} not configured for this business. Please configure it in Integrations page first.`);
               }
               
               // Build parameters from config
@@ -2655,13 +2683,9 @@ export const workflowApi = {
               delete parameters.integrationId;
               delete parameters.outputVariable;
               
-              // Get business ID
-              const businessId = localStorage.getItem('selected_business_id') || '1';
-              
               // Execute the operation via the backend
-              const token = getAuthToken();
               const response = await fetch(
-                `${API_BASE}/api/v1/integrations/builder/${integration.id}/operations/${operationId}/test`,
+                `${API_BASE}/api/v1/integrations/builder/${baseIntegration.id}/operations/${operationId}/test`,
                 {
                   method: 'POST',
                   headers: {
@@ -2669,7 +2693,7 @@ export const workflowApi = {
                     'Authorization': `Bearer ${token}`,
                   },
                   body: JSON.stringify({
-                    integration_id: integration.id,
+                    integration_id: baseIntegration.id,
                     operation_id: operationId,
                     test_parameters: parameters,
                     business_id: parseInt(businessId),

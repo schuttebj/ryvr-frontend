@@ -129,6 +129,7 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
     fields: [],
     authType: 'none',
     isBuiltin: true,
+    color: '#9333ea', // Purple for triggers
   });
   
   nodes.push({
@@ -146,6 +147,7 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
     ],
     authType: 'none',
     isBuiltin: true,
+    color: '#9333ea', // Purple for triggers
   });
   
   nodes.push({
@@ -161,6 +163,7 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
     fields: [],
     authType: 'none',
     isBuiltin: true,
+    color: '#9333ea', // Purple for triggers
   });
   
   // Handle both V1 (Record) and V2 (Array) formats
