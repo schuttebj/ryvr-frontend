@@ -1,5 +1,5 @@
 // Integration Builder - Main Admin Page
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Container,
@@ -44,8 +44,7 @@ import {
   ArrowBack as BackIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { integrationBuilderApi, type IntegrationOperation, type OperationParameter } from '../../services/integrationBuilderApi';
-import ReactJson from 'react-json-view';
+import { integrationBuilderApi, type IntegrationOperation } from '../../services/integrationBuilderApi';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -111,9 +110,6 @@ export default function IntegrationBuilderPage() {
   // Test Panel
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testOperation, setTestOperation] = useState<IntegrationOperation | null>(null);
-  const [testParameters, setTestParameters] = useState<Record<string, any>>({});
-  const [testResult, setTestResult] = useState<any>(null);
-  const [testing, setTesting] = useState(false);
 
   const handleSaveIntegration = async () => {
     try {
@@ -161,7 +157,7 @@ export default function IntegrationBuilderPage() {
         operations,
       };
 
-      const result = await integrationBuilderApi.createIntegration(integrationData);
+      await integrationBuilderApi.createIntegration(integrationData);
       setSuccess(`Integration "${platformName}" created successfully!`);
       
       // Reset form or navigate
@@ -280,27 +276,7 @@ export default function IntegrationBuilderPage() {
 
   const handleTestOperation = (operation: IntegrationOperation) => {
     setTestOperation(operation);
-    setTestParameters({});
-    setTestResult(null);
     setTestDialogOpen(true);
-  };
-
-  const handleRunTest = async () => {
-    if (!testOperation) return;
-
-    try {
-      setTesting(true);
-      setError(null);
-
-      // Note: This requires saving the integration first
-      // For now, show a message
-      setError('Save the integration first before testing operations');
-      
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Test failed');
-    } finally {
-      setTesting(false);
-    }
   };
 
   return (
@@ -709,13 +685,10 @@ export default function IntegrationBuilderPage() {
                 <Typography variant="h6" gutterBottom>
                   Parsed Configuration
                 </Typography>
-                <Paper sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-                  <ReactJson
-                    src={aiResult.config}
-                    theme="rjv-default"
-                    collapsed={1}
-                    displayDataTypes={false}
-                  />
+                <Paper sx={{ p: 2, bgcolor: '#f5f5f5', maxHeight: 400, overflow: 'auto' }}>
+                  <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {JSON.stringify(aiResult.config, null, 2)}
+                  </pre>
                 </Paper>
                 {aiResult.validation && (
                   <Box sx={{ mt: 2 }}>
