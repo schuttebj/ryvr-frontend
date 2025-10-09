@@ -56,7 +56,7 @@ import BaseNode from './BaseNode';
 import ExpandableBasicTextField from './ExpandableBasicTextField';
 import { workflowApi } from '../../services/workflowApi';
 import { 
-  convertToolCatalogToNodePalette, 
+  convertToolCatalogToNodePalette,
   getCategoryColor,
   type NodePaletteItem as DynamicNodePaletteItem 
 } from '../../utils/toolCatalogUtils';
@@ -185,6 +185,7 @@ interface WorkflowBuilderProps {
   workflowId?: string; // Optional workflow ID for editing existing workflows
 }
 
+// Old NodePaletteItem interface kept for backward compatibility
 interface NodePaletteItem {
   type: WorkflowNodeType;
   label: string;
@@ -193,404 +194,14 @@ interface NodePaletteItem {
   color?: string;
 }
 
-const nodePaletteItems: NodePaletteItem[] = [
-  // Triggers
-  {
-    type: WorkflowNodeType.TRIGGER,
-    label: 'Manual Trigger',
-    description: 'Start workflow manually',
-    category: 'Triggers',
-    color: BRAND_COLORS.trigger
-  },
-  
-  // AI Tools
-  {
-    type: WorkflowNodeType.AI_OPENAI_TASK,
-    label: 'OpenAI Task',
-    description: 'Unified OpenAI task with custom prompts',
-    category: 'AI Tools',
-    color: BRAND_COLORS.ai
-  },
-  {
-    type: WorkflowNodeType.CONTENT_EXTRACT,
-    label: 'Extract Content',
-    description: 'Extract content from web pages',
-    category: 'Content Tools',
-    color: BRAND_COLORS.content
-  },
-  
-  // SERP Analysis
-  {
-    type: WorkflowNodeType.SEO_SERP_ANALYZE,
-    label: 'SERP Analysis',
-    description: 'Analyze search results',
-    category: 'SEO Tools',
-    color: BRAND_COLORS.seo
-  },
-  {
-    type: WorkflowNodeType.SEO_SERP_GOOGLE_ORGANIC,
-    label: 'Google Organic',
-    description: 'Google organic search results',
-    category: 'SEO Tools',
-    color: BRAND_COLORS.seo
-  },
-  {
-    type: WorkflowNodeType.SEO_SERP_GOOGLE_ADS,
-    label: 'Google Ads',
-    description: 'Google ads search results',
-    category: 'SERP'
-  },
-  {
-    type: WorkflowNodeType.SEO_SERP_GOOGLE_IMAGES,
-    label: 'Google Images',
-    description: 'Google image search results',
-    category: 'SERP'
-  },
-  {
-    type: WorkflowNodeType.SEO_SERP_GOOGLE_NEWS,
-    label: 'Google News',
-    description: 'Google news search results',
-    category: 'SERP'
-  },
-  {
-    type: WorkflowNodeType.SEO_SERP_GOOGLE_MAPS,
-    label: 'Google Maps',
-    description: 'Google maps search results',
-    category: 'SERP'
-  },
-  
-  // Keywords
-  {
-    type: WorkflowNodeType.SEO_KEYWORDS_VOLUME,
-    label: 'Search Volume',
-    description: 'Get keyword search volume',
-    category: 'Keywords'
-  },
-  
-  // Review and Approval
-  {
-    type: WorkflowNodeType.REVIEW,
-    label: 'Review Step',
-    description: 'Pause workflow for review and approval',
-    category: 'Flow Control',
-    color: '#f59e0b'
-  },
-  {
-    type: WorkflowNodeType.OPTIONS,
-    label: 'Options Selection',
-    description: 'Pause for user to select from dynamic options',
-    category: 'Flow Control',
-    color: '#06b6d4'
-  },
-  {
-    type: WorkflowNodeType.CONDITIONAL,
-    label: 'Conditional Branch',
-    description: 'Branch workflow based on conditions',
-    category: 'Flow Control',
-    color: '#8b5cf6'
-  },
-  {
-    type: WorkflowNodeType.SEO_KEYWORDS_GOOGLE_ADS,
-    label: 'Google Ads Keywords',
-    description: 'Google Ads keyword data',
-    category: 'Keywords'
-  },
-  {
-    type: WorkflowNodeType.SEO_KEYWORDS_SITE,
-    label: 'Site Keywords',
-    description: 'Keywords for specific site',
-    category: 'Keywords'
-  },
-  {
-    type: WorkflowNodeType.SEO_KEYWORDS_SUGGESTIONS,
-    label: 'Keyword Suggestions',
-    description: 'Get keyword suggestions',
-    category: 'Keywords'
-  },
-  
-  // DataForSEO Labs
-  {
-    type: WorkflowNodeType.SEO_LABS_RANKED_KEYWORDS,
-    label: 'Ranked Keywords',
-    description: 'Domain ranked keywords',
-    category: 'Labs'
-  },
-  {
-    type: WorkflowNodeType.SEO_LABS_SERP_COMPETITORS,
-    label: 'SERP Competitors',
-    description: 'Find SERP competitors',
-    category: 'Labs'
-  },
-  {
-    type: WorkflowNodeType.SEO_LABS_RELATED_KEYWORDS,
-    label: 'Related Keywords',
-    description: 'Find related keywords',
-    category: 'Labs'
-  },
-  {
-    type: WorkflowNodeType.SEO_LABS_SEARCH_INTENT,
-    label: 'Search Intent',
-    description: 'Analyze search intent',
-    category: 'Labs'
-  },
-  
-  // Backlinks
-  {
-    type: WorkflowNodeType.SEO_BACKLINKS_OVERVIEW,
-    label: 'Backlinks Overview',
-    description: 'Domain backlinks overview',
-    category: 'Backlinks'
-  },
-  {
-    type: WorkflowNodeType.SEO_BACKLINKS_ANCHORS,
-    label: 'Anchor Texts',
-    description: 'Backlink anchor analysis',
-    category: 'Backlinks'
-  },
-  {
-    type: WorkflowNodeType.SEO_BACKLINKS_REFERRING_DOMAINS,
-    label: 'Referring Domains',
-    description: 'Referring domains analysis',
-    category: 'Backlinks'
-  },
-  
-  // On-Page
-  {
-    type: WorkflowNodeType.SEO_ONPAGE_SUMMARY,
-    label: 'On-Page Summary',
-    description: 'Website on-page analysis',
-    category: 'On-Page'
-  },
-  {
-    type: WorkflowNodeType.SEO_ONPAGE_PAGES,
-    label: 'Page Analysis',
-    description: 'Individual page analysis',
-    category: 'On-Page'
-  },
-  {
-    type: WorkflowNodeType.SEO_ONPAGE_LIGHTHOUSE,
-    label: 'Lighthouse Audit',
-    description: 'Google Lighthouse audit',
-    category: 'On-Page'
-  },
-  
-  // Content Analysis
-  {
-    type: WorkflowNodeType.SEO_CONTENT_ANALYSIS,
-    label: 'Content Analysis',
-    description: 'Analyze content performance',
-    category: 'Content'
-  },
-  {
-    type: WorkflowNodeType.SEO_CONTENT_SENTIMENT,
-    label: 'Sentiment Analysis',
-    description: 'Content sentiment analysis',
-    category: 'Content'
-  },
-  
-  // Client Data
-  {
-    type: WorkflowNodeType.CLIENT_PROFILE,
-    label: 'Client Profile',
-    description: 'Load client data and business profile',
-    category: 'Client Data',
-    color: BRAND_COLORS.client
-  },
-  
-  // Actions
-  {
-    type: WorkflowNodeType.EMAIL,
-    label: 'Send Email',
-    description: 'Send email notification',
-    category: 'Actions',
-    color: BRAND_COLORS.action
-  },
-  
-  // Google Analytics
-  {
-    type: WorkflowNodeType.GOOGLE_ANALYTICS_OVERVIEW,
-    label: 'GA Overview',
-    description: 'Get Google Analytics overview',
-    category: 'Google Analytics',
-    color: BRAND_COLORS.analytics
-  },
-  {
-    type: WorkflowNodeType.GOOGLE_ANALYTICS_TRAFFIC,
-    label: 'Traffic Analysis',
-    description: 'Analyze website traffic',
-    category: 'Google Analytics',
-    color: BRAND_COLORS.analytics
-  },
-  {
-    type: WorkflowNodeType.GOOGLE_ANALYTICS_CONVERSIONS,
-    label: 'Conversion Tracking',
-    description: 'Track conversions and goals',
-    category: 'Google Analytics',
-    color: BRAND_COLORS.analytics
-  },
-  
-  // Google Ads
-  {
-    type: WorkflowNodeType.GOOGLE_ADS_CAMPAIGNS,
-    label: 'Campaign Data',
-    description: 'Get Google Ads campaign data',
-    category: 'Google Ads',
-    color: BRAND_COLORS.ads
-  },
-  {
-    type: WorkflowNodeType.GOOGLE_ADS_KEYWORDS,
-    label: 'Keyword Performance',
-    description: 'Analyze keyword performance',
-    category: 'Google Ads',
-    color: BRAND_COLORS.ads
-  },
-  
-  // Meta Ads
-  {
-    type: WorkflowNodeType.META_ADS_CAMPAIGNS,
-    label: 'Campaign Data',
-    description: 'Get Meta Ads campaign data',
-    category: 'Meta Ads',
-    color: BRAND_COLORS.meta
-  },
-  {
-    type: WorkflowNodeType.META_ADS_INSIGHTS,
-    label: 'Ad Insights',
-    description: 'Get detailed ad insights',
-    category: 'Meta Ads',
-    color: BRAND_COLORS.meta
-  },
-  
-  // Google Maps
-  {
-    type: WorkflowNodeType.GOOGLE_MAPS_PLACES,
-    label: 'Places Data',
-    description: 'Get Google Places information',
-    category: 'Google Maps',
-    color: BRAND_COLORS.maps
-  },
-  {
-    type: WorkflowNodeType.GOOGLE_MAPS_REVIEWS,
-    label: 'Reviews Analysis',
-    description: 'Analyze Google Maps reviews',
-    category: 'Google Maps',
-    color: BRAND_COLORS.maps
-  },
-  
-  // Ahrefs
-  {
-    type: WorkflowNodeType.AHREFS_SITE_EXPLORER,
-    label: 'Site Explorer',
-    description: 'Analyze website with Ahrefs',
-    category: 'Ahrefs',
-    color: BRAND_COLORS.ahrefs
-  },
-  {
-    type: WorkflowNodeType.AHREFS_KEYWORDS,
-    label: 'Keyword Research',
-    description: 'Research keywords with Ahrefs',
-    category: 'Ahrefs',
-    color: BRAND_COLORS.ahrefs
-  },
-  
-  // WordPress
-  {
-    type: WorkflowNodeType.WORDPRESS_EXTRACT,
-    label: 'Extract Content',
-    description: 'Extract posts, pages and content from WordPress',
-    category: 'WordPress',
-    color: BRAND_COLORS.wordpress
-  },
-  {
-    type: WorkflowNodeType.WORDPRESS_PUBLISH,
-    label: 'Publish Content',
-    description: 'Publish new posts or pages to WordPress',
-    category: 'WordPress',
-    color: BRAND_COLORS.wordpress
-  },
-  {
-    type: WorkflowNodeType.WORDPRESS_SYNC,
-    label: 'Sync Content',
-    description: 'Bidirectional content synchronization',
-    category: 'WordPress',
-    color: BRAND_COLORS.wordpress
-  },
-  {
-    type: WorkflowNodeType.WORDPRESS_SITE_INFO,
-    label: 'Site Information',
-    description: 'Get WordPress site details and status',
-    category: 'WordPress',
-    color: BRAND_COLORS.wordpress
-  },
-  {
-    type: WorkflowNodeType.WORDPRESS_POSTS,
-    label: 'Post Management',
-    description: 'Advanced post management operations',
-    category: 'WordPress',
-    color: BRAND_COLORS.wordpress
-  },
-  {
-    type: WorkflowNodeType.WORDPRESS_PAGES,
-    label: 'Page Management',
-    description: 'Advanced page management operations',
-    category: 'WordPress',
-    color: BRAND_COLORS.wordpress
-  },
-  
-  // CRM & Marketing
-  {
-    type: WorkflowNodeType.HUBSPOT_CONTACTS,
-    label: 'Contact Management',
-    description: 'Manage HubSpot contacts',
-    category: 'CRM & Marketing',
-    color: BRAND_COLORS.hubspot
-  },
-  {
-    type: WorkflowNodeType.MAILCHIMP_LISTS,
-    label: 'List Management',
-    description: 'Manage Mailchimp lists',
-    category: 'CRM & Marketing',
-    color: BRAND_COLORS.mailchimp
-  },
-  
-  // Social Media
-  {
-    type: WorkflowNodeType.TWITTER_POSTS,
-    label: 'Tweet Management',
-    description: 'Manage Twitter posts',
-    category: 'Social Media',
-    color: BRAND_COLORS.twitter
-  },
-  {
-    type: WorkflowNodeType.LINKEDIN_POSTS,
-    label: 'LinkedIn Posts',
-    description: 'Manage LinkedIn posts',
-    category: 'Social Media',
-    color: BRAND_COLORS.linkedin
-  },
-  
-  // E-commerce
-  {
-    type: WorkflowNodeType.SHOPIFY_PRODUCTS,
-    label: 'Product Management',
-    description: 'Manage Shopify products',
-    category: 'E-commerce',
-    color: BRAND_COLORS.shopify
-  },
-  {
-    type: WorkflowNodeType.WOOCOMMERCE_PRODUCTS,
-    label: 'WooCommerce Products',
-    description: 'Manage WooCommerce products',
-    category: 'E-commerce',
-    color: BRAND_COLORS.woocommerce
-  }
-];
+// Note: nodePaletteItems is now loaded dynamically from tool catalog
+// See useEffect hook for dynamic loading via workflowApi.getToolCatalog()
 
 export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderProps) {
   const navigate = useNavigate();
   const theme = useTheme();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesState] = useEdgesState<Edge>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [settingsNode, setSettingsNode] = useState<any>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -630,11 +241,16 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         setCatalogError(null);
         
         console.log('📥 Fetching tool catalog from backend...');
-        const catalog = await workflowApi.getToolCatalog();
-        console.log('✅ Tool catalog loaded:', catalog);
+        const result = await workflowApi.getToolCatalog();
+        
+        if (!result.success || !result.catalog) {
+          throw new Error(result.error || 'Failed to load catalog');
+        }
+        
+        console.log('✅ Tool catalog loaded:', result.catalog);
         
         // Convert catalog to node palette items
-        const paletteItems = convertToolCatalogToNodePalette(catalog);
+        const paletteItems = convertToolCatalogToNodePalette(result.catalog);
         console.log(`✅ Generated ${paletteItems.length} node palette items from catalog`);
         
         setNodePaletteItems(paletteItems);
@@ -824,7 +440,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
       };
 
       // Find the node info from palette
-      const paletteItem = nodePaletteItems.find(item => item.type === nodeType);
+      const paletteItem = nodePaletteItems.find((item: DynamicNodePaletteItem) => item.type === nodeType);
       
       // Map node types to ReactFlow node types for rendering (only 4 types needed)
       const getReactFlowNodeType = (type: string, category: string): string => {
@@ -1431,8 +1047,8 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
               // Filter categories and items based on search
               const filteredCategories = categories.filter(category => {
                 if (!searchTerm) return true;
-                const categoryItems = nodePaletteItems.filter(item => item.category === category);
-                return categoryItems.some(item => 
+                const categoryItems = nodePaletteItems.filter((item: DynamicNodePaletteItem) => item.category === category);
+                return categoryItems.some((item: DynamicNodePaletteItem) => 
                   item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   category.toLowerCase().includes(searchTerm.toLowerCase())
@@ -1445,13 +1061,13 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                   {category}
                 </Typography>
                 {nodePaletteItems
-                  .filter(item => {
+                  .filter((item: DynamicNodePaletteItem) => {
                     if (item.category !== category) return false;
                     if (!searchTerm) return true;
                     return item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.description.toLowerCase().includes(searchTerm.toLowerCase());
                   })
-                  .map((item) => (
+                  .map((item: DynamicNodePaletteItem) => (
                     <Paper
                       key={item.type}
                       elevation={1}
@@ -1462,20 +1078,20 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                         mb: 1,
                         cursor: 'grab',
                         border: `1px solid ${theme.palette.divider}`,
-                        borderLeft: `4px solid ${item.color || getNodeColor(item.type)}`,
+                        borderLeft: `4px solid ${getCategoryColor(item.category)}`,
                         borderRadius: '4px',
-                        backgroundColor: `${(item.color || getNodeColor(item.type))}08`, // Very subtle 3% tint
+                        backgroundColor: `${getCategoryColor(item.category)}08`, // Very subtle 3% tint
                         '&:hover': {
-                          backgroundColor: `${(item.color || getNodeColor(item.type))}15`, // Slightly more visible on hover (8% tint)
+                          backgroundColor: `${getCategoryColor(item.category)}15`, // Slightly more visible on hover (8% tint)
                           borderColor: theme.palette.divider,
-                          borderLeftColor: item.color || getNodeColor(item.type),
-                          boxShadow: `0 2px 8px ${(item.color || getNodeColor(item.type))}20`,
+                          borderLeftColor: getCategoryColor(item.category),
+                          boxShadow: `0 2px 8px ${getCategoryColor(item.category)}20`,
                           transform: 'translateY(-1px)',
                         },
                         '&:active': {
                           cursor: 'grabbing',
                           transform: 'translateY(0)',
-                          backgroundColor: `${(item.color || getNodeColor(item.type))}20`, // More visible when pressed
+                          backgroundColor: `${getCategoryColor(item.category)}20`, // More visible when pressed
                         },
                         transition: 'all 0.2s ease',
                       }}
@@ -1585,7 +1201,7 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                   : '0 2px 8px rgba(0, 0, 0, 0.1)',
                 border: `1px solid ${theme.palette.divider}`,
               }}
-              nodeColor={(node) => {
+              nodeColor={(node: any) => {
                 if (node.type) {
                   return theme.palette.mode === 'dark' ? '#5f5eff' : '#5f5eff';
                 }

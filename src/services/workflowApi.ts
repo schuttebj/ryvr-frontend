@@ -3903,36 +3903,5 @@ export const workflowApi = {
       console.error('Import workflow failed:', error);
       throw error;
     }
-  },
-
-  // Get tool catalog for dynamic node generation
-  getToolCatalog: async (provider?: string, category?: string) => {
-    try {
-      const token = getAuthToken();
-      const params = new URLSearchParams();
-      
-      if (provider) params.append('provider', provider);
-      if (category) params.append('category', category);
-      
-      const url = `${API_BASE}/api/v1/workflows/tool-catalog${params.toString() ? '?' + params.toString() : ''}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(errorData.detail || 'Failed to fetch tool catalog');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Get tool catalog failed:', error);
-      throw error;
-    }
   }
 }; 

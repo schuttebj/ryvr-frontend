@@ -48,7 +48,7 @@ export interface NodePaletteItem {
 
 export interface ToolCatalog {
   schema_version: string;
-  providers: Record<string, ToolCatalogProvider>;
+  providers: Record<string, ToolCatalogProvider> | ToolCatalogProvider[];
 }
 
 /**
@@ -103,8 +103,9 @@ export const getCategoryColor = (category: string): string => {
 
 /**
  * Convert tool catalog to node palette items
+ * Handles both V1 (Record) and V2 (Array) provider formats
  */
-export const convertToolCatalogToNodePalette = (catalog: ToolCatalog): NodePaletteItem[] => {
+export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[] => {
   const nodes: NodePaletteItem[] = [];
   
   // Add built-in trigger node
@@ -122,21 +123,32 @@ export const convertToolCatalogToNodePalette = (catalog: ToolCatalog): NodePalet
     authType: 'none',
   });
   
+  // Handle both V1 (Record) and V2 (Array) formats
+  const providersData = catalog.providers || [];
+  const providersList = Array.isArray(providersData) 
+    ? providersData 
+    : Object.entries(providersData).map(([id, provider]: [string, any]) => ({ id, ...provider }));
+  
   // Convert each provider's operations to nodes
-  for (const [providerId, provider] of Object.entries(catalog.providers)) {
-    for (const [operationId, operation] of Object.entries(provider.operations)) {
+  for (const provider of providersList) {
+    const providerId = provider.id || provider.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown';
+    const operations = provider.operations || {};
+    const category = provider.category || provider.label || 'other';
+    
+    for (const [operationId, operation] of Object.entries(operations)) {
+      const op = operation as any;
       nodes.push({
         type: `${providerId}_${operationId}`,
-        category: provider.category,
-        label: operation.name,
-        description: operation.description,
-        icon: getCategoryIcon(provider.category),
+        category,
+        label: op.name || operationId,
+        description: op.description || '',
+        icon: getCategoryIcon(category),
         provider: providerId,
         operation: operationId,
-        baseCredits: operation.base_credits,
-        isAsync: operation.is_async,
-        fields: operation.fields,
-        authType: provider.auth_type,
+        baseCredits: op.base_credits || op.baseCredits || 0,
+        isAsync: op.is_async || op.isAsync || false,
+        fields: op.fields || [],
+        authType: provider.auth_type || provider.authType || 'none',
       });
     }
   }
