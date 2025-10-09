@@ -15,7 +15,7 @@ const getAuthHeaders = () => {
 
 export interface OperationParameter {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object' | 'select' | 'file';
+  type: 'string' | 'text' | 'number' | 'boolean' | 'array' | 'object' | 'select' | 'file';
   required: boolean;
   fixed: boolean;
   default?: any;
