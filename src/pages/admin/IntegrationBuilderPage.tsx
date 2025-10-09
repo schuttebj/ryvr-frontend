@@ -385,10 +385,25 @@ export default function IntegrationBuilderPage() {
       setTesting(true);
       setTestResult(null);
 
+      // Separate credentials from operation parameters
+      const credentialNames = authCredentials.map(c => c.name);
+      const credentials: Record<string, any> = {};
+      const operationParams: Record<string, any> = {};
+      
+      Object.entries(testParameters).forEach(([key, value]) => {
+        if (credentialNames.includes(key)) {
+          credentials[key] = value;
+        } else {
+          operationParams[key] = value;
+        }
+      });
+
       const result = await integrationBuilderApi.testOperation(
         parseInt(id),
         testingOperation.id,
-        testParameters
+        operationParams,
+        undefined,
+        credentials
       );
 
       setTestResult(result);
@@ -900,6 +915,17 @@ export default function IntegrationBuilderPage() {
                     />
                   </Grid>
                 </Grid>
+                
+                {/* Test Operation Toggle */}
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editingOperation.is_test_operation || false}
+                      onChange={(e) => setEditingOperation({ ...editingOperation, is_test_operation: e.target.checked })}
+                    />
+                  }
+                  label="Use as Test Operation (simpler operation for testing integration)"
+                />
               </Stack>
             )}
           </DialogContent>
@@ -964,42 +990,67 @@ export default function IntegrationBuilderPage() {
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Test this operation with live API calls. Fill in the required parameters below.
+              Test this operation with live API calls. Fill in the credentials and required parameters below.
             </Typography>
 
             {testingOperation && (
-              <Stack spacing={2} sx={{ mb: 3 }}>
+              <Stack spacing={3} sx={{ mb: 3 }}>
                 <Alert severity="info">
                   <Typography variant="body2">
                     <strong>Endpoint:</strong> {testingOperation.method} {testingOperation.endpoint}
                   </Typography>
                 </Alert>
 
+                {/* Credentials Section */}
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>Authentication Credentials:</Typography>
+                  <Stack spacing={2}>
+                    {authCredentials.map((cred) => (
+                      <TextField
+                        key={cred.name}
+                        fullWidth
+                        type={cred.type === 'password' ? 'password' : 'text'}
+                        label={cred.name}
+                        value={testParameters[cred.name] || ''}
+                        onChange={(e) => setTestParameters({
+                          ...testParameters,
+                          [cred.name]: e.target.value
+                        })}
+                        required={cred.required}
+                        helperText={cred.description}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+
+                {/* Parameters Section */}
                 {testingOperation.parameters.filter(p => !p.fixed).length === 0 ? (
                   <Alert severity="info">
                     No configurable parameters for this operation. All parameters are fixed.
                   </Alert>
                 ) : (
-                  <>
-                    <Typography variant="subtitle2">Parameters:</Typography>
-                    {testingOperation.parameters
-                      .filter(param => !param.fixed)
-                      .map((param) => (
-                        <TextField
-                          key={param.name}
-                          fullWidth
-                          label={param.name}
-                          value={testParameters[param.name] || ''}
-                          onChange={(e) => setTestParameters({
-                            ...testParameters,
-                            [param.name]: e.target.value
-                          })}
-                          required={param.required}
-                          helperText={param.description}
-                          placeholder={param.default?.toString() || ''}
-                        />
-                      ))}
-                  </>
+                  <Box>
+                    <Typography variant="subtitle2" gutterBottom>Operation Parameters:</Typography>
+                    <Stack spacing={2}>
+                      {testingOperation.parameters
+                        .filter(param => !param.fixed)
+                        .map((param) => (
+                          <TextField
+                            key={param.name}
+                            fullWidth
+                            label={param.name}
+                            value={testParameters[param.name] || ''}
+                            onChange={(e) => setTestParameters({
+                              ...testParameters,
+                              [param.name]: e.target.value
+                            })}
+                            required={param.required}
+                            helperText={param.description}
+                            placeholder={param.default?.toString() || ''}
+                          />
+                        ))}
+                    </Stack>
+                  </Box>
                 )}
               </Stack>
             )}

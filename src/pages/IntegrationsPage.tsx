@@ -656,8 +656,9 @@ export default function IntegrationsPage() {
       setTestingDynamicConnection(true);
       setDynamicTestResult(null);
 
-      // Get the first operation for testing
-      const testOperation = configuringDynamicIntegration.operation_configs?.operations?.[0];
+      // Get the test operation (marked with is_test_operation) or fall back to first operation
+      const operations = configuringDynamicIntegration.operation_configs?.operations || [];
+      const testOperation = operations.find((op: any) => op.is_test_operation) || operations[0];
       
       if (!testOperation) {
         setDynamicTestResult({
