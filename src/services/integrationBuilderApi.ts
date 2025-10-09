@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('ryvr_auth_token');
+  const token = localStorage.getItem('ryvr_token');
   return {
     headers: {
       Authorization: token ? `Bearer ${token}` : '',
