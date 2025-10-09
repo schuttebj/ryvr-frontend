@@ -741,6 +741,7 @@ export default function IntegrationBuilderPage() {
                       <TableCell>Category</TableCell>
                       <TableCell>Credits</TableCell>
                       <TableCell>Parameters</TableCell>
+                      <TableCell align="center">Test Operation</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
@@ -759,6 +760,28 @@ export default function IntegrationBuilderPage() {
                         <TableCell>{operation.category}</TableCell>
                         <TableCell>{operation.base_credits}</TableCell>
                         <TableCell>{operation.parameters.length}</TableCell>
+                        <TableCell align="center">
+                          <Tooltip title={operation.is_test_operation ? "Used for quick testing" : "Mark as test operation"}>
+                            <Switch
+                              checked={operation.is_test_operation || false}
+                              onChange={(e) => {
+                                // Update this operation's test status
+                                setOperations(operations.map(op => {
+                                  if (op.id === operation.id) {
+                                    return { ...op, is_test_operation: e.target.checked };
+                                  }
+                                  // If this is being set to true, unset all others
+                                  if (e.target.checked) {
+                                    return { ...op, is_test_operation: false };
+                                  }
+                                  return op;
+                                }));
+                              }}
+                              size="small"
+                              color="success"
+                            />
+                          </Tooltip>
+                        </TableCell>
                         <TableCell align="right">
                           <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                             {operation.parameters.length > 0 && (
@@ -1003,17 +1026,6 @@ export default function IntegrationBuilderPage() {
                     />
                   </Grid>
                 </Grid>
-                
-                {/* Test Operation Toggle */}
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={editingOperation.is_test_operation || false}
-                      onChange={(e) => setEditingOperation({ ...editingOperation, is_test_operation: e.target.checked })}
-                    />
-                  }
-                  label="Use as Test Operation (simpler operation for testing integration)"
-                />
               </Stack>
             )}
           </DialogContent>
@@ -1122,21 +1134,86 @@ export default function IntegrationBuilderPage() {
                     <Stack spacing={2}>
                       {testingOperation.parameters
                         .filter(param => !param.fixed)
-                        .map((param) => (
-                          <TextField
-                            key={param.name}
-                            fullWidth
-                            label={param.name}
-                            value={testParameters[param.name] || ''}
-                            onChange={(e) => setTestParameters({
-                              ...testParameters,
-                              [param.name]: e.target.value
-                            })}
-                            required={param.required}
-                            helperText={param.description}
-                            placeholder={param.default?.toString() || ''}
-                          />
-                        ))}
+                        .map((param) => {
+                          // Determine input type based on parameter type
+                          if (param.type === 'select') {
+                            return (
+                              <FormControl key={param.name} fullWidth>
+                                <InputLabel>{param.name}</InputLabel>
+                                <Select
+                                  value={testParameters[param.name] || param.default || ''}
+                                  onChange={(e) => setTestParameters({
+                                    ...testParameters,
+                                    [param.name]: e.target.value
+                                  })}
+                                  label={param.name}
+                                  required={param.required}
+                                >
+                                  {(param.options || []).map((option: string) => (
+                                    <MenuItem key={option} value={option}>{option}</MenuItem>
+                                  ))}
+                                </Select>
+                                {param.description && (
+                                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                                    {param.description}
+                                  </Typography>
+                                )}
+                              </FormControl>
+                            );
+                          } else if (param.type === 'number') {
+                            return (
+                              <TextField
+                                key={param.name}
+                                fullWidth
+                                type="number"
+                                label={param.name}
+                                value={testParameters[param.name] ?? param.default ?? ''}
+                                onChange={(e) => setTestParameters({
+                                  ...testParameters,
+                                  [param.name]: e.target.value ? parseFloat(e.target.value) : ''
+                                })}
+                                required={param.required}
+                                helperText={param.description}
+                                placeholder={param.default?.toString() || ''}
+                              />
+                            );
+                          } else if (param.type === 'text' || param.type === 'string') {
+                            return (
+                              <TextField
+                                key={param.name}
+                                fullWidth
+                                multiline={param.type === 'text'}
+                                rows={param.type === 'text' ? 3 : 1}
+                                label={param.name}
+                                value={testParameters[param.name] ?? param.default ?? ''}
+                                onChange={(e) => setTestParameters({
+                                  ...testParameters,
+                                  [param.name]: e.target.value
+                                })}
+                                required={param.required}
+                                helperText={param.description}
+                                placeholder={param.default?.toString() || ''}
+                              />
+                            );
+                          } else {
+                            // Default to text field for other types
+                            return (
+                              <TextField
+                                key={param.name}
+                                fullWidth
+                                label={param.name}
+                                value={testParameters[param.name] ?? param.default ?? ''}
+                                onChange={(e) => setTestParameters({
+                                  ...testParameters,
+                                  [param.name]: e.target.value
+                                })}
+                                required={param.required}
+                                helperText={`${param.description || ''} (Type: ${param.type})`}
+                                placeholder={param.default?.toString() || ''}
+                              />
+                            );
+                          }
+                        })}
                     </Stack>
                   </Box>
                 )}
@@ -1150,15 +1227,31 @@ export default function IntegrationBuilderPage() {
                   Test Result:
                 </Typography>
                 <Alert severity={testResult.success ? 'success' : 'error'} sx={{ mb: 2 }}>
-                  {testResult.success ? '✓ Test successful!' : `✗ Test failed: ${testResult.error}`}
+                  {testResult.success ? '✓ Test successful!' : `✗ Test failed: ${testResult.error || 'Unknown error'}`}
                 </Alert>
-                {testResult.response && (
-                  <Paper variant="outlined" sx={{ p: 2, maxHeight: 400, overflow: 'auto', bgcolor: '#f5f5f5' }}>
-                    <Typography variant="caption" color="text.secondary">Response:</Typography>
-                    <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
-                      {JSON.stringify(testResult.response, null, 2)}
-                    </pre>
-                  </Paper>
+                {testResult.data && (
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>
+                      Response Data:
+                    </Typography>
+                    <Paper variant="outlined" sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: '#f5f5f5' }}>
+                      <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                        {JSON.stringify(testResult.data, null, 2)}
+                      </pre>
+                    </Paper>
+                  </Box>
+                )}
+                {testResult.raw_response && (
+                  <Box>
+                    <Typography variant="caption" color="text.secondary" gutterBottom>
+                      Raw Response:
+                    </Typography>
+                    <Paper variant="outlined" sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: '#f5f5f5' }}>
+                      <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
+                        {JSON.stringify(testResult.raw_response, null, 2)}
+                      </pre>
+                    </Paper>
+                  </Box>
                 )}
               </Box>
             )}
