@@ -15,6 +15,7 @@ import {
   DynamicFeedOutlined as FlowsIcon,
   FolderOutlined as FilesIcon,
   ChatOutlined as ChatIcon,
+  BuildOutlined as BuildIcon,
 } from '@mui/icons-material'
 import { useNavigate, useLocation } from 'react-router-dom'
 import FloatingSidebarLayout from './FloatingSidebarLayout'
@@ -97,6 +98,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({
         path: '/admin/integrations',
         active: isActive('/admin/integrations'),
         onClick: () => navigate('/admin/integrations'),
+      },
+      {
+        label: 'Integration Builder',
+        icon: <BuildIcon />,
+        path: '/admin/integration-builder',
+        active: isActive('/admin/integration-builder'),
+        onClick: () => navigate('/admin/integration-builder'),
       },
       {
         label: 'System Integrations',
