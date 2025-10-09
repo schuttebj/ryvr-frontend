@@ -89,10 +89,11 @@ export default function IntegrationBuilderPage() {
   // OAuth Configuration (for future use if needed)
   const oauthScopes = '';
 
-  // Operations
-  const [operations, setOperations] = useState<IntegrationOperation[]>([]);
-  const [editingOperation, setEditingOperation] = useState<IntegrationOperation | null>(null);
-  const [operationDialogOpen, setOperationDialogOpen] = useState(false);
+  // AI Parser for adding operations
+  const [addOperationsDialogOpen, setAddOperationsDialogOpen] = useState(false);
+  const [addOperationsDoc, setAddOperationsDoc] = useState('');
+  const [addOperationsInstructions, setAddOperationsInstructions] = useState('');
+  const [parsingOperations, setParsingOperations] = useState(false);
 
   // Load parsed config into form
   useEffect(() => {
@@ -194,6 +195,37 @@ export default function IntegrationBuilderPage() {
       setError(err.response?.data?.detail || err.message || 'Failed to save integration');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleParseAdditionalOperations = async () => {
+    try {
+      setParsingOperations(true);
+      setError(null);
+
+      const result = await integrationBuilderApi.parseDocumentation({
+        platform_name: platformName || 'API Platform',
+        documentation: addOperationsDoc,
+        instructions: `${addOperationsInstructions}\n\nExtract only the operations from this documentation.`,
+      });
+
+      if (result.success && result.config.operations) {
+        // Add new operations to existing ones (avoid duplicates)
+        const existingOpIds = new Set(operations.map(op => op.id));
+        const newOps = result.config.operations.filter((op: IntegrationOperation) => !existingOpIds.has(op.id));
+        
+        setOperations([...operations, ...newOps]);
+        setSuccess(`Added ${newOps.length} new operations! (Skipped ${result.config.operations.length - newOps.length} duplicates)`);
+        setAddOperationsDialogOpen(false);
+        setAddOperationsDoc('');
+        setAddOperationsInstructions('');
+      } else {
+        setError(result.error || 'Failed to parse operations');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to parse operations');
+    } finally {
+      setParsingOperations(false);
     }
   };
 
@@ -447,13 +479,22 @@ export default function IntegrationBuilderPage() {
             <CardContent>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Typography variant="h6">Operations ({operations.length})</Typography>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={handleAddOperation}
-                >
-                  Add Operation
-                </Button>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<AIIcon />}
+                    onClick={() => setAddOperationsDialogOpen(true)}
+                  >
+                    Parse More Operations
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddOperation}
+                  >
+                    Add Manually
+                  </Button>
+                </Stack>
               </Box>
 
               <TableContainer component={Paper} variant="outlined">
@@ -500,7 +541,7 @@ export default function IntegrationBuilderPage() {
 
               {operations.length === 0 && (
                 <Alert severity="info" sx={{ mt: 2 }}>
-                  No operations defined. Click "Add Operation" to create one.
+                  No operations defined. Click "Parse More Operations" to extract from documentation or "Add Manually" to create one.
                 </Alert>
               )}
             </CardContent>
@@ -699,6 +740,51 @@ export default function IntegrationBuilderPage() {
             <Button onClick={() => setOperationDialogOpen(false)}>Cancel</Button>
             <Button variant="contained" onClick={handleSaveOperation}>
               Save Operation
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Add Operations Dialog */}
+        <Dialog open={addOperationsDialogOpen} onClose={() => setAddOperationsDialogOpen(false)} maxWidth="md" fullWidth>
+          <DialogTitle>
+            <AIIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+            Parse Additional Operations
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Paste additional API documentation to extract more operations for {platformName}
+            </Typography>
+
+            <TextField
+              fullWidth
+              multiline
+              rows={12}
+              label="API Documentation"
+              value={addOperationsDoc}
+              onChange={(e) => setAddOperationsDoc(e.target.value)}
+              placeholder="Paste additional endpoint documentation here..."
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Additional Instructions (Optional)"
+              value={addOperationsInstructions}
+              onChange={(e) => setAddOperationsInstructions(e.target.value)}
+              placeholder="e.g., Focus on email operations, Extract only POST endpoints"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setAddOperationsDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleParseAdditionalOperations}
+              disabled={!addOperationsDoc || parsingOperations}
+              startIcon={parsingOperations ? <CircularProgress size={20} /> : <AIIcon />}
+            >
+              {parsingOperations ? 'Parsing...' : 'Parse Operations'}
             </Button>
           </DialogActions>
         </Dialog>

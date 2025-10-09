@@ -237,7 +237,12 @@ export default function IntegrationsPage() {
         available_to_roles: dbIntegration.available_to_roles,
         is_enabled_for_agencies: dbIntegration.is_enabled_for_agencies,
         is_enabled_for_individuals: dbIntegration.is_enabled_for_individuals,
-        is_enabled_for_businesses: dbIntegration.is_enabled_for_businesses
+        is_enabled_for_businesses: dbIntegration.is_enabled_for_businesses,
+        
+        // Dynamic Integration fields
+        is_dynamic: dbIntegration.is_dynamic,
+        platform_config: dbIntegration.platform_config,
+        operation_configs: dbIntegration.operation_configs,
       }));
       
       setDatabaseIntegrations(transformedIntegrations);
