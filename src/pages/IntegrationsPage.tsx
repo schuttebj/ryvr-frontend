@@ -594,7 +594,8 @@ export default function IntegrationsPage() {
             'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
           },
           body: JSON.stringify({
-            integration_id: configuringDynamicIntegration.id,
+            business_id: parseInt(businessId),
+            integration_id: parseInt(configuringDynamicIntegration.id),
             credentials: dynamicIntegrationFormData,
             is_active: true
           })
@@ -639,10 +640,15 @@ export default function IntegrationsPage() {
         return;
       }
 
+      // Merge credentials with any default parameter values for testing
+      const testParams = { ...dynamicIntegrationFormData };
+      
       // Test using the integration builder test endpoint
       const result = await integrationBuilderApi.testOperation(
         configuringDynamicIntegration.id,
         testOperation.id,
+        testParams,
+        undefined,
         dynamicIntegrationFormData
       );
 

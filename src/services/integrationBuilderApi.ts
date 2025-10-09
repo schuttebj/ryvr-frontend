@@ -140,7 +140,8 @@ export const integrationBuilderApi = {
     integrationId: number,
     operationId: string,
     testParameters: Record<string, any>,
-    businessId?: number
+    businessId?: number,
+    credentials?: Record<string, any>
   ) {
     const response = await axios.post(
       `${API_BASE_URL}/api/v1/integrations/builder/${integrationId}/operations/${operationId}/test`,
@@ -149,6 +150,7 @@ export const integrationBuilderApi = {
         operation_id: operationId,
         test_parameters: testParameters,
         business_id: businessId,
+        credentials: credentials,
       },
       getAuthHeaders()
     );

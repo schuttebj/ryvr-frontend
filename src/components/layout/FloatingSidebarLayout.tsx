@@ -15,12 +15,16 @@ import {
   Tooltip,
   useTheme,
   alpha,
+  Collapse,
+  Badge,
 } from '@mui/material'
 import {
   SettingsOutlined as SettingsIcon,
   LogoutOutlined as LogoutIcon,
   PersonOutlined as PersonIcon,
   ChevronLeft as ChevronLeftIcon,
+  ExpandLess as ExpandLessIcon,
+  ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material'
 import { useWhiteLabel } from '../../theme/WhiteLabelProvider'
 import { useAuth } from '../../contexts/AuthContext'
@@ -42,7 +46,7 @@ interface FloatingSidebarLayoutProps {
     path?: string
     active?: boolean
     hasSubmenu?: boolean
-    submenu?: Array<{ label: string; path: string; badge?: number }>
+    submenu?: Array<{ label: string; path: string; badge?: number; onClick?: () => void }>
     onClick?: () => void
   }>
   headerContent?: React.ReactNode
@@ -59,6 +63,7 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   const [hovered, setHovered] = useState(false)
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null)
   const [justCollapsed, setJustCollapsed] = useState(false)
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({})
   
   const theme = useTheme()
   const { brandName, logo, isWhiteLabeled } = useWhiteLabel()
@@ -88,6 +93,13 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
       setJustCollapsed(true)
       setTimeout(() => setJustCollapsed(false), 500)
     }
+  }
+
+  const toggleSubmenu = (label: string) => {
+    setOpenSubmenus(prev => ({
+      ...prev,
+      [label]: !prev[label]
+    }))
   }
 
   // Reset hover when sidebar is collapsed
@@ -278,56 +290,15 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
   const NavigationItems = () => (
     <List sx={{ px: 1 }}>
       {navigationItems.map((item) => (
-        <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
-          {isExpanded ? (
-            <ListItemButton
-              selected={item.active}
-              onClick={item.onClick}
-              sx={{
-                borderRadius: 2,
-                minHeight: 44,
-                border: '1px solid transparent',
-                '&.Mui-selected': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                  borderColor: theme.palette.primary.main,
-                  '&:hover': {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.16),
-                  },
-                },
-                '&:hover:not(.Mui-selected)': {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.04),
-                },
-              }}
-            >
-              <ListItemIcon sx={{ minWidth: 40 }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText 
-                primary={item.label}
-                primaryTypographyProps={{ 
-                  variant: 'body2',
-                  fontWeight: item.active ? 600 : 400,
-                  noWrap: true,
-                }}
-                sx={{ 
-                  minWidth: 0,
-                  '& .MuiListItemText-primary': {
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }
-                }}
-              />
-            </ListItemButton>
-          ) : (
-            <Tooltip title={item.label} placement="right">
+        <React.Fragment key={item.label}>
+          <ListItem disablePadding sx={{ mb: 0.5 }}>
+            {isExpanded ? (
               <ListItemButton
                 selected={item.active}
-                onClick={item.onClick}
+                onClick={item.hasSubmenu ? () => toggleSubmenu(item.label) : item.onClick}
                 sx={{
                   borderRadius: 2,
                   minHeight: 44,
-                  justifyContent: 'center',
                   border: '1px solid transparent',
                   '&.Mui-selected': {
                     backgroundColor: alpha(theme.palette.primary.main, 0.12),
@@ -341,13 +312,105 @@ export const FloatingSidebarLayout: React.FC<FloatingSidebarLayoutProps> = ({
                   },
                 }}
               >
-                <ListItemIcon sx={{ minWidth: 'auto', justifyContent: 'center' }}>
+                <ListItemIcon sx={{ minWidth: 40 }}>
                   {item.icon}
                 </ListItemIcon>
+                <ListItemText 
+                  primary={item.label}
+                  primaryTypographyProps={{ 
+                    variant: 'body2',
+                    fontWeight: item.active ? 600 : 400,
+                    noWrap: true,
+                  }}
+                  sx={{ 
+                    minWidth: 0,
+                    '& .MuiListItemText-primary': {
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }
+                  }}
+                />
+                {item.hasSubmenu && (
+                  openSubmenus[item.label] ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                )}
               </ListItemButton>
-            </Tooltip>
+            ) : (
+              <Tooltip title={item.label} placement="right">
+                <ListItemButton
+                  selected={item.active}
+                  onClick={item.onClick}
+                  sx={{
+                    borderRadius: 2,
+                    minHeight: 44,
+                    justifyContent: 'center',
+                    border: '1px solid transparent',
+                    '&.Mui-selected': {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                      borderColor: theme.palette.primary.main,
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.16),
+                      },
+                    },
+                    '&:hover:not(.Mui-selected)': {
+                      backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 'auto', justifyContent: 'center' }}>
+                    {item.icon}
+                  </ListItemIcon>
+                </ListItemButton>
+              </Tooltip>
+            )}
+          </ListItem>
+          
+          {/* Submenu Items */}
+          {item.hasSubmenu && item.submenu && isExpanded && (
+            <Collapse in={openSubmenus[item.label]} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                {item.submenu.map((subItem) => (
+                  <ListItem key={subItem.label} disablePadding sx={{ mb: 0.5 }}>
+                    <ListItemButton
+                      onClick={() => {
+                        // Use custom onClick if provided, otherwise fallback to window.location
+                        if (subItem.onClick) {
+                          subItem.onClick()
+                        } else if (subItem.path) {
+                          window.location.href = subItem.path
+                        }
+                      }}
+                      sx={{
+                        pl: 7,
+                        borderRadius: 2,
+                        minHeight: 40,
+                        border: '1px solid transparent',
+                        '&:hover': {
+                          backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                        },
+                      }}
+                    >
+                      <ListItemText
+                        primary={subItem.label}
+                        primaryTypographyProps={{
+                          variant: 'body2',
+                          fontSize: '0.875rem',
+                        }}
+                      />
+                      {subItem.badge !== undefined && subItem.badge > 0 && (
+                        <Badge 
+                          badgeContent={subItem.badge} 
+                          color="primary"
+                          sx={{ ml: 1 }}
+                        />
+                      )}
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Collapse>
           )}
-        </ListItem>
+        </React.Fragment>
       ))}
     </List>
   )
