@@ -1297,7 +1297,7 @@ export const workflowApi = {
             
             return {
               id: node.id || `step_${index}`,
-              type: node.data?.nodeType || node.type || 'task',
+              type: node.data?.type || node.type || 'task', // Use actual node type, not nodeType
               name: node.data?.label || node.data?.name || `Step ${index + 1}`,
               depends_on,
               input: { 

@@ -768,13 +768,23 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
         y: event.clientY - 100,
       };
 
+      // Map node types to ReactFlow node types for rendering
+      const getReactFlowNodeType = (type: string): string => {
+        if (type === 'trigger' || type.includes('trigger')) return 'trigger';
+        if (type.startsWith('seo_')) return 'serp';
+        if (type.startsWith('ai_')) return 'ai';
+        if (type.startsWith('email_') || type === 'email') return 'email';
+        // Default to email for backward compatibility, but store actual type in data
+        return 'email';
+      };
+
       const newNode: Node = {
         id: `${nodeType}-${Date.now()}`,
-        type: nodeType === 'trigger' ? 'trigger' : nodeType === 'serp' ? 'serp' : nodeType === 'ai' ? 'ai' : 'email',
+        type: getReactFlowNodeType(nodeType),
         position,
         data: {
           id: `${nodeType}-${Date.now()}`,
-          type: nodeType as WorkflowNodeType,
+          type: nodeType as WorkflowNodeType, // Store actual node type here
           label: nodePaletteItems.find(item => item.type === nodeType)?.label || nodeType,
           description: nodePaletteItems.find(item => item.type === nodeType)?.description || '',
           config: {},
