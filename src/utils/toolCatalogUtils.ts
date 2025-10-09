@@ -111,10 +111,10 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
   
   const nodes: NodePaletteItem[] = [];
   
-  // Add built-in trigger node
+  // Add built-in trigger nodes
   nodes.push({
     type: 'trigger',
-    category: 'trigger',
+    category: 'Triggers',
     label: 'Manual Trigger',
     description: 'Start workflow manually',
     icon: getCategoryIcon('trigger'),
@@ -124,6 +124,39 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
     isAsync: false,
     fields: [],
     authType: 'none',
+    isBuiltin: true,
+  });
+  
+  nodes.push({
+    type: 'schedule',
+    category: 'Triggers',
+    label: 'Schedule Trigger',
+    description: 'Run workflow on a schedule',
+    icon: getCategoryIcon('trigger'),
+    provider: 'builtin',
+    operation: 'schedule',
+    baseCredits: 0,
+    isAsync: false,
+    fields: [
+      { name: 'schedule', type: 'string', required: true, description: 'Cron expression (e.g., 0 9 * * *)' }
+    ],
+    authType: 'none',
+    isBuiltin: true,
+  });
+  
+  nodes.push({
+    type: 'webhook',
+    category: 'Triggers',
+    label: 'Webhook Trigger',
+    description: 'Trigger via HTTP webhook',
+    icon: getCategoryIcon('trigger'),
+    provider: 'builtin',
+    operation: 'webhook',
+    baseCredits: 0,
+    isAsync: false,
+    fields: [],
+    authType: 'none',
+    isBuiltin: true,
   });
   
   // Handle both V1 (Record) and V2 (Array) formats
@@ -144,9 +177,20 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
   for (const provider of providersList) {
     const providerId = provider.id || provider.name?.toLowerCase().replace(/\s+/g, '_') || 'unknown';
     const operations = provider.operations || {};
-    const category = provider.category || provider.label || 'other';
+    const isDynamic = provider.is_dynamic || provider.isDynamic || false;
     
-    console.log(`  ⚙️ Provider: ${providerId}, Operations:`, Object.keys(operations));
+    // Get category and format it
+    let category = provider.category || provider.label || 'other';
+    // Capitalize category for display
+    if (!category.includes(' ')) {
+      category = category.charAt(0).toUpperCase() + category.slice(1);
+    }
+    // Add prefix for dynamic integrations
+    if (isDynamic) {
+      category = `${category} (Built)`;
+    }
+    
+    console.log(`  ⚙️ Provider: ${providerId}, Operations:`, Object.keys(operations), 'Is Dynamic:', isDynamic);
     
     for (const [operationId, operation] of Object.entries(operations)) {
       const op = operation as any;
@@ -155,13 +199,17 @@ export const convertToolCatalogToNodePalette = (catalog: any): NodePaletteItem[]
         category,
         label: op.name || operationId,
         description: op.description || '',
-        icon: getCategoryIcon(category),
+        icon: getCategoryIcon(provider.category || category),
         provider: providerId,
         operation: operationId,
         baseCredits: op.base_credits || op.baseCredits || 0,
         isAsync: op.is_async || op.isAsync || false,
         fields: op.fields || [],
         authType: provider.auth_type || provider.authType || 'none',
+        isDynamic: isDynamic,
+        isBuiltin: false,
+        color: provider.color,
+        iconUrl: provider.icon_url || provider.iconUrl,
       };
       
       console.log(`    ➕ Created node: ${nodeItem.type}`);

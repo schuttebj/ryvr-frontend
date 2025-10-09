@@ -962,14 +962,18 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
 
             {/* Node Categories */}
             {!loadingCatalog && (() => {
-              const categories = [
-                'Triggers', 'AI Tools', 'Google Analytics', 'Google Ads', 'Meta Ads', 
-                'Google Maps', 'Ahrefs', 'WordPress', 'CRM & Marketing', 'Social Media', 
-                'E-commerce', 'SEO Tools', 'Content Tools', 'Client Data', 'Actions'
-              ];
+              // Dynamically extract unique categories from nodePaletteItems
+              const uniqueCategories = Array.from(new Set(nodePaletteItems.map((item: DynamicNodePaletteItem) => item.category)));
+              
+              // Sort categories: triggers first, then alphabetically
+              const sortedCategories = uniqueCategories.sort((a, b) => {
+                if (a === 'trigger') return -1;
+                if (b === 'trigger') return 1;
+                return a.localeCompare(b);
+              });
               
               // Filter categories and items based on search
-              const filteredCategories = categories.filter(category => {
+              const filteredCategories = sortedCategories.filter(category => {
                 if (!searchTerm) return true;
                 const categoryItems = nodePaletteItems.filter((item: DynamicNodePaletteItem) => item.category === category);
                 return categoryItems.some((item: DynamicNodePaletteItem) => 
