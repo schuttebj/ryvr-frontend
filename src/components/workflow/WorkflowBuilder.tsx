@@ -67,7 +67,8 @@ const SerpNode = (props: any) => <BaseNode {...props} nodeType="serp" />;
 const AiNode = (props: any) => <BaseNode {...props} nodeType="ai" />;
 const EmailNode = (props: any) => <BaseNode {...props} nodeType="email" />;
 
-// Brand color system for different node categories
+// Note: BRAND_COLORS below is kept for reference but now replaced by getCategoryColor() 
+// from toolCatalogUtils which provides dynamic category-based colors
 const BRAND_COLORS = {
   // Core system
   trigger: '#9C27B0',      // Purple for triggers
@@ -120,58 +121,8 @@ const BRAND_COLORS = {
   default: '#64748B'      // Slate Gray
 };
 
-// Function to get node color based on type
-const getNodeColor = (nodeType: WorkflowNodeType): string => {
-  // AI Tools
-  if (nodeType.startsWith('ai_')) return BRAND_COLORS.ai;
-  
-  // Google services
-  if (nodeType.includes('google_analytics')) return BRAND_COLORS.analytics;
-  if (nodeType.includes('google_ads')) return BRAND_COLORS.ads;
-  if (nodeType.includes('google_maps')) return BRAND_COLORS.maps;
-  if (nodeType.includes('gtm_')) return BRAND_COLORS.gtm;
-  
-  // SEO tools
-  if (nodeType.startsWith('seo_')) return BRAND_COLORS.seo;
-  if (nodeType.startsWith('ahrefs_')) return BRAND_COLORS.ahrefs;
-  
-  // Meta/Facebook
-  if (nodeType.startsWith('meta_')) return BRAND_COLORS.meta;
-  
-  // Social media
-  if (nodeType.startsWith('twitter_')) return BRAND_COLORS.twitter;
-  if (nodeType.startsWith('linkedin_')) return BRAND_COLORS.linkedin;
-  if (nodeType.startsWith('instagram_')) return BRAND_COLORS.instagram;
-  
-  // CRM & Marketing
-  if (nodeType.startsWith('hubspot_')) return BRAND_COLORS.hubspot;
-  if (nodeType.startsWith('mailchimp_')) return BRAND_COLORS.mailchimp;
-  
-  // E-commerce
-  if (nodeType.startsWith('shopify_')) return BRAND_COLORS.shopify;
-  if (nodeType.startsWith('woocommerce_')) return BRAND_COLORS.woocommerce;
-  
-  // Communication
-  if (nodeType.startsWith('slack_')) return BRAND_COLORS.slack;
-  if (nodeType.startsWith('discord_')) return BRAND_COLORS.discord;
-  if (nodeType.startsWith('teams_')) return BRAND_COLORS.teams;
-  
-  // Project Management
-  if (nodeType.startsWith('asana_')) return BRAND_COLORS.asana;
-  if (nodeType.startsWith('trello_')) return BRAND_COLORS.trello;
-  if (nodeType.startsWith('notion_')) return BRAND_COLORS.notion;
-  
-  // WordPress
-  if (nodeType.startsWith('wordpress_')) return BRAND_COLORS.wordpress;
-  
-  // Core types
-  if (nodeType === WorkflowNodeType.TRIGGER) return BRAND_COLORS.trigger;
-  if (nodeType === WorkflowNodeType.CLIENT_PROFILE) return BRAND_COLORS.client;
-  if (nodeType === WorkflowNodeType.EMAIL || nodeType === WorkflowNodeType.ACTION) return BRAND_COLORS.action;
-  if (nodeType === WorkflowNodeType.CONTENT_EXTRACT) return BRAND_COLORS.content;
-  
-  return BRAND_COLORS.default;
-};
+// Note: getNodeColor function removed - now using getCategoryColor from toolCatalogUtils
+// for dynamic category-based coloring instead of hardcoded node type matching
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -185,14 +136,14 @@ interface WorkflowBuilderProps {
   workflowId?: string; // Optional workflow ID for editing existing workflows
 }
 
-// Old NodePaletteItem interface kept for backward compatibility
-interface NodePaletteItem {
-  type: WorkflowNodeType;
-  label: string;
-  description: string;
-  category: string;
-  color?: string;
-}
+// Old NodePaletteItem interface - kept for reference, now using DynamicNodePaletteItem
+// interface NodePaletteItem {
+//   type: WorkflowNodeType;
+//   label: string;
+//   description: string;
+//   category: string;
+//   color?: string;
+// }
 
 // Note: nodePaletteItems is now loaded dynamically from tool catalog
 // See useEffect hook for dynamic loading via workflowApi.getToolCatalog()
@@ -1036,8 +987,22 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
               sx={{ mb: 3 }}
             />
 
+            {/* Loading State */}
+            {loadingCatalog && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} />
+              </Box>
+            )}
+
+            {/* Error State */}
+            {catalogError && (
+              <Typography color="error" variant="body2" sx={{ mb: 2, p: 2, bgcolor: 'error.lighter', borderRadius: 1 }}>
+                {catalogError}
+              </Typography>
+            )}
+
             {/* Node Categories */}
-            {(() => {
+            {!loadingCatalog && (() => {
               const categories = [
                 'Triggers', 'AI Tools', 'Google Analytics', 'Google Ads', 'Meta Ads', 
                 'Google Maps', 'Ahrefs', 'WordPress', 'CRM & Marketing', 'Social Media', 
