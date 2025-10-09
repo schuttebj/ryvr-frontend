@@ -477,11 +477,11 @@ export default function IntegrationBuilderPage() {
 
   const handleTestOperation = (operation: IntegrationOperation) => {
     setTestingOperation(operation);
-    // Initialize test parameters with default values
+    // Initialize test parameters with default values (only if they have defaults)
     const initialParams: Record<string, any> = {};
     operation.parameters.forEach(param => {
-      if (!param.fixed) {
-        initialParams[param.name] = param.default || '';
+      if (!param.fixed && param.default !== undefined && param.default !== null && param.default !== '') {
+        initialParams[param.name] = param.default;
       }
     });
     setTestParameters(initialParams);
@@ -502,6 +502,14 @@ export default function IntegrationBuilderPage() {
       const operationParams: Record<string, any> = {};
       
       Object.entries(testParameters).forEach(([key, value]) => {
+        // Skip empty values for optional parameters
+        if (value === '' || value === null || value === undefined) {
+          const param = testingOperation.parameters.find(p => p.name === key);
+          if (param && !param.required) {
+            return; // Skip this parameter
+          }
+        }
+        
         if (credentialNames.includes(key)) {
           credentials[key] = value;
         } else {

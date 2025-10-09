@@ -668,16 +668,34 @@ export default function IntegrationsPage() {
         return;
       }
 
-      // Merge credentials with any default parameter values for testing
-      const testParams = { ...dynamicIntegrationFormData };
+      // Separate credentials from operation parameters and filter out empty optional parameters
+      const credentialNames = configuringDynamicIntegration.auth_config?.credentials?.map((c: any) => c.name) || [];
+      const credentials: Record<string, any> = {};
+      const operationParams: Record<string, any> = {};
+      
+      Object.entries(dynamicIntegrationFormData).forEach(([key, value]) => {
+        // Skip empty values for optional parameters
+        if (value === '' || value === null || value === undefined) {
+          const param = testOperation.parameters?.find((p: any) => p.name === key);
+          if (param && !param.required) {
+            return; // Skip this optional parameter
+          }
+        }
+        
+        if (credentialNames.includes(key)) {
+          credentials[key] = value;
+        } else {
+          operationParams[key] = value;
+        }
+      });
       
       // Test using the integration builder test endpoint
       const result = await integrationBuilderApi.testOperation(
         configuringDynamicIntegration.id,
         testOperation.id,
-        testParams,
+        operationParams,
         undefined,
-        dynamicIntegrationFormData
+        credentials
       );
 
       setDynamicTestResult(result);
