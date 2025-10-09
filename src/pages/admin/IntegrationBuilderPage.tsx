@@ -127,6 +127,13 @@ export default function IntegrationBuilderPage() {
   const [configuringOperation, setConfiguringOperation] = useState<IntegrationOperation | null>(null);
   const [parameterDefaults, setParameterDefaults] = useState<Record<string, any>>({});
 
+  // Parameter Editor
+  const [parameterEditorOpen, setParameterEditorOpen] = useState(false);
+  const [editingParameter, setEditingParameter] = useState<{
+    param: OperationParameter;
+    index: number;
+  } | null>(null);
+
   // Load parsed config into form
   useEffect(() => {
     if (parsedConfig) {
@@ -368,6 +375,72 @@ export default function IntegrationBuilderPage() {
   const handleEditOperation = (operation: IntegrationOperation) => {
     setEditingOperation(operation);
     setOperationDialogOpen(true);
+  };
+
+  const handleSaveParameterDefaults = () => {
+    // This function updates default values for all parameters in the operation
+    if (!configuringOperation) return;
+    
+    const updatedOperation = {
+      ...configuringOperation,
+      parameters: configuringOperation.parameters.map(param => ({
+        ...param,
+        default: parameterDefaults[param.name] !== undefined ? parameterDefaults[param.name] : param.default
+      }))
+    };
+    
+    const updatedOperations = operations.map(op => 
+      op.id === configuringOperation.id ? updatedOperation : op
+    );
+    setOperations(updatedOperations);
+    setParamConfigDialogOpen(false);
+    setConfiguringOperation(null);
+  };
+
+  // Parameter Editor Handlers
+  const handleAddParameter = () => {
+    const newParam: OperationParameter = {
+      name: '',
+      type: 'string',
+      required: false,
+      fixed: false,
+      default: '',
+      description: '',
+      location: 'body',
+      options: []
+    };
+    setEditingParameter({ param: newParam, index: -1 });
+    setParameterEditorOpen(true);
+  };
+
+  const handleEditParameter = (param: OperationParameter, index: number) => {
+    setEditingParameter({ param: { ...param }, index });
+    setParameterEditorOpen(true);
+  };
+
+  const handleSaveParameter = () => {
+    if (!editingParameter || !editingOperation) return;
+    
+    const newParams = [...editingOperation.parameters];
+    if (editingParameter.index === -1) {
+      // Add new parameter
+      newParams.push(editingParameter.param);
+    } else {
+      // Update existing parameter
+      newParams[editingParameter.index] = editingParameter.param;
+    }
+    
+    setEditingOperation({ ...editingOperation, parameters: newParams });
+    setParameterEditorOpen(false);
+    setEditingParameter(null);
+  };
+
+  const handleDeleteParameter = (index: number) => {
+    if (!editingOperation) return;
+    if (window.confirm('Are you sure you want to delete this parameter?')) {
+      const newParams = editingOperation.parameters.filter((_, i) => i !== index);
+      setEditingOperation({ ...editingOperation, parameters: newParams });
+    }
   };
 
   const handleSaveOperation = () => {
@@ -1026,6 +1099,87 @@ export default function IntegrationBuilderPage() {
                     />
                   </Grid>
                 </Grid>
+
+                {/* Parameters Section */}
+                <Divider sx={{ my: 2 }} />
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Typography variant="subtitle2">
+                      Parameters ({editingOperation.parameters.length})
+                    </Typography>
+                    <Button
+                      size="small"
+                      startIcon={<AddIcon />}
+                      onClick={handleAddParameter}
+                      variant="outlined"
+                    >
+                      Add Parameter
+                    </Button>
+                  </Box>
+
+                  {editingOperation.parameters.length === 0 ? (
+                    <Alert severity="info">
+                      No parameters defined. Click "Add Parameter" to add one.
+                    </Alert>
+                  ) : (
+                    <List dense>
+                      {editingOperation.parameters.map((param, index) => (
+                        <ListItem
+                          key={index}
+                          sx={{
+                            border: 1,
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            mb: 1
+                          }}
+                          secondaryAction={
+                            <Box>
+                              <IconButton
+                                edge="end"
+                                size="small"
+                                onClick={() => handleEditParameter(param, index)}
+                                sx={{ mr: 0.5 }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                edge="end"
+                                size="small"
+                                onClick={() => handleDeleteParameter(index)}
+                                color="error"
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          }
+                        >
+                          <ListItemText
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                  {param.name}
+                                </Typography>
+                                {param.required && (
+                                  <Chip label="Required" size="small" color="error" sx={{ height: 20 }} />
+                                )}
+                                {param.fixed && (
+                                  <Chip label="Fixed" size="small" color="default" sx={{ height: 20 }} />
+                                )}
+                                <Chip label={param.type} size="small" color="primary" sx={{ height: 20 }} />
+                              </Box>
+                            }
+                            secondary={
+                              <Typography variant="caption" color="text.secondary">
+                                {param.description || 'No description'} • Location: {param.location}
+                                {param.default && ` • Default: ${param.default}`}
+                              </Typography>
+                            }
+                          />
+                        </ListItem>
+                      ))}
+                    </List>
+                  )}
+                </Box>
               </Stack>
             )}
           </DialogContent>
@@ -1315,6 +1469,145 @@ export default function IntegrationBuilderPage() {
               startIcon={<SaveIcon />}
             >
               Save Defaults
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Parameter Editor Dialog */}
+        <Dialog open={parameterEditorOpen} onClose={() => setParameterEditorOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            {editingParameter?.index === -1 ? 'Add Parameter' : 'Edit Parameter'}
+          </DialogTitle>
+          <DialogContent>
+            {editingParameter && (
+              <Stack spacing={2} sx={{ mt: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Parameter Name"
+                  value={editingParameter.param.name}
+                  onChange={(e) => setEditingParameter({
+                    ...editingParameter,
+                    param: { ...editingParameter.param, name: e.target.value }
+                  })}
+                  required
+                  helperText="e.g., keyword, location_code, limit"
+                />
+
+                <FormControl fullWidth>
+                  <InputLabel>Type</InputLabel>
+                  <Select
+                    value={editingParameter.param.type}
+                    label="Type"
+                    onChange={(e) => setEditingParameter({
+                      ...editingParameter,
+                      param: { ...editingParameter.param, type: e.target.value as any }
+                    })}
+                  >
+                    <MenuItem value="string">String (single line)</MenuItem>
+                    <MenuItem value="text">Text (multiline)</MenuItem>
+                    <MenuItem value="number">Number</MenuItem>
+                    <MenuItem value="boolean">Boolean</MenuItem>
+                    <MenuItem value="select">Select (dropdown)</MenuItem>
+                    <MenuItem value="array">Array</MenuItem>
+                    <MenuItem value="object">Object</MenuItem>
+                    <MenuItem value="file">File</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {editingParameter.param.type === 'select' && (
+                  <TextField
+                    fullWidth
+                    label="Options (comma-separated)"
+                    value={(editingParameter.param.options || []).join(', ')}
+                    onChange={(e) => setEditingParameter({
+                      ...editingParameter,
+                      param: {
+                        ...editingParameter.param,
+                        options: e.target.value.split(',').map(s => s.trim()).filter(s => s)
+                      }
+                    })}
+                    helperText="e.g., option1, option2, option3"
+                  />
+                )}
+
+                <FormControl fullWidth>
+                  <InputLabel>Location</InputLabel>
+                  <Select
+                    value={editingParameter.param.location}
+                    label="Location"
+                    onChange={(e) => setEditingParameter({
+                      ...editingParameter,
+                      param: { ...editingParameter.param, location: e.target.value as any }
+                    })}
+                  >
+                    <MenuItem value="body">Body</MenuItem>
+                    <MenuItem value="query">Query</MenuItem>
+                    <MenuItem value="path">Path</MenuItem>
+                    <MenuItem value="header">Header</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <TextField
+                  fullWidth
+                  label="Default Value"
+                  value={editingParameter.param.default || ''}
+                  onChange={(e) => setEditingParameter({
+                    ...editingParameter,
+                    param: { ...editingParameter.param, default: e.target.value }
+                  })}
+                  helperText="Optional default value"
+                />
+
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={2}
+                  label="Description"
+                  value={editingParameter.param.description || ''}
+                  onChange={(e) => setEditingParameter({
+                    ...editingParameter,
+                    param: { ...editingParameter.param, description: e.target.value }
+                  })}
+                  helperText="Describe what this parameter does"
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editingParameter.param.required}
+                      onChange={(e) => setEditingParameter({
+                        ...editingParameter,
+                        param: { ...editingParameter.param, required: e.target.checked }
+                      })}
+                    />
+                  }
+                  label="Required"
+                />
+
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editingParameter.param.fixed}
+                      onChange={(e) => setEditingParameter({
+                        ...editingParameter,
+                        param: { ...editingParameter.param, fixed: e.target.checked }
+                      })}
+                    />
+                  }
+                  label="Fixed (not user-editable)"
+                />
+              </Stack>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setParameterEditorOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={handleSaveParameter}
+              disabled={!editingParameter?.param.name}
+              startIcon={<SaveIcon />}
+            >
+              Save Parameter
             </Button>
           </DialogActions>
         </Dialog>

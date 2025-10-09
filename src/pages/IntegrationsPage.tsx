@@ -1758,6 +1758,100 @@ export default function IntegrationsPage() {
               </Typography>
             )}
 
+            {/* Operation Parameters */}
+            {(() => {
+              const operations = configuringDynamicIntegration?.operation_configs?.operations || [];
+              const testOperation = operations.find((op: any) => op.is_test_operation) || operations[0];
+              
+              if (!testOperation) return null;
+              
+              const configurableParams = testOperation.parameters?.filter((p: any) => 
+                !p.fixed && p.location === 'body'
+              ) || [];
+              
+              if (configurableParams.length === 0) return null;
+              
+              return (
+                <Box sx={{ mt: 3 }}>
+                  <Divider sx={{ mb: 2 }} />
+                  <Typography variant="subtitle2" gutterBottom>
+                    Operation Parameters
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+                    Configure default values for {testOperation.name}
+                  </Typography>
+                  
+                  {configurableParams.map((param: any) => {
+                    if (param.type === 'select') {
+                      return (
+                        <FormControl key={param.name} fullWidth sx={{ mb: 2 }}>
+                          <InputLabel>{param.name}{param.required && ' *'}</InputLabel>
+                          <Select
+                            value={dynamicIntegrationFormData[param.name] ?? param.default ?? ''}
+                            onChange={(e) => handleDynamicIntegrationFieldChange(param.name, e.target.value)}
+                            label={param.name + (param.required ? ' *' : '')}
+                          >
+                            {(param.options || []).map((opt: string) => (
+                              <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                            ))}
+                          </Select>
+                          {param.description && (
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              {param.description}
+                            </Typography>
+                          )}
+                        </FormControl>
+                      );
+                    } else if (param.type === 'number') {
+                      return (
+                        <TextField
+                          key={param.name}
+                          fullWidth
+                          type="number"
+                          label={param.name}
+                          value={dynamicIntegrationFormData[param.name] ?? param.default ?? ''}
+                          onChange={(e) => handleDynamicIntegrationFieldChange(param.name, parseFloat(e.target.value) || '')}
+                          required={param.required}
+                          helperText={param.description}
+                          sx={{ mb: 2 }}
+                        />
+                      );
+                    } else if (param.type === 'boolean') {
+                      return (
+                        <FormControlLabel
+                          key={param.name}
+                          control={
+                            <Switch
+                              checked={dynamicIntegrationFormData[param.name] ?? param.default ?? false}
+                              onChange={(e) => handleDynamicIntegrationFieldChange(param.name, e.target.checked)}
+                            />
+                          }
+                          label={param.name + (param.required ? ' *' : '')}
+                          sx={{ mb: 2, display: 'block' }}
+                        />
+                      );
+                    } else {
+                      // text or string
+                      return (
+                        <TextField
+                          key={param.name}
+                          fullWidth
+                          multiline={param.type === 'text'}
+                          rows={param.type === 'text' ? 3 : 1}
+                          label={param.name}
+                          value={dynamicIntegrationFormData[param.name] ?? param.default ?? ''}
+                          onChange={(e) => handleDynamicIntegrationFieldChange(param.name, e.target.value)}
+                          required={param.required}
+                          helperText={param.description}
+                          sx={{ mb: 2 }}
+                        />
+                      );
+                    }
+                  })}
+                </Box>
+              );
+            })()}
+
             {/* Test Result */}
             {dynamicTestResult && (
               <Alert 
