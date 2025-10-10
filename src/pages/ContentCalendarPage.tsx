@@ -13,7 +13,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Grid,
   Paper,
 } from '@mui/material';
 import {
@@ -161,18 +160,34 @@ const ContentCalendarPage = () => {
         {view === 'month' && (
           <Box>
             {/* Weekday Headers */}
-            <Grid container spacing={1} sx={{ mb: 1 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 1,
+                mb: 1,
+              }}
+            >
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                <Grid item xs key={day}>
-                  <Typography variant="subtitle2" align="center" color="text.secondary">
-                    {day}
-                  </Typography>
-                </Grid>
+                <Typography
+                  key={day}
+                  variant="subtitle2"
+                  align="center"
+                  color="text.secondary"
+                >
+                  {day}
+                </Typography>
               ))}
-            </Grid>
+            </Box>
 
             {/* Calendar Days */}
-            <Grid container spacing={1}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(7, 1fr)',
+                gap: 1,
+              }}
+            >
               {daysInMonth.map((day) => {
                 const dayContent = getContentForDate(day).filter(item => {
                   if (filterType !== 'all' && item.type !== filterType) return false;
@@ -183,65 +198,84 @@ const ContentCalendarPage = () => {
                 const isToday = isSameDay(day, new Date());
 
                 return (
-                  <Grid item xs key={day.toString()}>
-                    <Paper
-                      sx={{
-                        height: 120,
-                        minHeight: 120,
-                        maxHeight: 120,
-                        p: 1,
-                        backgroundColor: (theme) => isToday 
-                          ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.2)' : '#f0f7ff'
-                          : theme.palette.background.paper,
-                        border: (theme) => isToday 
-                          ? '2px solid #5f5eff' 
-                          : `1px solid ${theme.palette.divider}`,
-                        '&:hover': {
-                          boxShadow: 2,
-                        },
+                  <Paper
+                    key={day.toString()}
+                    sx={{
+                      height: 120,
+                      minHeight: 120,
+                      maxHeight: 120,
+                      p: 1,
+                      backgroundColor: (theme) => isToday 
+                        ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.2)' : '#f0f7ff'
+                        : theme.palette.background.paper,
+                      border: (theme) => isToday 
+                        ? '2px solid #5f5eff' 
+                        : `1px solid ${theme.palette.divider}`,
+                      '&:hover': {
+                        boxShadow: 2,
+                      },
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      fontWeight={isToday ? 700 : 400}
+                      color={isToday ? 'primary' : 'text.secondary'}
+                      sx={{ mb: 0.5 }}
+                    >
+                      {format(day, 'd')}
+                    </Typography>
+
+                    <Box 
+                      sx={{ 
+                        flex: 1,
                         overflow: 'hidden',
                         display: 'flex',
                         flexDirection: 'column',
+                        gap: 0.5,
                       }}
                     >
-                      <Typography
-                        variant="caption"
-                        fontWeight={isToday ? 700 : 400}
-                        color={isToday ? 'primary' : 'text.secondary'}
-                      >
-                        {format(day, 'd')}
-                      </Typography>
-
-                      <Box sx={{ mt: 0.5, flex: 1, overflow: 'auto' }}>
-                        {dayContent.map((item) => (
-                          <Box
-                            key={item.id}
-                            sx={{
-                              backgroundColor: typeColors[item.type] || '#9e9e9e',
-                              color: '#fff',
-                              fontSize: '0.7rem',
-                              padding: '2px 4px',
-                              borderRadius: '2px',
-                              mb: 0.5,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              cursor: 'pointer',
-                              '&:hover': {
-                                opacity: 0.8,
-                              },
-                            }}
-                            title={item.title}
-                          >
-                            {item.title}
-                          </Box>
-                        ))}
-                      </Box>
-                    </Paper>
-                  </Grid>
+                      {dayContent.slice(0, 3).map((item) => (
+                        <Box
+                          key={item.id}
+                          sx={{
+                            backgroundColor: typeColors[item.type] || '#9e9e9e',
+                            color: '#fff',
+                            fontSize: '0.7rem',
+                            padding: '2px 4px',
+                            borderRadius: '2px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              opacity: 0.8,
+                            },
+                          }}
+                          title={item.title}
+                        >
+                          {item.title}
+                        </Box>
+                      ))}
+                      {dayContent.length > 3 && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.65rem',
+                            color: 'text.secondary',
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          +{dayContent.length - 3} more
+                        </Typography>
+                      )}
+                    </Box>
+                  </Paper>
                 );
               })}
-            </Grid>
+            </Box>
           </Box>
         )}
 
