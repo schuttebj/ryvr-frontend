@@ -2622,6 +2622,50 @@ export const workflowApi = {
               
               console.log(`  Provider: ${provider}, Operation: ${operationId}`);
               
+              // Special handling for OpenAI - uses system integration (not business integration)
+              if (provider === 'openai') {
+                console.log('🤖 Using OpenAI system integration (hardcoded)');
+                
+                // Use the legacy integration service endpoint for OpenAI
+                const businessId = localStorage.getItem('selected_business_id') || '1';
+                const token = getAuthToken();
+                
+                const response = await fetch(
+                  `${API_BASE}/api/v1/integrations/execute`,
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      integration_name: 'openai',
+                      business_id: parseInt(businessId),
+                      node_config: finalConfig,
+                      input_data: inputData,
+                    }),
+                  }
+                );
+                
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error('❌ OpenAI execution failed:', errorData);
+                  throw new Error(errorData.detail || errorData.error || 'OpenAI execution failed');
+                }
+                
+                const operationResult = await response.json();
+                
+                if (!operationResult.success) {
+                  throw new Error(operationResult.error || 'OpenAI execution failed');
+                }
+                
+                result = operationResult.data || operationResult;
+                console.log('✅ OpenAI executed successfully:', result);
+                break;
+              }
+              
+              // For all other integrations (DataForSEO, Brevo, custom ones), use dynamic integration flow
+              
               // Get integration info from tool catalog
               const catalogResponse = await workflowApi.getToolCatalog();
               if (!catalogResponse.success || !catalogResponse.catalog) {
