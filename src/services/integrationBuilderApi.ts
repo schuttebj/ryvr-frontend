@@ -73,13 +73,13 @@ export interface IntegrationBuilderCreate {
   platform_config: {
     name: string;
     base_url: string;
-    auth_type: 'basic' | 'bearer' | 'api_key' | 'oauth2';
+    auth_type: 'basic' | 'bearer' | 'api_key' | 'oauth2' | 'none';
     color?: string;
     icon_url?: string;
     documentation_url?: string;
   };
   auth_config: {
-    type: 'basic' | 'bearer' | 'api_key' | 'oauth2';
+    type: 'basic' | 'bearer' | 'api_key' | 'oauth2' | 'none';
     credentials: Array<{
       name: string;
       type: string;
