@@ -158,6 +158,7 @@ export default function IntegrationsPage() {
   // System integration state
   const [systemIntegrationStatuses, setSystemIntegrationStatuses] = useState<Record<string, SystemIntegrationStatus>>({});
   const [databaseIntegrations, setDatabaseIntegrations] = useState<Integration[]>([]);
+  const [businessIntegrations, setBusinessIntegrations] = useState<any[]>([]); // Configured instances
 
   // Dynamic integration configuration state
   const [configuringDynamicIntegration, setConfiguringDynamicIntegration] = useState<any | null>(null);
@@ -203,6 +204,7 @@ export default function IntegrationsPage() {
   useEffect(() => {
     loadIntegrations();
     loadDatabaseIntegrations(); // Load actual database integrations for system integration functionality
+    loadBusinessIntegrations(); // Load business-configured integration instances
   }, []);
 
   // Load system integration statuses when integrations change
@@ -279,6 +281,28 @@ export default function IntegrationsPage() {
       case 'wordpress': return 'wordpress';
       case 'google_analytics': return 'google_analytics';
       default: return 'custom';
+    }
+  };
+
+  const loadBusinessIntegrations = async () => {
+    try {
+      const businessId = localStorage.getItem('selected_business_id') || '1';
+      const response = await fetch(
+        `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${businessId}/integrations`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setBusinessIntegrations(data);
+        console.log('Loaded business integrations:', data);
+      }
+    } catch (error) {
+      console.error('Failed to load business integrations:', error);
     }
   };
 
@@ -659,6 +683,7 @@ export default function IntegrationsPage() {
 
       // Reload integrations
       await loadDatabaseIntegrations();
+      await loadBusinessIntegrations(); // Reload business integrations to show the new one
 
     } catch (error: any) {
       console.error('Failed to save configuration:', error);
@@ -1073,6 +1098,119 @@ export default function IntegrationsPage() {
                   </Card>
                 </Grid>
               ))}
+          </Grid>
+        </Box>
+      )}
+
+      {/* Your Configured Business Integrations */}
+      {businessIntegrations.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+            Your Configured Integrations
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Integration instances you've configured for this business
+          </Typography>
+          
+          <Grid container spacing={2}>
+            {businessIntegrations.map((businessIntegration) => {
+              // Find the parent integration for icon and details
+              const parentIntegration = databaseIntegrations.find(
+                (di) => di.id === businessIntegration.integration_id.toString()
+              );
+              
+              return (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={businessIntegration.id}>
+                  <Card 
+                    sx={{ 
+                      height: '160px',
+                      border: 2,
+                      borderColor: 'success.main',
+                      position: 'relative',
+                    }}
+                  >
+                    <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        {parentIntegration?.platform_config?.icon_url ? (
+                          <Box 
+                            component="img" 
+                            src={parentIntegration.platform_config.icon_url}
+                            alt={businessIntegration.instance_name}
+                            sx={{ width: 24, height: 24, mr: 1 }}
+                          />
+                        ) : (
+                          <IntegrationInstructionsIcon fontSize="small" sx={{ mr: 1, color: 'primary.main' }} />
+                        )}
+                        <Typography variant="subtitle2" sx={{ flex: 1, fontWeight: 600, fontSize: '0.9rem' }}>
+                          {businessIntegration.instance_name}
+                        </Typography>
+                        <CheckIcon color="success" fontSize="small" />
+                      </Box>
+                      
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                        {parentIntegration?.name || 'Integration'}
+                      </Typography>
+                      
+                      <Chip 
+                        label={businessIntegration.is_active ? 'Active' : 'Inactive'}
+                        color={businessIntegration.is_active ? 'success' : 'default'}
+                        size="small"
+                        sx={{ fontSize: '0.65rem', height: '20px', alignSelf: 'flex-start' }}
+                      />
+                      
+                      <Box sx={{ flex: 1 }} />
+                      
+                      <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => {
+                            // TODO: Add edit functionality
+                            alert('Edit functionality coming soon!');
+                          }}
+                          sx={{ fontSize: '0.7rem', px: 1, py: 0.5 }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          onClick={async () => {
+                            if (confirm(`Delete ${businessIntegration.instance_name}?`)) {
+                              try {
+                                const businessId = localStorage.getItem('selected_business_id') || '1';
+                                const response = await fetch(
+                                  `${(import.meta as any).env?.VITE_API_URL || 'https://ryvr-backend.onrender.com'}/api/v1/businesses/${businessId}/integrations/${businessIntegration.id}`,
+                                  {
+                                    method: 'DELETE',
+                                    headers: {
+                                      'Authorization': `Bearer ${localStorage.getItem('ryvr_token')}`,
+                                    },
+                                  }
+                                );
+                                
+                                if (response.ok) {
+                                  await loadBusinessIntegrations();
+                                  alert('Integration deleted successfully!');
+                                } else {
+                                  throw new Error('Failed to delete integration');
+                                }
+                              } catch (error: any) {
+                                alert(`Failed to delete: ${error.message}`);
+                              }
+                            }
+                          }}
+                          sx={{ fontSize: '0.7rem', px: 1, py: 0.5 }}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })}
           </Grid>
         </Box>
       )}
