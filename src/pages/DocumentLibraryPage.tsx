@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
   CardContent,
   Typography,
-  Button,
   TextField,
   InputAdornment,
   Select,
@@ -19,7 +18,6 @@ import {
 } from '@mui/material';
 import {
   Search as SearchIcon,
-  FilterList as FilterIcon,
   Download as DownloadIcon,
   Share as ShareIcon,
   MoreVert as MoreIcon,
@@ -32,12 +30,12 @@ import { DEMO_DOCUMENTS } from '../data/demoData';
 import { format } from 'date-fns';
 
 const DocumentLibraryPage = () => {
-  const [documents, setDocuments] = useState(DEMO_DOCUMENTS);
+  const [documents] = useState(DEMO_DOCUMENTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedDoc, setSelectedDoc] = useState<string | null>(null);
+  const [, setSelectedDoc] = useState<string | null>(null);
 
   const filteredDocuments = documents.filter(doc => {
     if (searchQuery && !doc.title.toLowerCase().includes(searchQuery.toLowerCase())) {

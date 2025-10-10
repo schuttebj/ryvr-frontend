@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
@@ -24,7 +24,7 @@ import AdminLayout from '../components/layout/AdminLayout';
 import { DEMO_TEMPLATES } from '../data/demoData';
 
 const TemplateMarketplacePage = () => {
-  const [templates, setTemplates] = useState(DEMO_TEMPLATES);
+  const [templates] = useState(DEMO_TEMPLATES);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTab, setCurrentTab] = useState(0);
 

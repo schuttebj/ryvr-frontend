@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -11,7 +11,6 @@ import {
   Grid,
   Paper,
   Divider,
-  TextField,
 } from '@mui/material';
 import {
   CheckCircle as ApproveIcon,

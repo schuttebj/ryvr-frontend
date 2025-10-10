@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -21,7 +21,6 @@ import {
   ViewWeek as WeekIcon,
   ViewDay as DayIcon,
   Add as AddIcon,
-  FilterList as FilterIcon,
 } from '@mui/icons-material';
 import AdminLayout from '../components/layout/AdminLayout';
 import { contentApi } from '../services/contentApi';
@@ -29,7 +28,6 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMont
 
 const ContentCalendarPage = () => {
   const [contentItems, setContentItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterType, setFilterType] = useState('all');
@@ -41,13 +39,10 @@ const ContentCalendarPage = () => {
 
   const loadContent = async () => {
     try {
-      setLoading(true);
       const response = await contentApi.getCalendarItems();
       setContentItems(response.data);
     } catch (error) {
       console.error('Failed to load content:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -73,12 +68,6 @@ const ContentCalendarPage = () => {
     scheduled: '#2196f3',
     published: '#4caf50',
   };
-
-  const filteredItems = contentItems.filter(item => {
-    if (filterType !== 'all' && item.type !== filterType) return false;
-    if (filterStatus !== 'all' && item.status !== filterStatus) return false;
-    return true;
-  });
 
   return (
     <AdminLayout
