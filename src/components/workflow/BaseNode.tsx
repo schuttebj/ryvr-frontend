@@ -43,82 +43,130 @@ const getNodeColor = (nodeType: string): string => {
     // SEO Tools
     seo: '#6366F1',         // Indigo for SEO
     ahrefs: '#FF6B35',      // Ahrefs Orange
+    serp: '#8B5CF6',        // Purple for SERP
+    dataforseo: '#8B5CF6',  // Purple for DataForSEO
     // Social Media
     meta: '#1877F2',        // Meta/Facebook Blue
     twitter: '#1DA1F2',     // Twitter Blue
     linkedin: '#0A66C2',    // LinkedIn Blue
     instagram: '#E4405F',   // Instagram Pink
+    facebook: '#1877F2',    // Facebook Blue
     // CRM & Marketing
     hubspot: '#FF7A59',     // HubSpot Orange
     mailchimp: '#FFE01B',   // Mailchimp Yellow
+    brevo: '#0B996E',       // Brevo Green
+    sendgrid: '#1A82E2',    // SendGrid Blue
     // E-commerce
     shopify: '#96BF48',     // Shopify Green
     woocommerce: '#96588A', // WooCommerce Purple
+    stripe: '#635BFF',      // Stripe Purple
     // Communication
     slack: '#4A154B',       // Slack Purple
     discord: '#5865F2',     // Discord Blurple
     teams: '#6264A7',       // Teams Purple
+    telegram: '#0088CC',    // Telegram Blue
     // Project Management
     asana: '#F06A6A',       // Asana Red
     trello: '#0079BF',      // Trello Blue
     notion: '#000000',      // Notion Black
+    jira: '#0052CC',        // Jira Blue
+    monday: '#FF3D57',      // Monday Red
     // WordPress
     wordpress: '#21759B',   // WordPress Blue
+    // Database & Storage
+    airtable: '#18BFFF',    // Airtable Blue
+    sheets: '#34A853',      // Google Sheets Green
+    excel: '#217346',       // Excel Green
+    // Analytics & Tracking
+    mixpanel: '#7856FF',    // Mixpanel Purple
+    amplitude: '#011E5A',   // Amplitude Dark Blue
+    segment: '#52BD94',     // Segment Green
+    // Payment & Finance
+    paypal: '#00457C',      // PayPal Blue
+    square: '#000000',      // Square Black
     // Core types
     trigger: '#9C27B0',     // Purple for triggers
     action: '#FF5722',      // Deep Orange for actions
     client: '#2196F3',      // Blue for client data
+    client_profile: '#2196F3', // Blue for client profile
     content: '#F59E0B',     // Amber for content
-    default: '#64748B'      // Slate Gray
+    content_extract: '#F59E0B', // Amber for content extraction
+    email: '#FF5722',       // Deep Orange for email
+    default: '#5f5eff'      // Primary brand color (was Slate Gray)
   };
 
+  // Normalize nodeType to lowercase for case-insensitive matching
+  const normalizedType = nodeType.toLowerCase();
+
   // AI Tools
-  if (nodeType.startsWith('ai_')) return BRAND_COLORS.ai;
+  if (normalizedType.startsWith('ai_') || normalizedType.includes('openai')) return BRAND_COLORS.ai;
   
   // Google services
-  if (nodeType.includes('google_analytics')) return BRAND_COLORS.analytics;
-  if (nodeType.includes('google_ads')) return BRAND_COLORS.ads;
-  if (nodeType.includes('google_maps')) return BRAND_COLORS.maps;
-  if (nodeType.includes('gtm_')) return BRAND_COLORS.gtm;
+  if (normalizedType.includes('google_analytics') || normalizedType.includes('analytics')) return BRAND_COLORS.analytics;
+  if (normalizedType.includes('google_ads') || normalizedType.includes('googleads')) return BRAND_COLORS.ads;
+  if (normalizedType.includes('google_maps') || normalizedType.includes('maps')) return BRAND_COLORS.maps;
+  if (normalizedType.includes('gtm_') || normalizedType.includes('tagmanager')) return BRAND_COLORS.gtm;
+  if (normalizedType.includes('google') && !normalizedType.includes('_')) return BRAND_COLORS.google;
+  if (normalizedType.includes('sheets')) return BRAND_COLORS.sheets;
   
   // SEO tools
-  if (nodeType.startsWith('seo_')) return BRAND_COLORS.seo;
-  if (nodeType.startsWith('ahrefs_')) return BRAND_COLORS.ahrefs;
+  if (normalizedType.startsWith('seo_')) return BRAND_COLORS.seo;
+  if (normalizedType.includes('ahrefs')) return BRAND_COLORS.ahrefs;
+  if (normalizedType.includes('serp') || normalizedType.includes('dataforseo')) return BRAND_COLORS.serp;
   
   // Meta/Facebook
-  if (nodeType.startsWith('meta_')) return BRAND_COLORS.meta;
+  if (normalizedType.includes('meta_') || normalizedType.includes('facebook')) return BRAND_COLORS.meta;
   
   // Social media
-  if (nodeType.startsWith('twitter_')) return BRAND_COLORS.twitter;
-  if (nodeType.startsWith('linkedin_')) return BRAND_COLORS.linkedin;
-  if (nodeType.startsWith('instagram_')) return BRAND_COLORS.instagram;
+  if (normalizedType.includes('twitter')) return BRAND_COLORS.twitter;
+  if (normalizedType.includes('linkedin')) return BRAND_COLORS.linkedin;
+  if (normalizedType.includes('instagram')) return BRAND_COLORS.instagram;
+  if (normalizedType.includes('telegram')) return BRAND_COLORS.telegram;
   
   // CRM & Marketing
-  if (nodeType.startsWith('hubspot_')) return BRAND_COLORS.hubspot;
-  if (nodeType.startsWith('mailchimp_')) return BRAND_COLORS.mailchimp;
+  if (normalizedType.includes('hubspot')) return BRAND_COLORS.hubspot;
+  if (normalizedType.includes('mailchimp')) return BRAND_COLORS.mailchimp;
+  if (normalizedType.includes('brevo')) return BRAND_COLORS.brevo;
+  if (normalizedType.includes('sendgrid')) return BRAND_COLORS.sendgrid;
   
   // E-commerce
-  if (nodeType.startsWith('shopify_')) return BRAND_COLORS.shopify;
-  if (nodeType.startsWith('woocommerce_')) return BRAND_COLORS.woocommerce;
+  if (normalizedType.includes('shopify')) return BRAND_COLORS.shopify;
+  if (normalizedType.includes('woocommerce')) return BRAND_COLORS.woocommerce;
+  if (normalizedType.includes('stripe')) return BRAND_COLORS.stripe;
   
   // Communication
-  if (nodeType.startsWith('slack_')) return BRAND_COLORS.slack;
-  if (nodeType.startsWith('discord_')) return BRAND_COLORS.discord;
-  if (nodeType.startsWith('teams_')) return BRAND_COLORS.teams;
+  if (normalizedType.includes('slack')) return BRAND_COLORS.slack;
+  if (normalizedType.includes('discord')) return BRAND_COLORS.discord;
+  if (normalizedType.includes('teams')) return BRAND_COLORS.teams;
   
   // Project Management
-  if (nodeType.startsWith('asana_')) return BRAND_COLORS.asana;
-  if (nodeType.startsWith('trello_')) return BRAND_COLORS.trello;
-  if (nodeType.startsWith('notion_')) return BRAND_COLORS.notion;
+  if (normalizedType.includes('asana')) return BRAND_COLORS.asana;
+  if (normalizedType.includes('trello')) return BRAND_COLORS.trello;
+  if (normalizedType.includes('notion')) return BRAND_COLORS.notion;
+  if (normalizedType.includes('jira')) return BRAND_COLORS.jira;
+  if (normalizedType.includes('monday')) return BRAND_COLORS.monday;
   
   // WordPress
-  if (nodeType.startsWith('wordpress_')) return BRAND_COLORS.wordpress;
+  if (normalizedType.includes('wordpress')) return BRAND_COLORS.wordpress;
   
-  // Core types
-  if (nodeType === 'trigger') return BRAND_COLORS.trigger;
-  if (nodeType === 'client_profile') return BRAND_COLORS.client;
-  if (nodeType === 'email' || nodeType === 'action') return BRAND_COLORS.action;
-  if (nodeType === 'content_extract') return BRAND_COLORS.content;
+  // Database & Storage
+  if (normalizedType.includes('airtable')) return BRAND_COLORS.airtable;
+  if (normalizedType.includes('excel')) return BRAND_COLORS.excel;
+  
+  // Analytics & Tracking
+  if (normalizedType.includes('mixpanel')) return BRAND_COLORS.mixpanel;
+  if (normalizedType.includes('amplitude')) return BRAND_COLORS.amplitude;
+  if (normalizedType.includes('segment')) return BRAND_COLORS.segment;
+  
+  // Payment & Finance
+  if (normalizedType.includes('paypal')) return BRAND_COLORS.paypal;
+  if (normalizedType.includes('square')) return BRAND_COLORS.square;
+  
+  // Core types (exact matches)
+  if (normalizedType === 'trigger') return BRAND_COLORS.trigger;
+  if (normalizedType === 'client_profile') return BRAND_COLORS.client_profile;
+  if (normalizedType === 'email' || normalizedType === 'action') return BRAND_COLORS.action;
+  if (normalizedType === 'content_extract') return BRAND_COLORS.content_extract;
   
   return BRAND_COLORS.default;
 };
@@ -134,8 +182,8 @@ export default function BaseNode({
   isTrigger = false
 }: BaseNodeProps) {
   const theme = useTheme();
-  // Use brand color if no custom color provided
-  const nodeColor = color || getNodeColor(data.type || '');
+  // Priority: 1) explicit color prop, 2) color from data, 3) brand color from type
+  const nodeColor = color || data.color || getNodeColor(data.type || '');
   
   const hasErrors = data.errors && data.errors.length > 0;
   const isValid = data.isValid !== false;

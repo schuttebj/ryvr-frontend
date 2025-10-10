@@ -153,6 +153,13 @@ export default function ExpandableTextField({
         sx={{
           zIndex: Z_INDEX.EXPANDABLE_TEXT_MODAL, // Higher than NodeSettingsPanel but lower than dropdowns
         }}
+        slotProps={{
+          backdrop: {
+            sx: {
+              // Remove forced z-index - let it naturally sit below the dialog
+            },
+          },
+        }}
         PaperProps={{
           sx: {
             height: '80vh',

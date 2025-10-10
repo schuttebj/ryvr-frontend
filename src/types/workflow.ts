@@ -649,6 +649,7 @@ export interface WorkflowNodeData {
   config?: Record<string, any>;
   isValid?: boolean;
   errors?: string[];
+  color?: string; // Node color (from integration or category)
 }
 
 // Custom node types for React Flow
