@@ -604,12 +604,29 @@ export default function IntegrationsPage() {
   const handleSaveDynamicIntegrationConfig = async () => {
     if (!configuringDynamicIntegration) return;
     
+    // Get instance name from form data
+    const instanceName = dynamicIntegrationFormData.instance_name;
+    if (!instanceName || !instanceName.trim()) {
+      alert('Please enter an instance name for this integration');
+      return;
+    }
+    
     // Get business ID from localStorage or use a default
     // In a multi-tenant system, this should come from BusinessContext
     const businessId = localStorage.getItem('selected_business_id') || '1';
 
     try {
       setSavingDynamicConfig(true);
+
+      // Separate credentials from other form data
+      const credentialNames = configuringDynamicIntegration.auth_config?.credentials?.map((c: any) => c.name) || [];
+      const credentials: Record<string, any> = {};
+      
+      Object.entries(dynamicIntegrationFormData).forEach(([key, value]) => {
+        if (credentialNames.includes(key)) {
+          credentials[key] = value;
+        }
+      });
 
       // Create business integration
       const response = await fetch(
@@ -623,17 +640,19 @@ export default function IntegrationsPage() {
           body: JSON.stringify({
             business_id: parseInt(businessId),
             integration_id: parseInt(configuringDynamicIntegration.id),
-            credentials: dynamicIntegrationFormData,
+            instance_name: instanceName.trim(), // NEW: Required field
+            credentials: credentials,
             is_active: true
           })
         }
       );
 
       if (!response.ok) {
-        throw new Error('Failed to save integration configuration');
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to save integration configuration');
       }
 
-      alert(`${configuringDynamicIntegration.name} configured successfully!`);
+      alert(`${instanceName} configured successfully!`);
       setConfiguringDynamicIntegration(null);
       setDynamicIntegrationFormData({});
       setDynamicTestResult(null);
@@ -1752,6 +1771,23 @@ export default function IntegrationsPage() {
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
+            {/* Instance Name Field - REQUIRED */}
+            <TextField
+              fullWidth
+              label="Instance Name"
+              value={dynamicIntegrationFormData.instance_name || ''}
+              onChange={(e) => handleDynamicIntegrationFieldChange('instance_name', e.target.value)}
+              required
+              placeholder="e.g., Client A Brevo, Personal SendGrid"
+              helperText="Give this integration instance a unique name"
+              sx={{ mb: 3 }}
+            />
+            
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="subtitle2" sx={{ mb: 2 }}>
+              Authentication
+            </Typography>
+            
             {configuringDynamicIntegration?.auth_config?.credentials?.map((credential: any) => {
               const isPassword = credential.type === 'password' || credential.name.toLowerCase().includes('key') || credential.name.toLowerCase().includes('secret');
               
