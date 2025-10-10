@@ -53,7 +53,9 @@ export const CommentThread: React.FC<CommentThreadProps> = ({
           sx={{
             mb: 2,
             p: 2,
-            backgroundColor: comment.resolved ? '#f5f5f5' : '#fff',
+            backgroundColor: (theme) => comment.resolved 
+              ? theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.2)' : '#f5f5f5'
+              : theme.palette.background.paper,
           }}
         >
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>

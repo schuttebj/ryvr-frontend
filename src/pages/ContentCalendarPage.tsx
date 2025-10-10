@@ -186,13 +186,22 @@ const ContentCalendarPage = () => {
                   <Grid item xs key={day.toString()}>
                     <Paper
                       sx={{
+                        height: 120,
                         minHeight: 120,
+                        maxHeight: 120,
                         p: 1,
-                        backgroundColor: isToday ? '#f0f7ff' : '#fff',
-                        border: isToday ? '2px solid #5f5eff' : '1px solid #e0e0e0',
+                        backgroundColor: (theme) => isToday 
+                          ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.2)' : '#f0f7ff'
+                          : theme.palette.background.paper,
+                        border: (theme) => isToday 
+                          ? '2px solid #5f5eff' 
+                          : `1px solid ${theme.palette.divider}`,
                         '&:hover': {
                           boxShadow: 2,
                         },
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
                       }}
                     >
                       <Typography
@@ -203,7 +212,7 @@ const ContentCalendarPage = () => {
                         {format(day, 'd')}
                       </Typography>
 
-                      <Box sx={{ mt: 0.5 }}>
+                      <Box sx={{ mt: 0.5, flex: 1, overflow: 'auto' }}>
                         {dayContent.map((item) => (
                           <Box
                             key={item.id}

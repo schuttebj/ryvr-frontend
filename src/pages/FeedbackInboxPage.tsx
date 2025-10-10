@@ -209,7 +209,9 @@ const FeedbackInboxPage = () => {
                         </Box>
                       }
                       sx={{
-                        backgroundColor: !item.isRead ? '#f0f7ff' : 'transparent',
+                        backgroundColor: (theme) => !item.isRead 
+                          ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.1)' : '#f0f7ff'
+                          : 'transparent',
                         borderRadius: 1,
                         mb: 0.5,
                       }}

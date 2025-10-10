@@ -114,8 +114,12 @@ const ContentReviewPage = () => {
                     sx={{
                       p: 2,
                       cursor: 'pointer',
-                      backgroundColor: selectedItem?.id === item.id ? '#f0f7ff' : '#fff',
-                      border: selectedItem?.id === item.id ? '2px solid #5f5eff' : '1px solid #e0e0e0',
+                      backgroundColor: (theme) => selectedItem?.id === item.id 
+                        ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.2)' : '#f0f7ff'
+                        : theme.palette.background.paper,
+                      border: (theme) => selectedItem?.id === item.id 
+                        ? '2px solid #5f5eff' 
+                        : `1px solid ${theme.palette.divider}`,
                       '&:hover': {
                         boxShadow: 2,
                       },
@@ -197,7 +201,7 @@ const ContentReviewPage = () => {
               <Paper
                 sx={{
                   p: 3,
-                  backgroundColor: '#fafafa',
+                  backgroundColor: (theme) => theme.palette.mode === 'dark' ? theme.palette.background.default : '#fafafa',
                   minHeight: 400,
                   '& h1': { fontSize: '1.75rem', fontWeight: 600, mb: 2 },
                   '& h2': { fontSize: '1.5rem', fontWeight: 600, mb: 2, mt: 3 },

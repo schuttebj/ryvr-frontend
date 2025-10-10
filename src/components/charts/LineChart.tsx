@@ -1,6 +1,6 @@
 import React from 'react';
 import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Box } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 
 interface LineChartProps {
   data: any[];
@@ -19,18 +19,22 @@ export const LineChart: React.FC<LineChartProps> = ({
   xAxisKey,
   height = 300,
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  
   return (
     <Box sx={{ width: '100%', height }}>
       <ResponsiveContainer>
         <RechartsLineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-          <XAxis dataKey={xAxisKey} stroke="#666" />
-          <YAxis stroke="#666" />
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#444' : '#e0e0e0'} />
+          <XAxis dataKey={xAxisKey} stroke={isDark ? '#999' : '#666'} />
+          <YAxis stroke={isDark ? '#999' : '#666'} />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#fff',
-              border: '1px solid #e0e0e0',
+              backgroundColor: isDark ? '#2d3142' : '#fff',
+              border: `1px solid ${isDark ? '#444' : '#e0e0e0'}`,
               borderRadius: '4px',
+              color: isDark ? '#fff' : '#000',
             }}
           />
           <Legend />

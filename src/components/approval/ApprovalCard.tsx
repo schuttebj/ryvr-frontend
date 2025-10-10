@@ -82,7 +82,11 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
   };
 
   return (
-    <Card sx={{ mb: 2, border: `2px solid ${priorityColors[priority]}20` }}>
+    <Card sx={{ 
+      mb: 2, 
+      border: (theme) => `2px solid ${priorityColors[priority]}${theme.palette.mode === 'dark' ? '40' : '20'}`,
+      backgroundColor: 'background.paper',
+    }}>
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ flex: 1 }}>

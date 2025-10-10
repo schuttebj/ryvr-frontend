@@ -114,7 +114,12 @@ const VersionControlPage = () => {
                           sx={{
                             p: 2,
                             cursor: 'pointer',
-                            border: selectedVersion === version.version ? '2px solid #5f5eff' : 'none',
+                            backgroundColor: (theme) => selectedVersion === version.version
+                              ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.2)' : theme.palette.background.paper
+                              : theme.palette.background.paper,
+                            border: (theme) => selectedVersion === version.version 
+                              ? '2px solid #5f5eff' 
+                              : `1px solid ${theme.palette.divider}`,
                           }}
                           onClick={() => setSelectedVersion(version.version)}
                         >
@@ -206,7 +211,7 @@ const VersionControlPage = () => {
                       <Paper
                         sx={{
                           p: 3,
-                          backgroundColor: '#fafafa',
+                          backgroundColor: (theme) => theme.palette.mode === 'dark' ? theme.palette.background.default : '#fafafa',
                           minHeight: 400,
                           maxHeight: 600,
                           overflow: 'auto',

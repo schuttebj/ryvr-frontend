@@ -94,7 +94,7 @@ const TemplateMarketplacePage = () => {
                       component="div"
                       sx={{
                         height: 140,
-                        backgroundColor: '#f0f7ff',
+                        backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.2)' : '#f0f7ff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -156,7 +156,7 @@ const TemplateMarketplacePage = () => {
                     component="div"
                     sx={{
                       height: 120,
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: (theme) => theme.palette.mode === 'dark' ? theme.palette.background.default : '#f5f5f5',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',

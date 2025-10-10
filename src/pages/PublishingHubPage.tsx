@@ -104,8 +104,12 @@ const PublishingHubPage = () => {
                         variant="outlined"
                         sx={{
                           cursor: 'pointer',
-                          border: selectedContent?.id === content.id ? '2px solid #5f5eff' : undefined,
-                          backgroundColor: selectedContent?.id === content.id ? '#f0f7ff' : undefined,
+                          border: (theme) => selectedContent?.id === content.id 
+                            ? '2px solid #5f5eff' 
+                            : `1px solid ${theme.palette.divider}`,
+                          backgroundColor: (theme) => selectedContent?.id === content.id 
+                            ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.1)' : '#f0f7ff'
+                            : theme.palette.background.paper,
                         }}
                         onClick={() => {
                           setSelectedContent(content);
@@ -161,8 +165,12 @@ const PublishingHubPage = () => {
                             <Card
                               variant="outlined"
                               sx={{
-                                backgroundColor: data.enabled ? '#f0f7ff' : '#fff',
-                                border: data.enabled ? '2px solid #5f5eff' : undefined,
+                                backgroundColor: (theme) => data.enabled 
+                                  ? theme.palette.mode === 'dark' ? 'rgba(95, 94, 255, 0.1)' : '#f0f7ff'
+                                  : theme.palette.background.paper,
+                                border: (theme) => data.enabled 
+                                  ? '2px solid #5f5eff' 
+                                  : `1px solid ${theme.palette.divider}`,
                               }}
                             >
                               <CardContent>

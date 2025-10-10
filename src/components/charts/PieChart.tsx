@@ -1,6 +1,6 @@
 import React from 'react';
 import { PieChart as RechartsPieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Box } from '@mui/material';
+import { Box, useTheme } from '@mui/material';
 
 interface PieChartProps {
   data: Array<{
@@ -18,6 +18,9 @@ export const PieChart: React.FC<PieChartProps> = ({
   height = 300,
   showLegend = true,
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  
   return (
     <Box sx={{ width: '100%', height }}>
       <ResponsiveContainer>
@@ -38,9 +41,10 @@ export const PieChart: React.FC<PieChartProps> = ({
           </Pie>
           <Tooltip
             contentStyle={{
-              backgroundColor: '#fff',
-              border: '1px solid #e0e0e0',
+              backgroundColor: isDark ? '#2d3142' : '#fff',
+              border: `1px solid ${isDark ? '#444' : '#e0e0e0'}`,
               borderRadius: '4px',
+              color: isDark ? '#fff' : '#000',
             }}
           />
           {showLegend && <Legend />}
