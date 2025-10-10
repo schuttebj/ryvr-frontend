@@ -46,6 +46,7 @@ import {
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
   TrendingUp as TrendingUpIcon,
+  IntegrationInstructions as IntegrationInstructionsIcon,
 } from '@mui/icons-material';
 import { useOpenAIModels } from '../hooks/useOpenAIModels';
 import { 
