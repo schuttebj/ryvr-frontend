@@ -2640,19 +2640,45 @@ export const workflowApi = {
                 throw new Error(`Operation ${operationId} not found for ${provider}`);
               }
               
-              // Find the base integration from database_integrations
-              const databaseIntegrations = JSON.parse(localStorage.getItem('database_integrations') || '[]');
-              const baseIntegration = databaseIntegrations.find((i: any) => 
-                i.provider?.toLowerCase().replace(/\s+/g, '_') === provider
+              // Fetch all integrations from the API to find the base integration
+              const token = getAuthToken();
+              const integrationsResponse = await fetch(
+                `${API_BASE}/api/v1/integrations/`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                }
               );
               
+              if (!integrationsResponse.ok) {
+                throw new Error('Failed to fetch integrations from system');
+              }
+              
+              const allIntegrations = await integrationsResponse.json();
+              console.log('🔍 All integrations:', allIntegrations);
+              console.log('🔍 Looking for provider:', provider);
+              
+              // Find the integration matching the provider name
+              const baseIntegration = allIntegrations.find((i: any) => {
+                const providerMatch = i.provider?.toLowerCase().replace(/\s+/g, '_') === provider;
+                const nameMatch = i.name?.toLowerCase().replace(/\s+/g, '_') === provider;
+                console.log(`  Checking integration: ${i.name} (provider: ${i.provider}) - match: ${providerMatch || nameMatch}`);
+                return providerMatch || nameMatch;
+              });
+              
               if (!baseIntegration) {
+                console.error('❌ Integration not found. Available integrations:', 
+                  allIntegrations.map((i: any) => ({ id: i.id, name: i.name, provider: i.provider }))
+                );
                 throw new Error(`Integration ${provider} not found in system. Please contact administrator.`);
               }
               
+              console.log('✅ Found base integration:', baseIntegration);
+              
               // Find the configured business integration
               const businessId = localStorage.getItem('selected_business_id') || '1';
-              const token = getAuthToken();
               
               // Fetch business integrations to get the configured one
               const bizIntResponse = await fetch(
