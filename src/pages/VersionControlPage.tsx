@@ -6,6 +6,10 @@ import {
   Typography,
   Button,
   Chip,
+  Paper,
+  Divider,
+} from '@mui/material';
+import {
   Timeline,
   TimelineItem,
   TimelineSeparator,
@@ -13,9 +17,7 @@ import {
   TimelineContent,
   TimelineDot,
   TimelineOppositeContent,
-  Paper,
-  Divider,
-} from '@mui/material';
+} from '@mui/lab';
 import {
   History as HistoryIcon,
   Restore as RestoreIcon,

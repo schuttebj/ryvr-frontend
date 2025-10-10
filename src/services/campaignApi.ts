@@ -84,7 +84,7 @@ export const campaignApi = {
    * Delete campaign
    * Future: DELETE /api/v1/campaigns/{id}
    */
-  async delete(id: string) {
+  async delete(_id: string) {
     await delay(400);
     return {
       success: true,
@@ -96,7 +96,7 @@ export const campaignApi = {
    * Get ROI data
    * Future: GET /api/v1/campaigns/roi
    */
-  async getRoiData(filters?: {
+  async getRoiData(_filters?: {
     campaignId?: string;
     dateRange?: { start: string; end: string };
   }) {
@@ -149,7 +149,7 @@ export const campaignApi = {
    * Remove team member from campaign
    * Future: DELETE /api/v1/campaigns/{id}/team/{userId}
    */
-  async removeTeamMember(campaignId: string, userId: string) {
+  async removeTeamMember(_campaignId: string, _userId: string) {
     await delay(400);
     return {
       success: true,

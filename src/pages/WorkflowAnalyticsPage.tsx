@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
@@ -18,8 +18,8 @@ import {
 } from '@mui/material';
 import {
   CheckCircle as SuccessIcon,
+  CheckCircle,
   Error as ErrorIcon,
-  Schedule as PendingIcon,
   PlayArrow as RunningIcon,
 } from '@mui/icons-material';
 import AdminLayout from '../components/layout/AdminLayout';

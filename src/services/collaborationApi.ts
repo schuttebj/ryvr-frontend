@@ -145,7 +145,7 @@ export const collaborationApi = {
    * Remove team member
    * Future: DELETE /api/v1/collaboration/team/{id}
    */
-  async removeTeamMember(id: string) {
+  async removeTeamMember(_id: string) {
     await delay(400);
     return {
       success: true,
@@ -157,7 +157,7 @@ export const collaborationApi = {
    * Get activity log
    * Future: GET /api/v1/collaboration/activity
    */
-  async getActivityLog(filters?: {
+  async getActivityLog(_filters?: {
     userId?: string;
     businessId?: string;
     startDate?: string;

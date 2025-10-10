@@ -24,7 +24,7 @@ export const reportsApi = {
    * Future: GET /api/v1/reports/analytics
    * Will connect to Google Analytics via integration
    */
-  async getAnalyticsData(filters?: {
+  async getAnalyticsData(_filters?: {
     businessId?: string;
     startDate?: string;
     endDate?: string;
@@ -43,7 +43,7 @@ export const reportsApi = {
    * Future: GET /api/v1/reports/ad-performance
    * Will aggregate data from multiple ad platforms
    */
-  async getAdPerformance(filters?: {
+  async getAdPerformance(_filters?: {
     businessId?: string;
     platform?: 'google' | 'facebook' | 'all';
     startDate?: string;
@@ -62,7 +62,7 @@ export const reportsApi = {
    * Future: GET /api/v1/reports/workflow-analytics
    * Will use internal workflow execution logs
    */
-  async getWorkflowAnalytics(filters?: {
+  async getWorkflowAnalytics(_filters?: {
     businessId?: string;
     workflowId?: string;
     startDate?: string;
@@ -80,7 +80,7 @@ export const reportsApi = {
    * Future: GET /api/v1/reports/roi
    * Will combine revenue, cost, and conversion data
    */
-  async getRoiData(filters?: {
+  async getRoiData(_filters?: {
     businessId?: string;
     campaignId?: string;
     startDate?: string;
@@ -97,7 +97,7 @@ export const reportsApi = {
    * Get conversion data
    * Future: GET /api/v1/reports/conversions
    */
-  async getConversions(filters?: {
+  async getConversions(_filters?: {
     businessId?: string;
     source?: string;
     startDate?: string;
@@ -114,7 +114,7 @@ export const reportsApi = {
    * Get channel performance
    * Future: GET /api/v1/reports/channel-performance
    */
-  async getChannelPerformance(filters?: {
+  async getChannelPerformance(_filters?: {
     businessId?: string;
     startDate?: string;
     endDate?: string;
@@ -130,7 +130,7 @@ export const reportsApi = {
    * Get top pages
    * Future: GET /api/v1/reports/top-pages
    */
-  async getTopPages(filters?: {
+  async getTopPages(_filters?: {
     businessId?: string;
     limit?: number;
     startDate?: string;
@@ -139,7 +139,7 @@ export const reportsApi = {
     await delay(400);
     return {
       success: true,
-      data: DEMO_ANALYTICS_DATA.topPages.slice(0, filters?.limit || 5),
+      data: DEMO_ANALYTICS_DATA.topPages.slice(0, _filters?.limit || 5),
       total: DEMO_ANALYTICS_DATA.topPages.length,
     };
   },
@@ -148,7 +148,7 @@ export const reportsApi = {
    * Export report
    * Future: POST /api/v1/reports/export
    */
-  async exportReport(reportType: string, format: 'pdf' | 'csv' | 'xlsx', filters: any) {
+  async exportReport(_reportType: string, format: 'pdf' | 'csv' | 'xlsx', _filters: any) {
     await delay(1000);
     // In real implementation, this would generate and download a file
     return {
