@@ -2607,16 +2607,20 @@ export const workflowApi = {
           break;
           
         default:
-          // Handle dynamic integrations (from Integration Builder)
-          // Format: provider_operationId (e.g., brevo_op_1760047761057_r6j5fw9qd)
-          if (nodeType.includes('_op_')) {
+          // Handle ALL tool catalog integrations (both built-in and dynamic)
+          // Format: provider_operationId (e.g., openai_chat_completion, brevo_op_1760047761057_r6j5fw9qd)
+          if (nodeType.includes('_')) {
             try {
-              console.log('🔧 Executing dynamic integration node:', nodeType);
+              console.log('🔧 Executing tool catalog integration node:', nodeType);
               
               // Parse provider and operation from node type
-              const parts = nodeType.split('_op_');
-              const provider = parts[0];
-              const operationId = parts.length > 1 ? `op_${parts[1]}` : '';
+              // For nodeType like "openai_chat_completion", split into ["openai", "chat_completion"]
+              // For nodeType like "brevo_op_1760047761057_r6j5fw9qd", split into ["brevo", "op_1760047761057_r6j5fw9qd"]
+              const firstUnderscoreIndex = nodeType.indexOf('_');
+              const provider = nodeType.substring(0, firstUnderscoreIndex);
+              const operationId = nodeType.substring(firstUnderscoreIndex + 1);
+              
+              console.log(`  Provider: ${provider}, Operation: ${operationId}`);
               
               // Get integration info from tool catalog
               const catalogResponse = await workflowApi.getToolCatalog();
@@ -2630,6 +2634,7 @@ export const workflowApi = {
                 : providers[provider];
               
               if (!providerData) {
+                console.error(`❌ Provider ${provider} not found in catalog. Available providers:`, Object.keys(providers));
                 throw new Error(`Provider ${provider} not found in catalog`);
               }
               
@@ -2637,8 +2642,11 @@ export const workflowApi = {
               const operation = operations[operationId];
               
               if (!operation) {
+                console.error(`❌ Operation ${operationId} not found for ${provider}. Available operations:`, Object.keys(operations));
                 throw new Error(`Operation ${operationId} not found for ${provider}`);
               }
+              
+              console.log('✅ Found operation in catalog:', operation);
               
               // Fetch all integrations from the API to find the base integration
               const token = getAuthToken();
@@ -2696,6 +2704,8 @@ export const workflowApi = {
               }
               
               const businessIntegrations = await bizIntResponse.json();
+              console.log('🔍 Business integrations:', businessIntegrations);
+              
               const configuredIntegration = businessIntegrations.find((bi: any) => 
                 bi.integration_id === baseIntegration.id
               );
@@ -2704,10 +2714,14 @@ export const workflowApi = {
                 throw new Error(`Integration for ${provider} not configured for this business. Please configure it in Integrations page first.`);
               }
               
+              console.log('✅ Found configured business integration:', configuredIntegration);
+              
               // Build parameters from config
               const parameters = { ...finalConfig };
               delete parameters.integrationId;
               delete parameters.outputVariable;
+              
+              console.log('📤 Sending parameters:', parameters);
               
               // Execute the operation via the backend
               const response = await fetch(
@@ -2729,6 +2743,7 @@ export const workflowApi = {
               
               if (!response.ok) {
                 const errorData = await response.json();
+                console.error('❌ Operation failed:', errorData);
                 throw new Error(errorData.detail || errorData.error || 'Operation failed');
               }
               
@@ -2739,11 +2754,11 @@ export const workflowApi = {
               }
               
               result = operationResult.data || operationResult;
-              console.log('✅ Dynamic integration executed successfully:', result);
+              console.log('✅ Integration executed successfully:', result);
               
             } catch (error: any) {
-              console.error('Dynamic integration execution failed:', error);
-              throw new Error(`Dynamic integration failed: ${error.message}`);
+              console.error('❌ Integration execution failed:', error);
+              throw new Error(`Integration failed: ${error.message}`);
             }
           } else {
             throw new Error(`Unsupported node type: ${nodeType}`);
