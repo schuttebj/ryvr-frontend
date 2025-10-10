@@ -27,6 +27,22 @@ import ChatPage from './pages/ChatPage';
 import IntegrationBuilderPage from './pages/admin/IntegrationBuilderPage';
 import AllIntegrationsPage from './pages/admin/AllIntegrationsPage';
 
+// New Demo Showcase Pages
+import ContentCalendarPage from './pages/ContentCalendarPage';
+import CampaignTimelinePage from './pages/CampaignTimelinePage';
+import ApprovalDashboardPage from './pages/ApprovalDashboardPage';
+import ContentReviewPage from './pages/ContentReviewPage';
+import FeedbackInboxPage from './pages/FeedbackInboxPage';
+import TeamPermissionsPage from './pages/TeamPermissionsPage';
+import CampaignReportsPage from './pages/CampaignReportsPage';
+import WorkflowAnalyticsPage from './pages/WorkflowAnalyticsPage';
+import ROITrackingPage from './pages/ROITrackingPage';
+import AutomationSchedulerPage from './pages/AutomationSchedulerPage';
+import DocumentLibraryPage from './pages/DocumentLibraryPage';
+import VersionControlPage from './pages/VersionControlPage';
+import TemplateMarketplacePage from './pages/TemplateMarketplacePage';
+import PublishingHubPage from './pages/PublishingHubPage';
+
 // Create a client for React Query
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,6 +107,33 @@ function AppRoutes() {
               <Route path="system-integrations" element={<SystemIntegrationsPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
               <Route path="settings/*" element={<SystemSettingsPage />} />
+              
+              {/* Content & Campaign Planning */}
+              <Route path="content-calendar" element={<ContentCalendarPage />} />
+              <Route path="campaign-timeline" element={<CampaignTimelinePage />} />
+              <Route path="approval-dashboard" element={<ApprovalDashboardPage />} />
+              
+              {/* Collaboration */}
+              <Route path="content-review" element={<ContentReviewPage />} />
+              <Route path="feedback-inbox" element={<FeedbackInboxPage />} />
+              <Route path="team-permissions" element={<TeamPermissionsPage />} />
+              
+              {/* Reports & Analytics */}
+              <Route path="campaign-reports" element={<CampaignReportsPage />} />
+              <Route path="workflow-analytics" element={<WorkflowAnalyticsPage />} />
+              <Route path="roi-tracking" element={<ROITrackingPage />} />
+              
+              {/* Automation */}
+              <Route path="automation-scheduler" element={<AutomationSchedulerPage />} />
+              
+              {/* Knowledge Base */}
+              <Route path="document-library" element={<DocumentLibraryPage />} />
+              <Route path="version-control" element={<VersionControlPage />} />
+              
+              {/* Marketplace & Publishing */}
+              <Route path="template-marketplace" element={<TemplateMarketplacePage />} />
+              <Route path="publishing-hub" element={<PublishingHubPage />} />
+              
               <Route path="*" element={<Navigate to="/admin/dashboard" />} />
             </Routes>
           </ProtectedRoute>
