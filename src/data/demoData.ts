@@ -8,7 +8,7 @@
  * After: const campaigns = await campaignApi.list()
  */
 
-import { addDays, subDays, format } from 'date-fns';
+import { addDays, subDays } from 'date-fns';
 
 // ============================================================================
 // CONTENT CALENDAR DATA

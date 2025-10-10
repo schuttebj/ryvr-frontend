@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Card,
@@ -31,7 +31,7 @@ import { format } from 'date-fns';
 const AutomationSchedulerPage = () => {
   const [currentTab, setCurrentTab] = useState(0);
   const [scheduledAutomations, setScheduledAutomations] = useState(DEMO_SCHEDULED_AUTOMATIONS);
-  const [executionQueue, setExecutionQueue] = useState(DEMO_EXECUTION_QUEUE);
+  const [executionQueue] = useState(DEMO_EXECUTION_QUEUE);
 
   const handlePauseResume = (id: string) => {
     setScheduledAutomations(prev =>
@@ -45,10 +45,6 @@ const AutomationSchedulerPage = () => {
 
   const handleStopExecution = (id: string) => {
     console.log('Stop execution:', id);
-  };
-
-  const handleRerunExecution = (id: string) => {
-    console.log('Rerun execution:', id);
   };
 
   const getStatusColor = (status: string) => {
