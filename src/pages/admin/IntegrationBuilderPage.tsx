@@ -84,8 +84,10 @@ export default function IntegrationBuilderPage() {
   const [baseUrl, setBaseUrl] = useState('');
   const [hasSandbox, setHasSandbox] = useState(false);
   const [sandboxBaseUrl, setSandboxBaseUrl] = useState('');
-  const [authType, setAuthType] = useState<'basic' | 'bearer' | 'api_key' | 'oauth2'>('bearer');
+  const [authType, setAuthType] = useState<'basic' | 'bearer' | 'api_key' | 'oauth2' | 'none'>('bearer');
+  const [authLocation, setAuthLocation] = useState<'header' | 'query'>('header'); // For api_key: header or query param
   const [apiKeyHeaderName, setApiKeyHeaderName] = useState('api-key');
+  const [apiKeyQueryParamName, setApiKeyQueryParamName] = useState('');
   const [color, setColor] = useState('#5f5eff');
   const [iconUrl, setIconUrl] = useState('');
   const [documentationUrl, setDocumentationUrl] = useState('');
@@ -148,6 +150,17 @@ export default function IntegrationBuilderPage() {
       
       setAuthCredentials(parsedConfig.auth_config.credentials || []);
       
+      // Determine auth location from parsed config
+      if (parsedConfig.auth_config.query_param_name) {
+        setAuthLocation('query');
+        setApiKeyQueryParamName(parsedConfig.auth_config.query_param_name);
+        setApiKeyHeaderName('');
+      } else if (parsedConfig.auth_config.header_name) {
+        setAuthLocation('header');
+        setApiKeyHeaderName(parsedConfig.auth_config.header_name);
+        setApiKeyQueryParamName('');
+      }
+      
       // Assign unique IDs to operations to prevent duplicates
       const operationsWithUniqueIds = (parsedConfig.operations || []).map((op: any) => ({
         ...op,
@@ -189,8 +202,16 @@ export default function IntegrationBuilderPage() {
       
       if (integration.auth_config) {
         setAuthCredentials(integration.auth_config.credentials || []);
-        if (integration.auth_config.header_name) {
+        
+        // Determine auth location based on which field is populated
+        if (integration.auth_config.query_param_name) {
+          setAuthLocation('query');
+          setApiKeyQueryParamName(integration.auth_config.query_param_name);
+          setApiKeyHeaderName(''); // Clear header name
+        } else if (integration.auth_config.header_name) {
+          setAuthLocation('header');
           setApiKeyHeaderName(integration.auth_config.header_name);
+          setApiKeyQueryParamName(''); // Clear query param name
         }
       }
       
@@ -273,7 +294,9 @@ export default function IntegrationBuilderPage() {
         auth_config: {
           type: authType,
           credentials: authCredentials,
-          ...(authType === 'api_key' && { header_name: apiKeyHeaderName }),
+          // Always provide both fields (required by backend schema)
+          header_name: authType === 'api_key' && authLocation === 'header' ? apiKeyHeaderName : '',
+          query_param_name: authType === 'api_key' && authLocation === 'query' ? apiKeyQueryParamName : '',
         },
         oauth_config: authType === 'oauth2' ? {
           provider: platformName.toLowerCase(),
@@ -677,23 +700,55 @@ export default function IntegrationBuilderPage() {
                       onChange={(e) => setAuthType(e.target.value as any)}
                     >
                       <MenuItem value="bearer">Bearer Token</MenuItem>
-                      <MenuItem value="api_key">API Key (Custom Header)</MenuItem>
+                      <MenuItem value="api_key">API Key</MenuItem>
                       <MenuItem value="basic">Basic Auth</MenuItem>
                       <MenuItem value="oauth2">OAuth 2.0</MenuItem>
+                      <MenuItem value="none">No Authentication</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
                 
-                {/* API Key Header Name (only shown for api_key auth) */}
+                {/* API Key Location (only shown for api_key auth) */}
                 {authType === 'api_key' && (
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth>
+                      <InputLabel>API Key Location</InputLabel>
+                      <Select
+                        value={authLocation}
+                        label="API Key Location"
+                        onChange={(e) => setAuthLocation(e.target.value as 'header' | 'query')}
+                      >
+                        <MenuItem value="header">Header</MenuItem>
+                        <MenuItem value="query">Query Parameter</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                )}
+                
+                {/* API Key Header Name (only shown for api_key auth with header location) */}
+                {authType === 'api_key' && authLocation === 'header' && (
                   <Grid item xs={12} md={6}>
                     <TextField
                       fullWidth
                       label="API Key Header Name"
                       value={apiKeyHeaderName}
                       onChange={(e) => setApiKeyHeaderName(e.target.value)}
-                      placeholder="api-key"
-                      helperText="Header name for API key (e.g., 'api-key', 'X-API-Key', 'Authorization')"
+                      placeholder="X-API-Key"
+                      helperText="Header name for API key (e.g., 'X-API-Key', 'api-key', 'Authorization')"
+                    />
+                  </Grid>
+                )}
+                
+                {/* API Key Query Parameter Name (only shown for api_key auth with query location) */}
+                {authType === 'api_key' && authLocation === 'query' && (
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="API Key Query Parameter"
+                      value={apiKeyQueryParamName}
+                      onChange={(e) => setApiKeyQueryParamName(e.target.value)}
+                      placeholder="key"
+                      helperText="Query parameter name for API key (e.g., 'key', 'api_key', 'apikey')"
                     />
                   </Grid>
                 )}
