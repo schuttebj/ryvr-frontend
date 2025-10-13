@@ -1065,7 +1065,9 @@ export default function WorkflowBuilder({ onSave, workflowId }: WorkflowBuilderP
                 .MuiPopover-root, .MuiMenu-root, .MuiSelect-root .MuiPopover-paper {
                   z-index: ${Z_INDEX.DROPDOWN} !important;
                 }
-                .MuiBackdrop-root {
+                /* Only apply high z-index to backdrops associated with popovers/menus, not dialogs */
+                .MuiPopover-root + .MuiBackdrop-root,
+                .MuiMenu-root + .MuiBackdrop-root {
                   z-index: ${Z_INDEX.DROPDOWN - 1} !important;
                 }
                 
