@@ -30,6 +30,7 @@ import {
   Info as InfoIcon,
   HourglassEmpty as PendingIcon,
 } from '@mui/icons-material';
+import { Z_INDEX } from '../../constants/zIndex';
 
 interface ValidationResultsDialogProps {
   open: boolean;
@@ -94,10 +95,21 @@ export default function ValidationResultsDialog({
       onClose={validating ? undefined : onClose} 
       maxWidth="lg" 
       fullWidth
+      sx={{
+        zIndex: Z_INDEX.WORKFLOW_TEMPLATE_MODAL, // Higher than workflow builder elements
+      }}
+      slotProps={{
+        backdrop: {
+          sx: {
+            zIndex: Z_INDEX.WORKFLOW_TEMPLATE_MODAL - 1, // Backdrop should be below the dialog
+          },
+        },
+      }}
       PaperProps={{
         sx: {
           maxHeight: '90vh',
-          bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'background.default'
+          bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'background.default',
+          zIndex: Z_INDEX.WORKFLOW_TEMPLATE_MODAL, // Ensure paper is at the same level as dialog
         }
       }}
     >
