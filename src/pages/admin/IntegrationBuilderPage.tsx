@@ -38,6 +38,7 @@ import {
   ListItem,
   ListItemText,
   Tooltip,
+  useTheme,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -65,6 +66,7 @@ export default function IntegrationBuilderPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
+  const theme = useTheme();
   
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -1429,7 +1431,15 @@ export default function IntegrationBuilderPage() {
                     <Typography variant="caption" color="text.secondary" gutterBottom>
                       Response Data:
                     </Typography>
-                    <Paper variant="outlined" sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: '#f5f5f5' }}>
+                    <Paper variant="outlined" sx={{ 
+                      p: 2, 
+                      maxHeight: 300, 
+                      overflow: 'auto', 
+                      bgcolor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.05)' 
+                        : 'rgba(0, 0, 0, 0.03)',
+                      border: `1px solid ${theme.palette.divider}`
+                    }}>
                       <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
                         {JSON.stringify(testResult.data, null, 2)}
                       </pre>
@@ -1441,7 +1451,15 @@ export default function IntegrationBuilderPage() {
                     <Typography variant="caption" color="text.secondary" gutterBottom>
                       Raw Response:
                     </Typography>
-                    <Paper variant="outlined" sx={{ p: 2, maxHeight: 300, overflow: 'auto', bgcolor: '#f5f5f5' }}>
+                    <Paper variant="outlined" sx={{ 
+                      p: 2, 
+                      maxHeight: 300, 
+                      overflow: 'auto', 
+                      bgcolor: theme.palette.mode === 'dark' 
+                        ? 'rgba(255, 255, 255, 0.05)' 
+                        : 'rgba(0, 0, 0, 0.03)',
+                      border: `1px solid ${theme.palette.divider}`
+                    }}>
                       <pre style={{ margin: 0, fontSize: '12px', whiteSpace: 'pre-wrap' }}>
                         {JSON.stringify(testResult.raw_response, null, 2)}
                       </pre>

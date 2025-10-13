@@ -31,6 +31,7 @@ import {
   Stack,
   InputAdornment,
   Snackbar,
+  useTheme,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
@@ -133,6 +134,7 @@ const availableIntegrations = [
 ];
 
 export default function IntegrationsPage() {
+  const theme = useTheme();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [editingIntegration, setEditingIntegration] = useState<Integration | null>(null);
@@ -1667,7 +1669,15 @@ export default function IntegrationsPage() {
                   </Typography>
                 )}
                 {testResult.response && (
-                  <Box sx={{ bgcolor: '#f5f5f5', p: 2, borderRadius: 1, mt: 1 }}>
+                  <Box sx={{ 
+                    bgcolor: theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.05)' 
+                      : 'rgba(0, 0, 0, 0.03)', 
+                    p: 2, 
+                    borderRadius: 1, 
+                    mt: 1,
+                    border: `1px solid ${theme.palette.divider}`
+                  }}>
                     <Typography variant="caption" color="text.secondary">
                       Response:
                     </Typography>
