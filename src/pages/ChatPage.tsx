@@ -98,11 +98,11 @@ export default function ChatPage() {
 
       const requestBody: any = {
         message: inputMessage,
-        model: 'gpt-4',
+        model: 'gpt-4.1',
         temperature: 0.7,
-        max_context_tokens: 4000,
+        max_context_tokens: 16000,
         top_k: 5,
-        similarity_threshold: 0.7,
+        similarity_threshold: 0.4,
       };
 
       // Add business_id only for single business chat
