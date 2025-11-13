@@ -1298,6 +1298,35 @@ export default function IntegrationBuilderPage() {
                   </Typography>
                 </Alert>
 
+                {/* Sandbox Mode Toggle (if integration has sandbox) */}
+                {hasSandbox && sandboxBaseUrl && (
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={testParameters.use_sandbox || false}
+                          onChange={(e) => setTestParameters({
+                            ...testParameters,
+                            use_sandbox: e.target.checked
+                          })}
+                          color="warning"
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body2">Use Sandbox Mode</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {testParameters.use_sandbox 
+                              ? `Testing with: ${sandboxBaseUrl}`
+                              : `Testing with: ${baseUrl}`
+                            }
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </Box>
+                )}
+
                 {/* Credentials Section */}
                 <Box>
                   <Typography variant="subtitle2" gutterBottom>Authentication Credentials:</Typography>
