@@ -1303,7 +1303,14 @@ export default function IntegrationsPage() {
       )}
 
       {integrations.length === 0 && (
-        <Box sx={{ textAlign: 'center', py: 4, bgcolor: '#f9f9f9', borderRadius: 2 }}>
+        <Box sx={{ 
+          textAlign: 'center', 
+          py: 4, 
+          bgcolor: theme.palette.mode === 'dark' 
+            ? 'rgba(255, 255, 255, 0.03)' 
+            : 'rgba(0, 0, 0, 0.02)', 
+          borderRadius: 2 
+        }}>
           <SettingsIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
             No integrations configured yet

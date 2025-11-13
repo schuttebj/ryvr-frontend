@@ -91,6 +91,9 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete, nod
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [isJsonSchemaBuilderOpen, setIsJsonSchemaBuilderOpen] = useState(false);
   const [fetchingModelsFromIntegration, setFetchingModelsFromIntegration] = useState(false);
+  const [editableFields, setEditableFields] = useState<string[]>(
+    (node?.data as any)?.editableFields || []
+  );
   
   // Real data will be loaded from executed nodes - no more hardcoded samples
 
@@ -260,7 +263,12 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete, nod
   if (!node) return null;
 
   const handleSave = () => {
-    onSave(node.id, formData);
+    // Include editableFields in the saved node data
+    const updatedData = {
+      ...formData,
+      editableFields: editableFields,
+    };
+    onSave(node.id, updatedData as WorkflowNodeData);
   };
 
   const handleDelete = () => {
@@ -352,31 +360,44 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete, nod
     }));
   };
 
+  const toggleEditableField = (fieldName: string) => {
+    setEditableFields(prev => {
+      if (prev.includes(fieldName)) {
+        return prev.filter(f => f !== fieldName);
+      } else {
+        return [...prev, fieldName];
+      }
+    });
+  };
+
   const renderDynamicField = (field: ToolCatalogField) => {
     const value = formData.config?.[field.name] || field.default || '';
+    const isEditable = editableFields.includes(field.name);
     
-    switch (field.type) {
-      case 'select':
-        return (
-          <FormControl fullWidth key={field.name} sx={{ mb: 2 }}>
-            <InputLabel>{field.name}</InputLabel>
-            <Select
-              value={value}
-              label={field.name}
-              onChange={(e) => handleConfigChange(field.name, e.target.value)}
-              MenuProps={selectMenuProps}
-            >
-              {field.options?.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </Select>
-            {field.description && (
-              <FormHelperText>{field.description}</FormHelperText>
-            )}
-          </FormControl>
-        );
+    // Render field with editable checkbox wrapper
+    const renderFieldInput = () => {
+      switch (field.type) {
+        case 'select':
+          return (
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>{field.name}</InputLabel>
+              <Select
+                value={value}
+                label={field.name}
+                onChange={(e) => handleConfigChange(field.name, e.target.value)}
+                MenuProps={selectMenuProps}
+              >
+                {field.options?.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+              {field.description && (
+                <FormHelperText>{field.description}</FormHelperText>
+              )}
+            </FormControl>
+          );
       
       case 'multiselect':
         return (
@@ -472,22 +493,50 @@ export default function NodeSettingsPanel({ node, onClose, onSave, onDelete, nod
           />
         );
       
-      case 'string':
-      default:
-        return (
-          <VariableTextField
-            key={field.name}
-            fullWidth
-            label={field.name}
-            value={value}
-            onChange={(val) => handleConfigChange(field.name, val)}
-            helperText={field.description}
-            required={field.required}
-            availableData={{}}
-            sx={{ mb: 2 }}
-          />
-        );
-    }
+        case 'string':
+        default:
+          return (
+            <VariableTextField
+              key={field.name}
+              fullWidth
+              label={field.name}
+              value={value}
+              onChange={(val) => handleConfigChange(field.name, val)}
+              helperText={field.description}
+              required={field.required}
+              availableData={{}}
+              sx={{ mb: 2 }}
+            />
+          );
+      }
+    };
+
+    // Wrap field with editable checkbox
+    return (
+      <Box key={field.name} sx={{ mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+          <Tooltip title={isEditable ? "This field can be customized in flows" : "Make this field editable in flows"}>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={isEditable}
+                  onChange={() => toggleEditableField(field.name)}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="caption" color="text.secondary">
+                  Editable in Flow
+                </Typography>
+              }
+              sx={{ m: 0 }}
+            />
+          </Tooltip>
+        </Box>
+        {renderFieldInput()}
+      </Box>
+    );
   };
 
   const handleFetchModelsFromIntegration = async () => {
