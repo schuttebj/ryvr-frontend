@@ -20,12 +20,14 @@ import {
   MenuItem,
   Switch,
   FormControlLabel,
+  Chip,
 } from '@mui/material';
 import {
   Api as OpenAIIcon,
   Search as DataForSEOIcon,
   CheckCircle as ActiveIcon,
   Settings as ConfigureIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import AdminLayout from '../components/layout/AdminLayout';
 import {
@@ -193,7 +195,21 @@ export default function SystemIntegrationsPage() {
       
       // Filter only dynamic system-wide integrations
       const dynamicSystem = data.filter((i: any) => i.is_dynamic === true && i.is_system_wide === true);
-      setDynamicSystemIntegrations(dynamicSystem);
+      
+      // Load system integration status for each dynamic integration
+      const dynamicWithStatus = await Promise.all(
+        dynamicSystem.map(async (integration: any) => {
+          try {
+            const status = await getSystemIntegrationStatus(integration.id);
+            return { ...integration, status };
+          } catch (error) {
+            console.error(`Failed to load status for ${integration.name}:`, error);
+            return integration;
+          }
+        })
+      );
+      
+      setDynamicSystemIntegrations(dynamicWithStatus);
       
     } catch (error) {
       console.error('Failed to load dynamic system integrations:', error);
@@ -312,10 +328,16 @@ export default function SystemIntegrationsPage() {
         throw new Error('Failed to save system integration configuration');
       }
 
+      const result = await response.json();
+      console.log('System integration configured:', result);
+
       alert(`${configuringDynamicIntegration.name} configured as system integration!`);
       setConfiguringDynamicIntegration(null);
       setDynamicFormData({});
+      
+      // Reload both dynamic integrations and status to refresh UI
       await loadDynamicSystemIntegrations();
+      await loadSystemIntegrationStatuses();
 
     } catch (error: any) {
       console.error('Failed to save configuration:', error);
@@ -483,13 +505,34 @@ export default function SystemIntegrationsPage() {
                           Auth Type: {integration.platform_config?.auth_type || 'N/A'}
                         </Typography>
 
+                        {/* Status Badge */}
+                        <Box sx={{ mb: 2 }}>
+                          {integration.status?.is_system_integration ? (
+                            <Chip
+                              label="Configured"
+                              color="success"
+                              size="small"
+                              icon={<CheckIcon />}
+                              sx={{ mb: 2 }}
+                            />
+                          ) : (
+                            <Chip
+                              label="Not Configured"
+                              color="default"
+                              size="small"
+                              sx={{ mb: 2 }}
+                            />
+                          )}
+                        </Box>
+
                         <Button
                           size="small"
                           variant="contained"
                           onClick={() => handleConfigureDynamicIntegration(integration)}
                           sx={{ width: '100%' }}
+                          color={integration.status?.is_system_integration ? 'warning' : 'primary'}
                         >
-                          Configure System-wide
+                          {integration.status?.is_system_integration ? 'Reconfigure' : 'Configure System-wide'}
                         </Button>
                       </Box>
                     </CardContent>
