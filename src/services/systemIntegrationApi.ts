@@ -65,7 +65,23 @@ async function makeRequest<T>(
 }
 
 /**
+ * Get system integration status for all integrations in a single batch call
+ * This is much more efficient than calling getSystemIntegrationStatus for each integration
+ */
+export const getBatchSystemIntegrationStatuses = async (): Promise<Record<string, SystemIntegrationStatus>> => {
+  const response = await makeRequest<{
+    success: boolean;
+    count: number;
+    statuses: Record<string, SystemIntegrationStatus>;
+  }>(`/api/v1/integrations/system-status/batch`);
+  
+  return response.statuses;
+};
+
+/**
  * Get system integration status for an integration
+ * 
+ * @deprecated Use getBatchSystemIntegrationStatuses() for better performance when checking multiple integrations
  */
 export const getSystemIntegrationStatus = async (integrationId: number): Promise<SystemIntegrationStatus> => {
   return await makeRequest<SystemIntegrationStatus>(`/api/v1/integrations/${integrationId}/system-status`);

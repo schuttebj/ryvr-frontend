@@ -51,7 +51,7 @@ import {
 } from '@mui/icons-material';
 import { useOpenAIModels } from '../hooks/useOpenAIModels';
 import { 
-  getSystemIntegrationStatus, 
+  getBatchSystemIntegrationStatuses,
   getDatabaseIntegrations,
   SystemIntegrationStatus
 } from '../services/systemIntegrationApi';
@@ -312,20 +312,11 @@ export default function IntegrationsPage() {
 
   const loadSystemIntegrationStatuses = async () => {
     try {
-      const statuses: Record<string, SystemIntegrationStatus> = {};
+      // Use batch endpoint to get all statuses in a single API call
+      // This is MUCH more efficient than calling the API for each integration individually
+      const statuses = await getBatchSystemIntegrationStatuses();
       
-      // Use database integrations for system integration status loading
-      const integrationsToCheck = databaseIntegrations.length > 0 ? databaseIntegrations : integrations;
-      
-      for (const integration of integrationsToCheck) {
-        try {
-          const status = await getSystemIntegrationStatus(parseInt(integration.id));
-          statuses[integration.id] = status;
-        } catch (error) {
-          console.error(`Failed to load system status for ${integration.name}:`, error);
-        }
-      }
-      
+      console.log(`✅ Loaded ${Object.keys(statuses).length} integration statuses in one batch call`);
       setSystemIntegrationStatuses(statuses);
     } catch (error) {
       console.error('Failed to load system integration statuses:', error);
