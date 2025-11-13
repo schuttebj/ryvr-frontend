@@ -1357,9 +1357,56 @@ export const workflowApi = {
           throw new Error(result.error || 'Failed to update V2 template');
         }
       } else {
-        // Standard V1 workflow - save to localStorage
+        // New workflow - create backend template first
+        console.log('Creating new workflow template in backend...');
+        
+        // Convert V1 workflow format to V2 template format
+        const workflowTemplate: WorkflowTemplateV2 = {
+          schema_version: "ryvr.workflow.v1" as const,
+          name: workflow.name,
+          description: workflow.description || '',
+          category: "general",
+          tags: workflow.tags || [],
+          inputs: {},
+          globals: {},
+          steps: workflow.nodes?.map((node: any, index: number) => {
+            // Find dependencies from edges
+            const incomingEdges = workflow.edges?.filter((edge: any) => edge.target === node.id) || [];
+            const depends_on = incomingEdges.map((edge: any) => edge.source);
+            
+            return {
+              id: node.id || `step_${index}`,
+              type: node.data?.type || node.type || 'task',
+              name: node.data?.label || node.data?.name || `Step ${index + 1}`,
+              depends_on,
+              input: { 
+                bindings: {
+                  ...node.data,
+                  // Preserve node position for reconstruction
+                  position: node.position
+                }
+              }
+            };
+          }) || [],
+          execution: {
+            execution_mode: "simulate" as const,
+            dry_run: true
+          }
+        };
+        
+        // Create template in backend
+        const result = await workflowApi.createWorkflowTemplate(workflowTemplate);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create workflow template');
+        }
+        
+        // Use the backend-generated ID
+        const backendId = result.template?.id;
+        
+        // Standard V1 workflow - save to localStorage with backend ID
         const standardizedWorkflow = {
-          id: workflow.id || `workflow_${Date.now()}`,
+          id: backendId?.toString() || workflow.id || `workflow_${Date.now()}`,
           name: workflow.name,
           description: workflow.description || '',
           nodes: workflow.nodes || [],
@@ -1386,7 +1433,7 @@ export const workflowApi = {
         
         localStorage.setItem('workflows', JSON.stringify(workflows));
         
-        console.log(`💾 Saved workflow with ${Object.keys(globalWorkflowData).length} node responses`);
+        console.log(`💾 Created new workflow template with ID: ${backendId}`);
         
         return { success: true, workflow: standardizedWorkflow };
       }

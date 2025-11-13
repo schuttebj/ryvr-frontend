@@ -508,11 +508,19 @@ function WorkflowBuilderPage() {
 
   const handleSaveWorkflow = async (workflow: any) => {
     try {
-      await workflowApi.saveWorkflow(workflow);
-      // Navigate back to list after saving
-      navigate('/admin/workflows');
+      const result = await workflowApi.saveWorkflow(workflow);
+      
+      if (result.success) {
+        console.log('✅ Workflow saved successfully:', result.workflow);
+        
+        // Small delay to ensure backend is synced before navigating
+        setTimeout(() => {
+          navigate('/admin/workflows');
+        }, 500);
+      }
     } catch (error) {
-      console.error('Failed to save workflow:', error);
+      console.error('❌ Failed to save workflow:', error);
+      alert('Failed to save workflow: ' + (error as Error).message);
     }
   };
 
